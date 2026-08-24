@@ -1,0 +1,7 @@
+# sorties générées
+stl/
+*.stl
+*.zip
+preview/test-*.png
+preview/poc-*.png
+.DS_Store

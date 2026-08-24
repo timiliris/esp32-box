@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32 Box Builder</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #161a21; --panel2: #1c212b; --line: #262c38;
+    --text: #e6e9ef; --muted: #8b93a7; --accent: #4f8cff; --accent2: #7db0ff;
+    --danger: #ff6b6b; --ok: #51c98a; --warn: #f0b350;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  input, select { font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 7px; }
+  input[type=number] { width: 62px; font-family: var(--mono); font-size: 12px; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  svg { display: block; }
+
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 8px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--line); flex: none;
+  }
+  header h1 { font-size: 14px; font-weight: 600; letter-spacing: .2px; }
+  header h1 span { color: var(--accent); }
+  .presets { display: flex; gap: 6px; }
+  .chip {
+    padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--muted); font-size: 12px;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--text); }
+  .dims { display: flex; align-items: center; gap: 5px; margin-left: auto; }
+  .dims label { color: var(--muted); font-size: 12px; }
+  .opts { display: flex; gap: 12px; align-items: center; }
+  .opts label { display: flex; gap: 5px; align-items: center; color: var(--muted); font-size: 12px; cursor: pointer; }
+
+  main { display: flex; flex: 1; min-height: 0; }
+  #rail {
+    width: 46px; flex: none; background: var(--bg); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 4px;
+  }
+  .railbtn {
+    width: 36px; height: 36px; border-radius: 9px; display: flex;
+    align-items: center; justify-content: center; color: var(--muted);
+    border: 1px solid transparent;
+  }
+  .railbtn:hover { color: var(--text); background: var(--panel2); }
+  .railbtn.active { color: var(--accent); background: rgba(79,140,255,.12); border-color: rgba(79,140,255,.35); }
+  .railbtn .ico { width: 17px; height: 17px; }
+  #sidebar {
+    width: 278px; flex: none; background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  #panels { flex: 1; overflow-y: auto; padding: 12px; min-height: 0; }
+  .panel { display: none; flex-direction: column; gap: 14px; }
+  .panel.active { display: flex; }
+  #selWrap {
+    flex: none; border-top: 1px solid var(--line); padding: 10px 12px;
+    max-height: 46%; overflow-y: auto; background: var(--panel);
+  }
+  .palcat {
+    grid-column: 1 / -1; font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .7px; color: #5b6274;
+    margin-top: 6px;
+  }
+  .unit { color: var(--muted); font-size: 11px; }
+  .chip.active { border-color: var(--accent); color: var(--text); background: rgba(79,140,255,.10); }
+  .tabn {
+    display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 8px;
+    background: rgba(79,140,255,.18); color: var(--accent2); font-size: 10px;
+  }
+  #dragTip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--bg); border: 1px solid var(--accent); border-radius: 6px;
+    padding: 2px 7px; font-family: var(--mono); font-size: 11px; color: var(--accent2);
+    z-index: 5; white-space: nowrap;
+  }
+  footer.nocmd .cmd { display: none; }
+  #p3open { color: var(--muted); display: flex; margin-left: auto; }
+  #p3open:hover { color: var(--text); }
+  #p3open.active { color: var(--accent); }
+  #prev3d .p3hint { margin-left: 0; }
+  @media (max-width: 1080px) {
+    #sidebar { width: 236px; }
+    .palette { grid-template-columns: 1fr; }
+    #prev3d { width: 206px; }
+    #p3scene { height: 168px; }
+    .presets { display: none; }
+  }
+  .group h2 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--muted); margin-bottom: 7px;
+  }
+  .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .pal {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 9px; text-align: left;
+  }
+  .pal:hover { border-color: var(--accent); }
+  .pal b { font-size: 12px; font-weight: 600; }
+  .pal small { color: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+
+  .insp { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .insp .rowline { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+  .insp .rowline label { color: var(--muted); width: 62px; font-size: 12px; }
+  .insp .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; font-size: 12px;
+    color: var(--text); background: var(--bg);
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .btn:disabled:hover { border-color: var(--line); }
+  .btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent2); }
+  .empty { color: var(--muted); font-size: 12px; padding: 4px 2px; }
+
+  #center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .tabs { display: flex; gap: 2px; padding: 8px 12px 0; flex: none; }
+  .tab {
+    padding: 6px 14px; border-radius: 8px 8px 0 0; color: var(--muted); font-size: 12.5px;
+    border: 1px solid transparent; border-bottom: none;
+  }
+  .tab.active { background: var(--panel); color: var(--text); border-color: var(--line); }
+  #canvasWrap { flex: 1; background: var(--panel); margin: 0 12px; border: 1px solid var(--line);
+    border-radius: 0 10px 10px 10px; position: relative; min-height: 0; }
+  #canvas { width: 100%; height: 100%; touch-action: none; }
+  #hint {
+    position: absolute; right: 10px; top: 8px; color: var(--muted); font-size: 11px;
+    background: color-mix(in srgb, var(--panel) 82%, transparent); padding: 3px 8px; border-radius: 6px;
+    pointer-events: none;
+  }
+  #warns { position: absolute; left: 10px; top: 8px; display: flex; flex-direction: column;
+    align-items: flex-start; gap: 4px; pointer-events: none; }
+  .warnline { color: var(--warn); font-size: 11.5px; background: rgba(240,179,80,.09);
+    border: 1px solid rgba(240,179,80,.35); padding: 2px 8px; border-radius: 6px;
+    pointer-events: auto; cursor: pointer; text-align: left; }
+  .warnline:hover { border-color: var(--warn); background: rgba(240,179,80,.16); }
+
+  #objects { display: flex; flex-direction: column; gap: 4px; }
+  .objrow { display: flex; align-items: center; gap: 7px; width: 100%;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 7px;
+    padding: 5px 8px; font-size: 12px; text-align: left; }
+  .objrow:hover { border-color: var(--accent); }
+  .objrow.sel { border-color: var(--accent); background: rgba(79,140,255,.08); }
+  .objrow .of { color: var(--muted); font-size: 10.5px; }
+  .objrow .oi { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .objrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); flex: none; }
+
+  footer {
+    flex: none; background: var(--panel); border-top: 1px solid var(--line);
+    padding: 10px 14px; display: flex; gap: 12px; align-items: stretch;
+  }
+  .cmdbox { flex: 1; min-width: 0; }
+  .cmdbox .cap { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .cmdbox .cap b { font-size: 12px; }
+  .cmdbox .cap span { color: var(--muted); font-size: 11.5px; }
+  .cmd {
+    font-family: var(--mono); font-size: 11px; color: var(--accent2);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 9px; white-space: nowrap; overflow-x: auto; user-select: all;
+  }
+  .copyok { color: var(--ok) !important; border-color: var(--ok) !important; }
+
+  .ico { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.8; fill: none;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+  #prev3d {
+    position: absolute; right: 12px; bottom: 12px; width: 258px;
+    background: color-mix(in srgb, var(--panel2) 92%, transparent);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    user-select: none;
+  }
+  .p3head {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    border-bottom: 1px solid var(--line); font-size: 11.5px; font-weight: 600;
+  }
+  .p3hint { color: var(--muted); font-weight: 400; font-size: 10.5px; margin-left: auto; }
+  #p3toggle { color: var(--muted); display: flex; }
+  #p3toggle:hover { color: var(--text); }
+  #prev3d.collapsed #p3scene { display: none; }
+  #prev3d.collapsed #p3toggle svg { transform: rotate(180deg); }
+  #p3scene {
+    height: 212px; perspective: 720px; cursor: grab; touch-action: none;
+    overflow: hidden;
+  }
+  #p3scene:active { cursor: grabbing; }
+  #p3cube {
+    position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+    transform-style: preserve-3d;
+  }
+  .p3face {
+    position: absolute; backface-visibility: hidden;
+  }
+  .p3face svg { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ESP32 <span>Box Builder</span></h1>
+  <button class="btn" id="undoBtn" title="Annuler (Cmd+Z)">
+    <svg class="ico" viewBox="0 0 16 16"><path d="M4 7h7a3.5 3.5 0 0 1 0 7H8"/><path d="M7 4 4 7l3 3"/></svg>
+  </button>
+  <button class="btn" id="redoBtn" title="Rétablir (Cmd+Maj+Z)">
+    <svg class="ico" viewBox="0 0 16 16"><path d="M12 7H5a3.5 3.5 0 0 0 0 7h3"/><path d="m9 4 3 3-3 3"/></svg>
+  </button>
+  <div class="presets" id="presets"></div>
+  <button class="chip" id="dimsSummary" style="margin-left:auto" title="Dimensions intérieures — ouvre le panneau Boîtier"></button>
+</header>
+
+<main>
+  <nav id="rail">
+    <button class="railbtn" data-panel="cut" title="Découpes &amp; connecteurs">
+      <svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><path d="M8 5.5v5M5.5 8h5"/></svg>
+    </button>
+    <button class="railbtn" data-panel="floor" title="Implantation du fond — PCB, socles, cloisons, compartiments">
+      <svg class="ico" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6 1.5v2.5M10 1.5v2.5M6 12v2.5M10 12v2.5M1.5 6H4M1.5 10H4M12 6h2.5M12 10h2.5"/></svg>
+    </button>
+    <button class="railbtn" data-panel="objects" title="Objets du projet">
+      <svg class="ico" viewBox="0 0 16 16"><path d="m8 2 6 3-6 3-6-3z"/><path d="m2 8.5 6 3 6-3M2 11.5l6 3 6-3"/></svg>
+    </button>
+    <button class="railbtn" data-panel="box" title="Boîtier &amp; réglages">
+      <svg class="ico" viewBox="0 0 16 16"><path d="M8 1.5 14 5v6L8 14.5 2 11V5z"/><path d="M2 5l6 3 6-3M8 8v6.5"/></svg>
+    </button>
+  </nav>
+  <div id="sidebar">
+    <div id="panels">
+      <div class="panel" id="panel-cut">
+        <div class="group">
+          <h2>Ajouter une découpe</h2>
+          <div class="palette" id="palette"></div>
+        </div>
+      </div>
+      <div class="panel" id="panel-objects">
+        <div class="group">
+          <h2>Objets du projet</h2>
+          <div id="objects"></div>
+        </div>
+      </div>
+      <div class="panel" id="panel-box">
+        <div class="group">
+          <h2>Dimensions intérieures</h2>
+          <div class="insp">
+            <div class="rowline"><label>Largeur</label><input type="number" id="dimW" min="30" max="300" step="1"><span class="unit">mm</span></div>
+            <div class="rowline"><label>Profondeur</label><input type="number" id="dimD" min="30" max="300" step="1"><span class="unit">mm</span></div>
+            <div class="rowline"><label>Hauteur</label><input type="number" id="dimH" min="15" max="150" step="1"><span class="unit">mm</span></div>
+          </div>
+        </div>
+        <div class="group">
+          <h2>Options</h2>
+          <div class="insp">
+            <div class="rowline"><label style="width:auto;flex:1">Bande d'aération flancs</label><input type="checkbox" id="optVents"></div>
+            <div class="rowline"><label style="width:auto;flex:1">Fentes zip-tie au fond</label><input type="checkbox" id="optTies"></div>
+            <div class="rowline"><label>Fixation</label>
+              <select id="optLid" style="flex:1"><option value="snap">couvercle clipsé</option><option value="screws">couvercle vissé</option></select>
+            </div>
+            <div class="rowline" title="Élargissement des trous pour compenser le rétreint FDM"><label style="width:auto;flex:1">Jeu perçage</label>
+              <input type="number" id="optComp" step="0.05" min="0" max="1"></div>
+            <div class="rowline" title="Trous ronds des parois avec sommet à 45° : impression sans support ni affaissement"><label style="width:auto;flex:1">Goutte d'eau</label>
+              <input type="checkbox" id="optTear"></div>
+          </div>
+        </div>
+        <div class="group">
+          <h2>Fixation murale</h2>
+          <div class="insp">
+            <div class="rowline"><label>Pattes</label>
+              <select id="mountTabs" style="flex:1">
+                <option value="none">aucune</option>
+                <option value="x">sur les flancs</option>
+                <option value="y">avant / arrière</option>
+              </select>
+            </div>
+            <div class="rowline" id="mountNRow"><label>Nombre</label>
+              <select id="mountN"><option value="2">2</option><option value="4">4</option></select>
+            </div>
+            <div class="empty">Œillets Ø 4.2 au ras du fond, imprimés avec la base — visibles sur l'onglet Fond.</div>
+          </div>
+        </div>
+        <div class="group">
+          <h2>Projet</h2>
+          <div style="display:flex; gap:6px">
+            <button class="btn danger" id="resetBtn">Tout effacer</button>
+          </div>
+          <div class="empty" style="margin-top:6px">Sauvegarde automatique dans le navigateur.</div>
+        </div>
+      </div>
+      <div class="panel" id="panel-floor">
+    <div class="group">
+      <h2>Entretoises PCB</h2>
+      <div class="insp">
+        <div class="rowline"><label>Carte</label>
+          <select id="pcbPreset" style="flex:1"></select>
+        </div>
+        <div class="rowline"><label>Entraxe</label>
+          <input type="number" id="pcbDX" step="0.1"> ×
+          <input type="number" id="pcbDY" step="0.1">
+        </div>
+        <div class="rowline"><label>Trous</label>
+          <select id="pcbHoles" style="flex:1">
+            <option value="4">4 — rectangle</option>
+            <option value="2">2 — paire / diagonale</option>
+          </select>
+        </div>
+        <button class="btn primary" id="pcbAdd">
+          <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+          Ajouter le groupe
+        </button>
+        <div class="empty" style="margin-top:6px">Entraxe = distance entre les centres des trous. Mesure ta carte.</div>
+      </div>
+      <h2 style="margin-top:12px">Socle de cellule</h2>
+      <div class="insp">
+        <div class="rowline"><label>Cellule</label>
+          <select id="cellPreset" style="flex:1"></select>
+        </div>
+        <button class="btn primary" id="cellAdd">
+          <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+          Ajouter le socle
+        </button>
+        <div class="empty" style="margin-top:6px">Berceau imprimé : deux joues clipsantes + butées aux extrémités.</div>
+      </div>
+      <h2 style="margin-top:12px">Cloisons &amp; compartiments</h2>
+      <div class="insp">
+        <button class="btn primary" id="divAdd">
+          <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+          Ajouter une cloison
+        </button>
+        <div class="empty" style="margin-top:6px">Muret simple, pleine hauteur ou partiel, option créneaux d'aération haut/bas. Fais-le dépasser dans les parois : il sera rogné et raccordé.</div>
+        <button class="btn primary" id="compAdd" style="margin-top:8px">
+          <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+          Ajouter un compartiment
+        </button>
+        <div class="empty" style="margin-top:6px">Cadre fermé pour isoler un capteur : aération nid d'abeille dans le fond dessous et dans le couvercle au-dessus (l'air extérieur traverse en cheminée), passage câble sur le mur de ton choix. Cale-le contre une paroi ou un coin.</div>
+      </div>
+    </div>
+      </div>
+    </div>
+    <div class="group" id="selWrap">
+      <h2>Sélection</h2>
+      <div id="inspector"><div class="empty">Clique sur un élément du plan, ou ajoute une découpe.</div></div>
+    </div>
+  </div>
+
+  <div id="center">
+    <div class="tabs" id="tabs"></div>
+    <div id="canvasWrap">
+      <svg id="canvas"></svg>
+      <div id="hint">glisser = déplacer · molette = naviguer · Ctrl+molette = zoom · double-clic = recadrer · flèches = 1 mm · Suppr = retirer</div>
+      <div id="warns"></div>
+      <div id="dragTip"></div>
+      <div id="prev3d">
+        <div class="p3head">
+          <span>Aperçu 3D</span>
+          <span class="p3hint">glisser pour tourner</span>
+          <button id="p3open" title="Vue intérieure (couvercle retiré)">
+            <svg class="ico" viewBox="0 0 16 16"><path d="M2 6.5 8 3l6 3.5M2 6.5V12l6 2.5M2 6.5 8 10m6-3.5V12l-6 2.5M14 6.5 8 10m0 4.5V10"/></svg>
+          </button>
+          <button id="p3toggle" title="Replier / déplier">
+            <svg class="ico" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg>
+          </button>
+        </div>
+        <div id="p3scene"><div id="p3cube"></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="cmdbox">
+    <div class="cap"><b>Base</b><span id="srvNote">à lancer depuis le dossier esp32-box</span>
+      <button class="btn" id="cmdToggle" title="Afficher / masquer les commandes OpenSCAD">‹›</button>
+      <button class="btn primary" id="genBase" style="margin-left:auto;display:none">Générer le STL</button>
+      <button class="btn" id="copyBase" style="margin-left:auto">
+        <svg class="ico" viewBox="0 0 16 16"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg>
+        Copier</button>
+    </div>
+    <div class="cmd" id="cmdBase"></div>
+  </div>
+  <div class="cmdbox" style="max-width:30%">
+    <div class="cap"><b>Couvercle</b>
+      <button class="btn primary" id="genLid" style="margin-left:auto;display:none">Générer le STL</button>
+      <button class="btn" id="copyLid" style="margin-left:auto">
+        <svg class="ico" viewBox="0 0 16 16"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg>
+        Copier</button>
+    </div>
+    <div class="cmd" id="cmdLid"></div>
+  </div>
+  <div class="cmdbox" style="max-width:26%" id="insBox">
+    <div class="cap"><b>Inserts</b><span title="À imprimer en PETG transparent ou blanc">autre matière</span>
+      <button class="btn primary" id="genIns" style="margin-left:auto;display:none">Générer le STL</button>
+      <button class="btn" id="copyIns" style="margin-left:auto">
+        <svg class="ico" viewBox="0 0 16 16"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg>
+        Copier</button>
+    </div>
+    <div class="cmd" id="cmdIns"></div>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+// ---------------------------------------------------------------
+// Constantes géométrie (doivent suivre esp32-box.scad)
+// ---------------------------------------------------------------
+const CORNER_R = 9;      // rayon des coins
+const LID_BAND = 9;      // zone haute occupée par jupe + clips (lip_h 7 + rainure)
+const GRID = 0.5;        // pas de la grille (mm)
+const SNAP_TOL = 5;      // tolérance d'aimantation (px)
+
+const FACES = [
+  { id: 'front', label: 'Avant' },
+  { id: 'back',  label: 'Arrière' },
+  { id: 'left',  label: 'Flanc gauche' },
+  { id: 'right', label: 'Flanc droit' },
+  { id: 'lid',   label: 'Couvercle' },
+  { id: 'floor', label: 'Fond' },
+];
+// signe : off écran (vu de l'extérieur, + = droite) -> off global OpenSCAD
+const FACE_SIGN = { front: 1, back: -1, right: 1, left: -1, lid: 1, floor: 1 };
+// faces "à plat" (vue de dessus, coordonnées X/Y depuis le centre)
+const isFlat = f => f === 'lid' || f === 'floor';
+// types de découpe "aération" (zone remplie d'un motif)
+const VENT_TYPES = ['vslots', 'hslots', 'grid', 'hex'];
+// boutons pour tact switch 6×6 (parois uniquement)
+const isBtnType = t => t === 'btnflex' || t === 'btnpiston';
+
+// Cellules d'un motif d'aération, en mm autour du centre de la zone
+// (mêmes formules que vent_pattern2d dans esp32-box.scad)
+function ventCells(t, a, b) {
+  const cells = [];
+  if (t === 'vslots') {
+    const n = Math.max(Math.floor((a - 2) / 4.5) + 1, 1);
+    for (let i = 0; i < n; i++)
+      cells.push({ kind: 'rect', x: (i - (n - 1) / 2) * 4.5, y: 0, w: 2, h: b, r: 0.9 });
+  } else if (t === 'hslots') {
+    const n = Math.max(Math.floor((b - 2) / 4.5) + 1, 1);
+    for (let j = 0; j < n; j++)
+      cells.push({ kind: 'rect', x: 0, y: (j - (n - 1) / 2) * 4.5, w: a, h: 2, r: 0.9 });
+  } else if (t === 'grid') {
+    const ny = Math.max(Math.floor((b - 3) / (5 * 0.866)) + 1, 1);
+    const nx = Math.max(Math.floor((a - 3) / 5) + 1, 1);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const x = (i - (nx - 1) / 2) * 5 + (j % 2 ? 2.5 : 0);
+      if (Math.abs(x) <= (a - 3) / 2 + 0.01)
+        cells.push({ kind: 'circle', x, y: (j - (ny - 1) / 2) * 5 * 0.866, d: 3 });
+    }
+  } else if (t === 'hex') {
+    const r = 5 / Math.sqrt(3);
+    const ny = Math.max(Math.floor((b - 2 * r) / 5.72) + 1, 1);
+    const nx = Math.max(Math.floor((a - 5) / 6.6) + 1, 1);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const x = (i - (nx - 1) / 2) * 6.6 + (j % 2 ? 3.3 : 0);
+      if (Math.abs(x) <= (a - 5) / 2 + 0.01)
+        cells.push({ kind: 'hex', x, y: (j - (ny - 1) / 2) * 5.72, r });
+    }
+  }
+  return cells;
+}
+function hexPts(px, py, R) {
+  return [...Array(6)].map((_, k) => {
+    const ang = Math.PI / 3 * k + Math.PI / 6;
+    return `${px + R * Math.cos(ang)},${py + R * Math.sin(ang)}`;
+  }).join(' ');
+}
+
+const PALETTE = [
+  { label: 'USB-C',        sub: '10 × 6',   type: 'rect',   w: 10,  h: 6,
+    tip: 'Passage pour un connecteur de câble USB-C entier (prise en retrait derrière la paroi)' },
+  { label: 'USB-C encastré', sub: '8.7 × 2.9 · support', type: 'usbc', w: 8.7, h: 2.9, dz: 6,
+    tip: 'Pour une prise USB-C femelle nue (armature à souder) : support intégré derrière la paroi, nez au ras. Brancher pousse contre le fond, débrancher plaque contre la paroi — rien ne bouge.' },
+  { label: 'USB-A',        sub: '14 × 8',   type: 'rect',   w: 14,  h: 8,
+    tip: 'Passage pour une prise USB-A classique' },
+  { label: 'micro-USB',    sub: '9 × 5',    type: 'rect',   w: 9,   h: 5,
+    tip: 'Passage pour une prise micro-USB' },
+  { label: 'Rangée ports', sub: '64 × 10',  type: 'rect',   w: 64,  h: 10,
+    tip: 'Grande ouverture pour une rangée complète de ports (module power bank…)' },
+  { label: 'Jack 3.5',     sub: 'Ø 6.5',    type: 'circle', d: 6.5,
+    tip: 'Jack audio 3.5 mm châssis : se visse dans la paroi avec son écrou' },
+  { label: 'Guide LED 1.75', sub: 'Ø 1.8 · filament', type: 'circle', d: 1.8,
+    tip: 'Bout de filament transparent en guide de lumière pour une LED témoin' },
+  { label: 'Poussoir 7',   sub: 'Ø 7.2',    type: 'circle', d: 7.2,
+    tip: 'Petit bouton poussoir châssis 7 mm (type PBS-110)' },
+  { label: 'Poussoir 12',  sub: 'Ø 12.2',   type: 'circle', d: 12.2,
+    tip: 'Bouton poussoir châssis 12 mm (métal, souvent étanche)' },
+  { label: 'PG7',          sub: 'Ø 12.5',   type: 'circle', d: 12.5,
+    tip: 'Presse-étoupe PG7 : sortie de câble propre, avec serrage anti-arrachement' },
+  { label: 'Rocker KCD1',  sub: '19.2 × 13.2', type: 'rect', w: 19.2, h: 13.2,
+    tip: 'Interrupteur à bascule KCD1 (le petit rocker rectangulaire standard)' },
+  { label: 'Bouton languette', sub: 'tact 6×6 · Ø 9.5', type: 'btnflex', d: 9.5,
+    tip: 'Bouton imprimé en place : languette flexible dans la paroi + berceau intégré pour un tact switch 6×6 (glissé dedans, deux fils à souder). Zéro pièce à assembler.' },
+  { label: 'Bouton poussoir', sub: 'tact 6×6 · Ø 10', type: 'btnpiston', d: 10,
+    tip: 'Piston coulissant qui presse un tact switch 6×6 dans son berceau intégré. Le capuchon s\'imprime avec la planche Inserts.' },
+  { label: 'Fenêtre LED',  sub: '74 × 12 · insert', type: 'insert', w: 74, h: 12, skin: 0.8,
+    tip: 'Trou à feuillure + fenêtre clipsable imprimée à part en PETG transparent ou blanc — membrane fine de 0.8 au centre, la lumière diffuse bien' },
+  { label: 'Fenêtre radar',sub: '35 × 14 · insert', type: 'insert', w: 35, h: 14, skin: 0.8,
+    tip: 'Fenêtre clipsable en PETG transparent pour LD2410B (35 mm, la longueur du module) : le mmWave voit à travers la membrane fine' },
+  { label: 'Insert libre', sub: '40 × 15 · insert', type: 'insert', w: 40, h: 15, skin: 0.8,
+    tip: 'Fenêtre clipsable à dimensionner librement — peau 0 = cadre ouvert sans membrane (laser ToF, capteur à l\'air libre)' },
+  { label: 'Fentes vert.', sub: '30 × 12 · aération', type: 'vslots', w: 30, h: 12,
+    tip: 'Bande de fentes verticales arrondies (fentes 2 mm, pas 4.5)' },
+  { label: 'Fentes horiz.', sub: '30 × 12 · aération', type: 'hslots', w: 30, h: 12,
+    tip: 'Fentes horizontales empilées — discret sur un flanc ou un couvercle' },
+  { label: 'Grille ronde', sub: '25 × 25 · aération', type: 'grid', w: 25, h: 25,
+    tip: 'Trous Ø 3 en quinconce, façon grille de haut-parleur' },
+  { label: 'Nid d\'abeille', sub: '30 × 20 · aération', type: 'hex', w: 30, h: 20,
+    tip: 'Hexagones de 5 mm — le motif d\'aération classique, s\'imprime très bien' },
+  { label: 'Rect libre',   sub: '20 × 10',  type: 'rect',   w: 20,  h: 10,
+    tip: 'Découpe rectangulaire à dimensionner librement' },
+  { label: 'Rond libre',   sub: 'Ø 8',      type: 'circle', d: 8,
+    tip: 'Trou rond à dimensionner librement' },
+  { label: 'Fenêtre libre',sub: '40 × 15 · peau 1', type: 'window', w: 40, h: 15, skin: 1,
+    tip: 'Fenêtre borgne à dimensionner librement (peau réglable)' },
+];
+
+const CELL_PRESETS = [
+  { label: '18650 — 65 × Ø 18.5', len: 65, dia: 18.5 },
+  { label: '21700 — 70 × Ø 21.5', len: 70, dia: 21.5 },
+  { label: '14500 (AA) — 50 × Ø 14.5', len: 50, dia: 14.5 },
+];
+
+// holes : 4 = rectangle, 2 = paire (alignée si dy=0, diagonale sinon)
+// d / pilot : plots fins + avant-trou M2 (1.8) pour les petits modules
+// ≈ = cote usuelle des clones, à vérifier au pied à coulisse
+const PCB_PRESETS = [
+  { group: 'Cartes', label: 'ESP32 DevKit 30 br. — 44.5 × 20.5', dx: 44.5, dy: 20.5, holes: 4, d: 6.5, pilot: 2.2 },
+  { group: 'Plaques de proto', label: '2 × 8 cm (20 × 80) — 16 × 76 ≈',   dx: 16, dy: 76,  holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Plaques de proto', label: '3 × 7 cm (30 × 70) — 26 × 66 ≈',   dx: 26, dy: 66,  holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Plaques de proto', label: '4 × 6 cm (40 × 60) — 36 × 56 ≈',   dx: 36, dy: 56,  holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Plaques de proto', label: '5 × 7 cm (50 × 70) — 46 × 66 ≈',   dx: 46, dy: 66,  holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Plaques de proto', label: '6 × 8 cm (60 × 80) — 56 × 76 ≈',   dx: 56, dy: 76,  holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Plaques de proto', label: '7 × 9 cm (70 × 90) — 66 × 86 ≈',   dx: 66, dy: 86,  holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Plaques de proto', label: '8 × 12 cm (80 × 120) — 76 × 116 ≈', dx: 76, dy: 116, holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Plaques de proto', label: '9 × 15 cm (90 × 150) — 86 × 146 ≈', dx: 86, dy: 146, holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Capteurs & modules', label: 'GY-BME280 / BMP280 — 2 trous · 10', dx: 10, dy: 0, holes: 2, d: 4.5, pilot: 2.2 },
+  { group: 'Capteurs & modules', label: 'OLED 0.96″ SSD1306 — 23.5 × 23.5 ≈', dx: 23.5, dy: 23.5, holes: 4, d: 4.5, pilot: 1.8 },
+  { group: 'Capteurs & modules', label: 'GY-521 (MPU6050) — 2 trous · 15.2 ≈', dx: 15.2, dy: 0, holes: 2, d: 4.5, pilot: 2.2 },
+  { group: 'Capteurs & modules', label: 'Buck LM2596 — 2 trous diag · 30 × 16 ≈', dx: 30, dy: 16, holes: 2, d: 5, pilot: 2.2 },
+  { group: 'Capteurs & modules', label: 'Micro / ampli / petit module — à mesurer', dx: 10, dy: 0, holes: 2, d: 4.5, pilot: 1.8 },
+  { group: 'Libre', label: 'Entraxe libre…', dx: 40, dy: 20, holes: 4, d: 6.5, pilot: 2.2 },
+];
+
+const BOX_PRESETS = [
+  { label: 'S',  w: 70,  d: 50,  h: 30 },
+  { label: 'M',  w: 100, d: 70,  h: 40 },
+  { label: 'L',  w: 140, d: 100, h: 50 },
+  { label: 'XL', w: 180, d: 130, h: 60 },
+  { label: 'Power bank', w: 112, d: 80, h: 42 },
+];
+
+// ---------------------------------------------------------------
+// État
+// ---------------------------------------------------------------
+const DEFAULT_STATE = () => ({
+  inner: { w: 100, d: 70, h: 40 },
+  vents: false, tieSlots: false, lidFix: 'snap',
+  holeComp: 0.3, teardrop: true,
+  mountTabs: 'none', mountN: 2, panel: 'cut',
+  face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], nextId: 1, sel: null,
+});
+let state = DEFAULT_STATE();
+try {
+  const saved = JSON.parse(localStorage.getItem('esp32boxbuilder') || 'null');
+  if (saved && saved.inner) state = Object.assign(DEFAULT_STATE(), saved, { sel: null });
+  if (!state.cells) state.cells = [];
+  if (!state.divs) state.divs = [];
+  if (!state.comps) state.comps = [];
+  // migration : les inserts existants reçoivent une membrane 0.8
+  for (const c of state.cuts)
+    if (c.type === 'insert' && c.skin === undefined) c.skin = 0.8;
+  // migration : ancien raccord (cadre 1 mm dans la paroi, doublure de
+  // 0.8 mm à l'intérieur) -> nouveau (cadre entièrement dans la paroi)
+  for (const cp of state.comps) {
+    const ax = (state.inner.w - cp.w) / 2, ay = (state.inner.d - cp.d) / 2;
+    if (Math.abs(cp.cx - (-(ax) + 0.8)) < 0.15) cp.cx = -ax;
+    if (Math.abs(cp.cx - (ax - 0.8)) < 0.15) cp.cx = ax;
+    if (Math.abs(cp.cy - (-(ay) + 0.8)) < 0.15) cp.cy = -ay;
+    if (Math.abs(cp.cy - (ay - 0.8)) < 0.15) cp.cy = ay;
+  }
+  if (!state.mountTabs) state.mountTabs = 'none';
+  if (!state.mountN) state.mountN = 2;
+  if (!state.panel) state.panel = 'cut';
+  for (const p of state.pcbs) {
+    if (!p.holes) p.holes = 4;
+    if (!p.pd) p.pd = 6.5;
+    if (!p.pp) p.pp = 2.2;
+  }
+} catch (e) {}
+
+function save() { try { localStorage.setItem('esp32boxbuilder', JSON.stringify(state)); } catch (e) {} }
+
+// ---------------------------------------------------------------
+// Undo / redo — pile de snapshots, actions continues regroupées
+// ---------------------------------------------------------------
+const history = [], future = [];
+let lastTag = null, lastPush = 0;
+function snapshot() { return JSON.stringify(state); }
+// À appeler AVANT une mutation. Un même `tag` répété en moins de
+// 900 ms est regroupé en une seule étape (saisie, flèches…).
+function pushHistory(tag) {
+  const now = Date.now();
+  if (tag && tag === lastTag && now - lastPush < 900) { lastPush = now; return; }
+  history.push(snapshot());
+  if (history.length > 100) history.shift();
+  future.length = 0;
+  lastTag = tag || null; lastPush = now;
+}
+function undo() {
+  if (!history.length) return;
+  future.push(snapshot());
+  state = JSON.parse(history.pop());
+  lastTag = null;
+  updateAll();
+}
+function redo() {
+  if (!future.length) return;
+  history.push(snapshot());
+  state = JSON.parse(future.pop());
+  lastTag = null;
+  updateAll();
+}
+
+// ---------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const r1 = v => Math.round(v * 10) / 10;
+function faceW(f) { return (f === 'front' || f === 'back') ? state.inner.w : state.inner.d; }
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function cutsOn(f) { return state.cuts.filter(c => c.face === f); }
+function selected() {
+  if (!state.sel) return null;
+  const pool = state.sel.kind === 'cut' ? state.cuts
+             : state.sel.kind === 'pcb' ? state.pcbs
+             : state.sel.kind === 'div' ? state.divs
+             : state.sel.kind === 'comp' ? state.comps : state.cells;
+  return pool.find(o => o.id === state.sel.id) || null;
+}
+// encombrement au sol d'un socle de cellule [w, h]
+function cellFoot(c) {
+  const w = c.len + 5.6, h = c.dia + 5;
+  return c.rot ? [h, w] : [w, h];
+}
+
+// ---------------------------------------------------------------
+// Rendu du canvas
+// ---------------------------------------------------------------
+let view = { scale: 3, ox: 0, oy: 0, zoom: 1, panX: 0, panY: 0 }; // mm -> px
+let snapGuides = [];
+
+function computeView(fw, fh) {
+  const wrap = $('canvasWrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  const pad = 56;
+  const s0 = Math.min((W - pad * 2) / fw, (H - pad * 2) / fh);
+  view.scale = s0 * view.zoom;
+  view.ox = (W - fw * view.scale) / 2 + view.panX;
+  view.oy = (H - fh * view.scale) / 2 + view.panY;
+}
+function resetView() { view.zoom = 1; view.panX = 0; view.panY = 0; }
+// coordonnées : x mm depuis le centre (+ = droite), y mm depuis le bas (faces)
+// ou depuis le centre (fond). SVG : y vers le bas.
+function toPx(xmm, ymmFromTop, fw) { return [view.ox + (xmm + fw / 2) * view.scale, view.oy + ymmFromTop * view.scale]; }
+
+function render() {
+  const f = state.face;
+  const isFloor = f === 'floor';
+  const flat = isFlat(f);
+  const fw = flat ? state.inner.w : faceW(f);
+  const fh = flat ? state.inner.d : state.inner.h;
+  computeView(fw, fh);
+  const S = view.scale;
+  let g = [];
+
+  // motif de hachures (côtés fondus dans les parois)
+  g.push(`<defs><pattern id="weldhatch" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)"><rect width="7" height="7" fill="rgba(240,160,90,.10)"/><rect width="3" height="7" fill="rgba(240,160,90,.5)"/></pattern></defs>`);
+  // fond de face
+  const [x0, y0] = toPx(-fw / 2, 0, fw);
+  g.push(`<rect x="${x0}" y="${y0}" width="${fw * S}" height="${fh * S}" fill="#10141b" stroke="var(--line)" rx="4"/>`);
+
+  // grille
+  for (let x = 0; x <= fw / 2; x += 5) {
+    for (const sx of x === 0 ? [0] : [-1, 1]) {
+      const [px] = toPx(sx * x, 0, fw);
+      g.push(`<line x1="${px}" y1="${y0}" x2="${px}" y2="${y0 + fh * S}" stroke="#1a2029" stroke-width="${x % 10 === 0 ? 1 : .5}"/>`);
+    }
+  }
+  for (let y = 0; y <= fh; y += 5) {
+    const py = y0 + y * S;
+    g.push(`<line x1="${x0}" y1="${py}" x2="${x0 + fw * S}" y2="${py}" stroke="#1a2029" stroke-width="${y % 10 === 0 ? 1 : .5}"/>`);
+  }
+
+  if (!flat) {
+    // zones à éviter : coins arrondis + bande jupe/clips
+    const cw = CORNER_R * S;
+    g.push(`<rect x="${x0}" y="${y0}" width="${cw}" height="${fh * S}" fill="rgba(240,179,80,.06)"/>`);
+    g.push(`<rect x="${x0 + fw * S - cw}" y="${y0}" width="${cw}" height="${fh * S}" fill="rgba(240,179,80,.06)"/>`);
+    g.push(`<rect x="${x0}" y="${y0}" width="${fw * S}" height="${LID_BAND * S}" fill="rgba(240,179,80,.08)"/>`);
+    g.push(`<text x="${x0 + fw * S / 2}" y="${y0 + 13}" fill="#5b6274" font-size="10" text-anchor="middle">jupe + clips du couvercle</text>`);
+  } else {
+    // coins arrondis de la boîte
+    const cr = CORNER_R * S;
+    for (const sx of [0, 1]) for (const sy of [0, 1])
+      g.push(`<rect x="${x0 + sx * (fw * S - cr)}" y="${y0 + sy * (fh * S - cr)}" width="${cr}" height="${cr}" fill="rgba(240,179,80,.06)"/>`);
+    // vis du couvercle (fantômes)
+    if (f === 'lid' && state.lidFix === 'screws')
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+        const [px, py] = toPx(sx * (fw / 2 - 2.7), fh / 2 - sy * (fh / 2 - 2.7), fw);
+        g.push(`<circle cx="${px}" cy="${py}" r="${3.3 * S}" fill="none" stroke="#3a4358" stroke-dasharray="3 3"/>`);
+      }
+  }
+
+  // axes médians
+  const [cx0] = toPx(0, 0, fw);
+  g.push(`<line x1="${cx0}" y1="${y0 - 8}" x2="${cx0}" y2="${y0 + fh * S + 8}" stroke="#2a3242" stroke-dasharray="4 4"/>`);
+  g.push(`<line x1="${x0 - 8}" y1="${y0 + fh * S / 2}" x2="${x0 + fw * S + 8}" y2="${y0 + fh * S / 2}" stroke="#2a3242" stroke-dasharray="4 4"/>`);
+
+  // cotes
+  g.push(`<text x="${x0 + fw * S / 2}" y="${y0 + fh * S + 18}" fill="var(--muted)" font-size="11" text-anchor="middle" font-family="var(--mono)">${fw} mm</text>`);
+  g.push(`<text x="${x0 - 18}" y="${y0 + fh * S / 2}" fill="var(--muted)" font-size="11" text-anchor="middle" font-family="var(--mono)" transform="rotate(-90 ${x0 - 18} ${y0 + fh * S / 2})">${fh} mm</text>`);
+
+  if (isFloor) {
+    // fentes zip-tie (fantômes)
+    if (state.tieSlots) {
+      const pairs = [[0, fh / 4], [0, -fh / 4], [fw / 4, 0], [-fw / 4, 0]];
+      for (const [px_, py_] of pairs) for (const s of [-1, 1]) {
+        const [ax, ay] = toPx(px_ + s * 6 - 1.75, fh / 2 - py_ - 4.5, fw);
+        g.push(`<rect x="${ax}" y="${ay}" width="${3.5 * S}" height="${9 * S}" rx="${1.5 * S}" fill="none" stroke="#3a4358" stroke-dasharray="3 3"/>`);
+      }
+    }
+    // groupes PCB
+    for (const p of state.pcbs) {
+      const selCls = state.sel && state.sel.kind === 'pcb' && state.sel.id === p.id;
+      const col = selCls ? 'var(--accent)' : '#69d2a0';
+      const [gx, gy] = toPx(p.cx - p.dx / 2, fh / 2 - p.cy - p.dy / 2, fw);
+      g.push(`<g data-kind="pcb" data-id="${p.id}" style="cursor:grab">`);
+      g.push(`<rect x="${gx - 3 * S}" y="${gy - 3 * S}" width="${(p.dx + 6) * S}" height="${(p.dy + 6) * S}" rx="6" fill="${selCls ? 'rgba(79,140,255,.10)' : 'rgba(105,210,160,.06)'}" stroke="${col}" stroke-dasharray="5 4"/>`);
+      const pos = p.holes === 2 ? [[-1, -1], [1, 1]]
+                : [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+      for (const [sx, sy] of pos) {
+        const [hx, hy] = toPx(p.cx + sx * p.dx / 2, fh / 2 - (p.cy + sy * p.dy / 2), fw);
+        g.push(`<circle cx="${hx}" cy="${hy}" r="${p.pd / 2 * S}" fill="#10141b" stroke="${col}" stroke-width="1.5"/>`);
+        g.push(`<circle cx="${hx}" cy="${hy}" r="${p.pp / 2 * S}" fill="${col}"/>`);
+      }
+      const [tx, ty] = toPx(p.cx, fh / 2 - p.cy, fw);
+      const plabel = p.holes === 2 ? (p.dy ? `2 tr diag ${p.dx} × ${p.dy}` : `2 tr · ${p.dx}`) : `${p.dx} × ${p.dy}`;
+      g.push(`<text x="${tx}" y="${ty + 3}" fill="${col}" font-size="10.5" text-anchor="middle" font-family="var(--mono)">${plabel}</text>`);
+      g.push(`</g>`);
+    }
+    // socles de cellule
+    for (const c of state.cells) {
+      const isSel = state.sel && state.sel.kind === 'cell' && state.sel.id === c.id;
+      const col = isSel ? 'var(--accent)' : '#e8a94b';
+      const [foW, foH] = cellFoot(c);
+      const [gx, gy] = toPx(c.cx - foW / 2, fh / 2 - c.cy - foH / 2, fw);
+      g.push(`<g data-kind="cell" data-id="${c.id}" style="cursor:grab">`);
+      g.push(`<rect x="${gx}" y="${gy}" width="${foW * S}" height="${foH * S}" rx="5" fill="${isSel ? 'rgba(79,140,255,.10)' : 'rgba(232,169,75,.06)'}" stroke="${col}" stroke-dasharray="5 4"/>`);
+      // silhouette de la cellule
+      const cw = c.rot ? c.dia : c.len, ch = c.rot ? c.len : c.dia;
+      const [sx_, sy_] = toPx(c.cx - cw / 2, fh / 2 - c.cy - ch / 2, fw);
+      g.push(`<rect x="${sx_}" y="${sy_}" width="${cw * S}" height="${ch * S}" rx="${Math.min(cw, ch) / 2 * S}" fill="rgba(232,169,75,.12)" stroke="${col}" stroke-width="1.4"/>`);
+      // joues du berceau
+      for (const s of [-1, 1]) {
+        const rx = s * (c.len / 2 - 10);
+        const [jx, jy] = c.rot
+          ? toPx(c.cx - c.dia / 2 - 2.5, fh / 2 - c.cy - rx - 1.5, fw)
+          : toPx(c.cx + rx - 1.5, fh / 2 - c.cy - (c.dia / 2 + 2.5), fw);
+        const jw = c.rot ? (c.dia + 5) * S : 3 * S;
+        const jh = c.rot ? 3 * S : (c.dia + 5) * S;
+        g.push(`<rect x="${jx}" y="${jy}" width="${jw}" height="${jh}" fill="${col}" fill-opacity=".55"/>`);
+      }
+      const [tx, ty] = toPx(c.cx, fh / 2 - c.cy, fw);
+      g.push(`<text x="${tx}" y="${ty + 3}" fill="${col}" font-size="10.5" text-anchor="middle" font-family="var(--mono)">${c.len} × Ø${c.dia}</text>`);
+      g.push(`</g>`);
+    }
+    // compartiments
+    for (const cp of state.comps) {
+      const isSel = state.sel && state.sel.kind === 'comp' && state.sel.id === cp.id;
+      const col = isSel ? 'var(--accent)' : '#f0a05a';
+      const ct = compWallContacts(cp);
+      const [ix_, iy_] = toPx(cp.cx - cp.w / 2, fh / 2 - cp.cy - cp.d / 2, fw);
+      g.push(`<g data-kind="comp" data-id="${cp.id}" style="cursor:grab">`);
+      // murs du compartiment : bande pleine = muret imprimé,
+      // hachures = côté fondu dans la paroi de la boîte
+      const bx0 = cp.cx - cp.w / 2 - 1.8, bx1 = cp.cx + cp.w / 2 + 1.8;
+      const by0 = cp.cy - cp.d / 2 - 1.8, by1 = cp.cy + cp.d / 2 + 1.8;
+      const band = (x0, y0, x1, y1, fused) => {
+        const [px, py] = toPx(x0, fh / 2 - y1, fw);
+        g.push(`<rect x="${px}" y="${py}" width="${(x1 - x0) * S}" height="${(y1 - y0) * S}" fill="${fused ? 'url(#weldhatch)' : col}"${fused ? '' : ' fill-opacity=".78"'}/>`);
+      };
+      band(bx0, by0, bx0 + 1.8, by1, ct.left);
+      band(bx1 - 1.8, by0, bx1, by1, ct.right);
+      band(bx0, by0, bx1, by0 + 1.8, ct.front);
+      band(bx0, by1 - 1.8, bx1, by1, ct.back);
+      g.push(`<rect x="${ix_}" y="${iy_}" width="${cp.w * S}" height="${cp.d * S}" fill="${isSel ? 'rgba(79,140,255,.08)' : 'transparent'}" stroke="${col}" stroke-width="1"${isSel ? '' : ' stroke-opacity=".5"'}/>`);
+      // aération fond (nid d'abeille fantôme)
+      if (cp.ventFloor)
+        for (const cell of ventCells('hex', cp.w - 3, cp.d - 3)) {
+          const [hx, hy] = toPx(cp.cx + cell.x, fh / 2 - cp.cy - cell.y, fw);
+          g.push(`<polygon points="${hexPts(hx, hy, cell.r * S)}" fill="none" stroke="${col}" stroke-width=".6" stroke-opacity=".7"/>`);
+        }
+      // passage câble
+      if (cp.notchSide >= 0) {
+        const npos = cp.notchSide === 0 ? [cp.cx, cp.cy - cp.d / 2 - 0.9]
+                   : cp.notchSide === 1 ? [cp.cx, cp.cy + cp.d / 2 + 0.9]
+                   : cp.notchSide === 2 ? [cp.cx - cp.w / 2 - 0.9, cp.cy]
+                   : [cp.cx + cp.w / 2 + 0.9, cp.cy];
+        const horizN = cp.notchSide < 2;
+        const [nx_, ny_] = toPx(npos[0] - (horizN ? cp.notchW / 2 : 1.4), fh / 2 - npos[1] - (horizN ? 1.4 : cp.notchW / 2), fw);
+        g.push(`<rect x="${nx_}" y="${ny_}" width="${(horizN ? cp.notchW : 2.8) * S}" height="${(horizN ? 2.8 : cp.notchW) * S}" rx="${1.2 * S}" fill="#10141b" stroke="${col}" stroke-width=".8" stroke-opacity=".6"/>`);
+      }
+      g.push(`<text x="${ix_ + cp.w / 2 * S}" y="${iy_ - 8}" fill="${col}" font-size="10" text-anchor="middle">compartiment${cp.ventLid ? ' + couvercle aéré' : ''}</text>`);
+      g.push(`</g>`);
+    }
+    // cloisons internes
+    for (const dv of state.divs) {
+      const isSel = state.sel && state.sel.kind === 'div' && state.sel.id === dv.id;
+      const col = isSel ? 'var(--accent)' : '#e0719b';
+      const dw = dv.rot ? dv.th : dv.len, dh = dv.rot ? dv.len : dv.th;
+      const [bx, by] = toPx(dv.cx - dw / 2, fh / 2 - dv.cy - dh / 2, fw);
+      g.push(`<g data-kind="div" data-id="${dv.id}" style="cursor:grab">`);
+      g.push(`<rect x="${bx - 4}" y="${by - 4}" width="${dw * S + 8}" height="${dh * S + 8}" rx="4" fill="${isSel ? 'rgba(79,140,255,.10)' : 'transparent'}" stroke="${isSel ? col : 'transparent'}" stroke-dasharray="4 3"/>`);
+      g.push(`<rect x="${bx}" y="${by}" width="${dw * S}" height="${dh * S}" fill="${col}" fill-opacity=".75"/>`);
+      if (dv.notchW > 0) {
+        // repère du passage de câble
+        const nx = dv.rot
+          ? toPx(dv.cx - dv.th / 2, fh / 2 - dv.cy - dv.notchOff - dv.notchW / 2, fw)
+          : toPx(dv.cx + dv.notchOff - dv.notchW / 2, fh / 2 - dv.cy - dv.th / 2, fw);
+        const nw_ = dv.rot ? dv.th * S : dv.notchW * S;
+        const nh_ = dv.rot ? dv.notchW * S : dv.th * S;
+        g.push(`<rect x="${nx[0]}" y="${nx[1]}" width="${nw_}" height="${nh_}" fill="#10141b" fill-opacity=".8"/>`);
+      }
+      const [tx, ty] = toPx(dv.cx, fh / 2 - dv.cy, fw);
+      g.push(`<text x="${tx}" y="${ty - (dh / 2 * S) - 6}" fill="${col}" font-size="10" text-anchor="middle">cloison${dv.ht > 0 ? ' h' + dv.ht : ''}</text>`);
+      g.push(`</g>`);
+    }
+    // pattes de fixation murale (fantômes, hors de la boîte)
+    if (state.mountTabs !== 'none') {
+      const ext = 2.4 + 10;
+      const ears = state.mountTabs === 'x'
+        ? (state.mountN >= 4 ? [-(fh / 2 - 14), fh / 2 - 14] : [0]).flatMap(p => [[-(fw / 2 + ext), p], [fw / 2 + ext, p]])
+        : (state.mountN >= 4 ? [-(fw / 2 - 14), fw / 2 - 14] : [0]).flatMap(p => [[p, -(fh / 2 + ext)], [p, fh / 2 + ext]]);
+      for (const [ex, ey] of ears) {
+        const [px, py] = toPx(ex, fh / 2 - ey, fw);
+        g.push(`<circle cx="${px}" cy="${py}" r="${7 * S}" fill="none" stroke="#3a4358" stroke-dasharray="3 3"/>`);
+        g.push(`<circle cx="${px}" cy="${py}" r="${2.1 * S}" fill="none" stroke="#3a4358"/>`);
+      }
+    }
+  }
+  if (f === 'lid') {
+    // aérations de compartiment découpées dans le couvercle
+    for (const cp of state.comps) if (cp.ventLid) {
+      const isSel = state.sel && state.sel.kind === 'comp' && state.sel.id === cp.id;
+      const col = isSel ? 'var(--accent)' : '#f0a05a';
+      const [zx, zy] = toPx(cp.cx - cp.w / 2, fh / 2 - cp.cy - cp.d / 2, fw);
+      g.push(`<g data-kind="comp" data-id="${cp.id}" style="cursor:grab">`);
+      g.push(`<rect x="${zx}" y="${zy}" width="${cp.w * S}" height="${cp.d * S}" rx="4" fill="${isSel ? 'rgba(79,140,255,.08)' : 'rgba(240,160,90,.05)'}" stroke="${col}" stroke-width="1.2" stroke-dasharray="5 3"/>`);
+      for (const cell of ventCells('hex', cp.w - 3, cp.d - 3)) {
+        const [hx, hy] = toPx(cp.cx + cell.x, fh / 2 - cp.cy - cell.y, fw);
+        g.push(`<polygon points="${hexPts(hx, hy, cell.r * S)}" fill="rgba(230,233,239,.10)" stroke="${col}" stroke-width=".7"/>`);
+      }
+      g.push(`<text x="${zx + cp.w / 2 * S}" y="${zy - 5}" fill="${col}" font-size="10" text-anchor="middle">aération compartiment</text>`);
+      g.push(`</g>`);
+    }
+  }
+  if (!flat) {
+    // aérations de compartiment dans cette paroi
+    for (const cp of state.comps) if (cp.ventWalls) {
+      const contacts = compWallContacts(cp);
+      if (!contacts[f]) continue;
+      const isSel = state.sel && state.sel.kind === 'comp' && state.sel.id === cp.id;
+      const col = isSel ? 'var(--accent)' : '#f0a05a';
+      const along = (f === 'left' || f === 'right') ? cp.d : cp.w;
+      const offScr = (f === 'left' || f === 'right')
+        ? cp.cy * FACE_SIGN[f] : cp.cx * FACE_SIGN[f];
+      const b = Math.max(state.inner.h - 16, 8);
+      const zc = state.inner.h / 2;
+      const [zx, zy] = toPx(offScr - (along - 6) / 2, fh - zc - b / 2, fw);
+      g.push(`<g data-kind="comp" data-id="${cp.id}" style="cursor:pointer">`);
+      g.push(`<rect x="${zx}" y="${zy}" width="${(along - 6) * S}" height="${b * S}" rx="4" fill="rgba(240,160,90,.05)" stroke="${col}" stroke-width="1.1" stroke-dasharray="5 3"/>`);
+      for (const cell of ventCells('hex', along - 6, b)) {
+        const [hx, hy] = toPx(offScr + cell.x, fh - zc - cell.y, fw);
+        g.push(`<polygon points="${hexPts(hx, hy, cell.r * S)}" fill="rgba(230,233,239,.10)" stroke="${col}" stroke-width=".6"/>`);
+      }
+      g.push(`<text x="${zx + (along - 6) / 2 * S}" y="${zy - 5}" fill="${col}" font-size="10" text-anchor="middle">aération compartiment</text>`);
+      g.push(`</g>`);
+    }
+  }
+  {
+    // aérations (fantômes) sur les flancs
+    if (!flat && state.vents && (f === 'left' || f === 'right')) {
+      const usable = state.inner.d - 2 * (CORNER_R + 6);
+      const n = Math.max(Math.floor(usable / 4.5), 3);
+      const vh = Math.max(state.inner.h * 0.38, 8);
+      const zc = 4 + vh / 2 + 2; // approx zc - floor_t
+      for (let i = 0; i < n; i++) {
+        const xm = (i - (n - 1) / 2) * 4.5;
+        const [vx, vy] = toPx(xm - 0.9, fh - zc - vh / 2, fw);
+        g.push(`<rect x="${vx}" y="${vy}" width="${1.8 * S}" height="${vh * S}" rx="${0.9 * S}" fill="none" stroke="#3a4358" stroke-dasharray="3 3"/>`);
+      }
+    }
+    // découpes
+    for (const c of cutsOn(f)) {
+      const isSel = state.sel && state.sel.kind === 'cut' && state.sel.id === c.id;
+      const col = isSel ? 'var(--accent)'
+                : c.type === 'window' ? '#c58bff'
+                : c.type === 'insert' ? '#5fd4d0'
+                : VENT_TYPES.includes(c.type) ? '#9ad06e' : '#e6e9ef';
+      const warn = cutWarnings(c).length > 0;
+      const stroke = warn ? 'var(--danger)' : col;
+      g.push(`<g data-kind="cut" data-id="${c.id}" style="cursor:grab">`);
+      if (c.type === 'circle' || isBtnType(c.type)) {
+        const [px, py] = toPx(c.off, flat ? fh / 2 - c.z : fh - c.z, fw);
+        const rr = (c.d + (isBtnType(c.type) ? 0 : state.holeComp)) / 2 * S;
+        const fill = isSel ? 'rgba(79,140,255,.14)' : 'rgba(230,233,239,.05)';
+        if (isBtnType(c.type)) {
+          // berceau 6×6 intérieur (fantôme)
+          const spn = c.type === 'btnflex' ? 13 : 8.5;
+          const [gx2, gy2] = toPx(c.off - spn, (flat ? fh / 2 - c.z : fh - c.z) - 7, fw);
+          g.push(`<rect x="${gx2}" y="${gy2}" width="${spn * 2 * S}" height="${13 * S}" rx="3" fill="none" stroke="${stroke}" stroke-width=".8" stroke-dasharray="3 2" stroke-opacity=".55"/>`);
+          const [sx2, sy2] = toPx(c.off - 3.25, (flat ? fh / 2 - c.z : fh - c.z) - 3.25, fw);
+          g.push(`<rect x="${sx2}" y="${sy2}" width="${6.5 * S}" height="${6.5 * S}" fill="none" stroke="${stroke}" stroke-width=".8" stroke-opacity=".55"/>`);
+        }
+        if (c.type === 'btnflex') {
+          // fente en U de la languette
+          const [ux, uy] = toPx(c.off - 8.3, (flat ? fh / 2 - c.z : fh - c.z) - 7.65, fw);
+          g.push(`<rect x="${ux}" y="${uy}" width="${16.6 * S}" height="${17.3 * S}" rx="${1 * S}" fill="none" stroke="${stroke}" stroke-width="1"/>`);
+        }
+        if (!flat && !isBtnType(c.type) && state.teardrop && c.d + state.holeComp >= 5) {
+          const k = rr / Math.SQRT2;
+          g.push(`<path d="M ${px - k} ${py - k} A ${rr} ${rr} 0 1 0 ${px + k} ${py - k} L ${px} ${py - rr * Math.SQRT2} Z" fill="${fill}" stroke="${stroke}" stroke-width="1.6"/>`);
+        } else {
+          g.push(`<circle cx="${px}" cy="${py}" r="${rr}" fill="${fill}" stroke="${stroke}" stroke-width="1.6"/>`);
+        }
+        g.push(`<line x1="${px - 4}" y1="${py}" x2="${px + 4}" y2="${py}" stroke="${stroke}" stroke-width="1"/>`);
+        g.push(`<line x1="${px}" y1="${py - 4}" x2="${px}" y2="${py + 4}" stroke="${stroke}" stroke-width="1"/>`);
+        g.push(`<text x="${px}" y="${py - rr * (state.teardrop ? Math.SQRT2 : 1) - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(c.label)}</text>`);
+      } else if (VENT_TYPES.includes(c.type)) {
+        const cy0 = flat ? fh / 2 - c.z : fh - c.z;
+        const [zx, zy] = toPx(c.off - c.w / 2, cy0 - c.h / 2, fw);
+        g.push(`<rect x="${zx}" y="${zy}" width="${c.w * S}" height="${c.h * S}" rx="${2 * S}" fill="${isSel ? 'rgba(79,140,255,.10)' : 'rgba(230,233,239,.03)'}" stroke="${stroke}" stroke-width="1.3" stroke-dasharray="5 3"/>`);
+        for (const cell of ventCells(c.type, c.w, c.h)) {
+          if (cell.kind === 'circle') {
+            const [px, py] = toPx(c.off + cell.x, cy0 - cell.y, fw);
+            g.push(`<circle cx="${px}" cy="${py}" r="${cell.d / 2 * S}" fill="rgba(230,233,239,.10)" stroke="${stroke}" stroke-width=".7"/>`);
+          } else if (cell.kind === 'hex') {
+            const [px, py] = toPx(c.off + cell.x, cy0 - cell.y, fw);
+            g.push(`<polygon points="${hexPts(px, py, cell.r * S)}" fill="rgba(230,233,239,.10)" stroke="${stroke}" stroke-width=".7"/>`);
+          } else {
+            const [px, py] = toPx(c.off + cell.x - cell.w / 2, cy0 - cell.y - cell.h / 2, fw);
+            g.push(`<rect x="${px}" y="${py}" width="${cell.w * S}" height="${cell.h * S}" rx="${cell.r * S}" fill="rgba(230,233,239,.10)" stroke="${stroke}" stroke-width=".7"/>`);
+          }
+        }
+        g.push(`<text x="${zx + c.w / 2 * S}" y="${zy - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(c.label)}</text>`);
+      } else {
+        const [px, py] = toPx(c.off - c.w / 2, (flat ? fh / 2 - c.z : fh - c.z) - c.h / 2, fw);
+        const dash = c.type === 'window' ? ` stroke-dasharray="6 3"` : '';
+        if (c.type === 'insert') {
+          // feuillure extérieure (cadre de la fenêtre clipsable)
+          const [fx, fy] = toPx(c.off - (c.w + 3) / 2, (flat ? fh / 2 - c.z : fh - c.z) - (c.h + 3) / 2, fw);
+          g.push(`<rect x="${fx}" y="${fy}" width="${(c.w + 3) * S}" height="${(c.h + 3) * S}" rx="${2.5 * S}" fill="none" stroke="${stroke}" stroke-width="1" stroke-dasharray="3 2"/>`);
+        }
+        if (c.type === 'usbc') {
+          // support intérieur (fantôme)
+          const [ux2, uy2] = toPx(c.off - 7.2, (flat ? fh / 2 - c.z : fh - c.z) - 4.3, fw);
+          g.push(`<rect x="${ux2}" y="${uy2}" width="${14.4 * S}" height="${8.6 * S}" rx="3" fill="none" stroke="${stroke}" stroke-width=".8" stroke-dasharray="3 2" stroke-opacity=".55"/>`);
+        }
+        g.push(`<rect x="${px}" y="${py}" width="${c.w * S}" height="${c.h * S}" rx="${Math.min(2, c.h / 3) * S}" fill="${isSel ? 'rgba(79,140,255,.14)' : (c.type === 'insert' ? 'rgba(95,212,208,.10)' : 'rgba(230,233,239,.05)')}" stroke="${stroke}" stroke-width="1.6"${dash}/>`);
+        g.push(`<text x="${px + c.w / 2 * S}" y="${py - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(c.label)}</text>`);
+      }
+      g.push(`</g>`);
+    }
+  }
+
+  // état vide : petit guide vers la palette
+  const faceCount = flat
+    ? (f === 'floor'
+        ? cutsOn('floor').length + state.pcbs.length + state.cells.length + state.divs.length + state.comps.length
+        : cutsOn('lid').length + state.comps.filter(c => c.ventLid).length)
+    : cutsOn(f).length;
+  if (faceCount === 0) {
+    const [ex, ey] = toPx(0, flat ? fh / 2 : fh / 2, fw);
+    g.push(`<text x="${ex}" y="${ey}" fill="#3d4658" font-size="12" text-anchor="middle">Rien sur cette face — ajoute un élément depuis le panneau à gauche</text>`);
+  }
+
+  // guides d'aimantation
+  for (const gl of snapGuides) {
+    if (gl.axis === 'v') {
+      const [px] = toPx(gl.at, 0, fw);
+      g.push(`<line x1="${px}" y1="${y0 - 10}" x2="${px}" y2="${y0 + fh * S + 10}" stroke="var(--accent)" stroke-width="1.2"/>`);
+    } else {
+      const py = y0 + (flat ? (fh / 2 - gl.at) : (fh - gl.at)) * S;
+      g.push(`<line x1="${x0 - 10}" y1="${py}" x2="${x0 + fw * S + 10}" y2="${py}" stroke="var(--accent)" stroke-width="1.2"/>`);
+    }
+  }
+
+  $('canvas').innerHTML = g.join('');
+  renderWarns();
+}
+
+const FACE_LABELS = {
+  front: 'avant', back: 'arrière', left: 'flanc gauche',
+  right: 'flanc droit', lid: 'couvercle', floor: 'fond',
+};
+
+function cutWarnings(c) {
+  const f = c.face, out = [];
+  const hw = c.type === 'circle' ? c.d / 2 : c.w / 2;
+  const hh = c.type === 'circle' ? c.d / 2 : c.h / 2;
+  const who = `${c.label} (${FACE_LABELS[f]})`;
+  if ((isBtnType(c.type) || c.type === 'usbc') && isFlat(f)) {
+    out.push(`${who} : uniquement sur les parois`);
+    return out;
+  }
+  if (c.type === 'usbc') {
+    const fw2 = faceW(f);
+    if (Math.abs(c.off) + 8 > fw2 / 2 - CORNER_R + 2) out.push(`${who} : trop près du coin (support)`);
+    if (c.z + 5 > state.inner.h - LID_BAND) out.push(`${who} : touche la zone jupe/clips`);
+    if (c.z - 5 < 0) out.push(`${who} : trop bas (support sous le fond)`);
+    return out;
+  }
+  if (isBtnType(c.type)) {
+    const bw = c.type === 'btnflex' ? 13.5 : 9;
+    const fw2 = faceW(f);
+    if (Math.abs(c.off) + bw > fw2 / 2 - CORNER_R + 2) out.push(`${who} : trop près du coin (berceau)`);
+    if (c.z + 9 > state.inner.h - LID_BAND) out.push(`${who} : touche la zone jupe/clips`);
+    if (c.z - 9 < 0) out.push(`${who} : trop bas (berceau sous le fond)`);
+    return out;
+  }
+  if (isFlat(f)) {
+    const { w, d } = state.inner;
+    const m = f === 'lid' ? 3.5 : 1; // marge du congé sur le couvercle
+    if (Math.abs(c.off) + hw > w / 2 - m) out.push(`${who} : déborde en largeur`);
+    if (Math.abs(c.z) + hh > d / 2 - m) out.push(`${who} : déborde en profondeur`);
+    else if (Math.abs(c.off) + hw > w / 2 - CORNER_R && Math.abs(c.z) + hh > d / 2 - CORNER_R)
+      out.push(`${who} : empiète sur le coin arrondi`);
+    return out;
+  }
+  const fw = faceW(f);
+  if (Math.abs(c.off) + hw > fw / 2 - 1) out.push(`${who} : déborde de la paroi`);
+  else if (Math.abs(c.off) + hw > fw / 2 - CORNER_R) out.push(`${who} : empiète sur le coin arrondi`);
+  if (c.z + hh > state.inner.h - LID_BAND) out.push(`${who} : touche la zone jupe/clips`);
+  if (c.z - hh < 0) out.push(`${who} : sous le fond intérieur`);
+  return out;
+}
+function pcbWarnings(p) {
+  const out = [];
+  if (Math.abs(p.cx) + p.dx / 2 + 3.25 > state.inner.w / 2 - 1) out.push(`Entretoises ${p.dx}×${p.dy} : débordent en largeur`);
+  if (Math.abs(p.cy) + p.dy / 2 + 3.25 > state.inner.d / 2 - 1) out.push(`Entretoises ${p.dx}×${p.dy} : débordent en profondeur`);
+  return out;
+}
+function cellWarnings(c) {
+  const out = [];
+  const [foW, foH] = cellFoot(c);
+  if (Math.abs(c.cx) + foW / 2 > state.inner.w / 2 - 0.5) out.push(`Socle ${c.len}×Ø${c.dia} : déborde en largeur`);
+  if (Math.abs(c.cy) + foH / 2 > state.inner.d / 2 - 0.5) out.push(`Socle ${c.len}×Ø${c.dia} : déborde en profondeur`);
+  if (c.dia * 0.66 > state.inner.h) out.push(`Socle ${c.len}×Ø${c.dia} : boîte trop basse`);
+  return out;
+}
+function renderWarns() {
+  const all = [];
+  for (const c of state.cuts)
+    for (const m of cutWarnings(c)) all.push({ m, kind: 'cut', id: c.id, face: c.face });
+  for (const p of state.pcbs)
+    for (const m of pcbWarnings(p)) all.push({ m, kind: 'pcb', id: p.id, face: 'floor' });
+  for (const c of state.cells)
+    for (const m of cellWarnings(c)) all.push({ m, kind: 'cell', id: c.id, face: 'floor' });
+  for (const cp of state.comps)
+    for (const m of compWarnings(cp)) all.push({ m, kind: 'comp', id: cp.id, face: 'floor' });
+  $('warns').innerHTML = all.slice(0, 4).map(w =>
+    `<button class="warnline" data-kind="${w.kind}" data-id="${w.id}" data-face="${w.face}" title="Cliquer pour voir l'élément">${esc(w.m)}</button>`
+  ).join('');
+}
+
+// ---------------------------------------------------------------
+// Drag & snapping
+// ---------------------------------------------------------------
+let drag = null;
+$('canvas').addEventListener('pointerdown', e => {
+  const t = e.target.closest('[data-kind]');
+  if (!t) { state.sel = null; snapGuides = []; updateAll(); return; }
+  const kind = t.dataset.kind, id = +t.dataset.id;
+  state.sel = { kind, id };
+  // les objets du fond vus depuis une paroi/couvercle : sélection sans drag
+  if (kind !== 'cut' && state.face !== 'floor' && state.face !== 'lid') {
+    updateAll();
+    return;
+  }
+  const o = selected();
+  drag = {
+    kind, id, sx: e.clientX, sy: e.clientY,
+    ox: kind === 'cut' ? o.off : o.cx,
+    oz: kind === 'cut' ? o.z : o.cy,
+    snap0: snapshot(), pushed: false,
+  };
+  updateAll();
+});
+window.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const o = selected(); if (!o) return;
+  if (!drag.pushed) {
+    history.push(drag.snap0);
+    if (history.length > 100) history.shift();
+    future.length = 0; lastTag = null;
+    drag.pushed = true;
+  }
+  const dx = (e.clientX - drag.sx) / view.scale;
+  const dy = (e.clientY - drag.sy) / view.scale;
+  let nx = drag.ox + dx;
+  let nz = drag.kind === 'cut' ? drag.oz - dy : drag.oz - dy * (state.face === 'floor' ? 1 : 1);
+  // cibles d'aimantation
+  const tol = SNAP_TOL / view.scale;
+  snapGuides = [];
+  const vTargets = [0], hTargets = [];
+  if (drag.kind === 'cut') {
+    hTargets.push(isFlat(o.face) ? 0 : state.inner.h / 2);
+    for (const c of cutsOn(o.face)) if (c.id !== o.id) { vTargets.push(c.off); hTargets.push(c.z); }
+  } else {
+    hTargets.push(0);
+    for (const p of state.pcbs) if (p.id !== o.id) { vTargets.push(p.cx); hTargets.push(p.cy); }
+    for (const c of state.cells) if (c.id !== o.id) { vTargets.push(c.cx); hTargets.push(c.cy); }
+    for (const dv of state.divs) if (dv.id !== o.id) { vTargets.push(dv.cx); hTargets.push(dv.cy); }
+    for (const cp of state.comps) if (cp.id !== o.id) { vTargets.push(cp.cx); hTargets.push(cp.cy); }
+  }
+  let snapped = false;
+  for (const t of vTargets) if (Math.abs(nx - t) < tol) { nx = t; snapGuides.push({ axis: 'v', at: t }); snapped = true; break; }
+  for (const t of hTargets) if (Math.abs(nz - t) < tol) { nz = t; snapGuides.push({ axis: 'h', at: t }); snapped = true; break; }
+  if (!snapped) { nx = Math.round(nx / GRID) * GRID; nz = Math.round(nz / GRID) * GRID; }
+  nx = r1(nx); nz = r1(nz);
+  if (drag.kind === 'comp') {
+    // parois aimantées : zone collante de 6 mm, et impossible d'aller
+    // plus loin que le raccord (cadre entièrement dans la paroi,
+    // la zone affleure la face intérieure)
+    const MAG = 6;
+    const ax = r1((state.inner.w - o.w) / 2);
+    const ay = r1((state.inner.d - o.d) / 2);
+    if (nx <= -ax + MAG) { nx = -ax; snapGuides.push({ axis: 'v', at: -ax }); }
+    else if (nx >= ax - MAG) { nx = ax; snapGuides.push({ axis: 'v', at: ax }); }
+    if (nz >= ay - MAG) { nz = ay; snapGuides.push({ axis: 'h', at: ay }); }
+    else if (nz <= -ay + MAG) { nz = -ay; snapGuides.push({ axis: 'h', at: -ay }); }
+  }
+  if (drag.kind === 'cut') { o.off = nx; o.z = nz; } else { o.cx = nx; o.cy = nz; }
+  // cotes qui suivent le curseur
+  const tip = $('dragTip');
+  const wr = $('canvasWrap').getBoundingClientRect();
+  tip.style.display = 'block';
+  tip.style.left = (e.clientX - wr.left + 14) + 'px';
+  tip.style.top = (e.clientY - wr.top - 26) + 'px';
+  tip.textContent = `${nx} ; ${nz}`;
+  updateAll(false);
+});
+window.addEventListener('pointerup', () => {
+  if (drag) { drag = null; snapGuides = []; $('dragTip').style.display = 'none'; updateAll(); }
+});
+
+window.addEventListener('keydown', e => {
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    if (e.shiftKey) redo(); else undo();
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') {
+    e.preventDefault(); redo(); return;
+  }
+  if (e.key === 'Escape' && state.sel) { state.sel = null; updateAll(); return; }
+  const o = selected(); if (!o) return;
+  const step = e.shiftKey ? 0.1 : 1;
+  let used = true;
+  const kx = state.sel.kind === 'cut' ? 'off' : 'cx';
+  const kz = state.sel.kind === 'cut' ? 'z' : 'cy';
+  const nudge = () => pushHistory('nudge:' + state.sel.kind + state.sel.id);
+  if (e.key === 'ArrowLeft') { nudge(); o[kx] = r1(o[kx] - step); }
+  else if (e.key === 'ArrowRight') { nudge(); o[kx] = r1(o[kx] + step); }
+  else if (e.key === 'ArrowUp') { nudge(); o[kz] = r1(o[kz] + step); }
+  else if (e.key === 'ArrowDown') { nudge(); o[kz] = r1(o[kz] - step); }
+  else if (e.key === 'Backspace' || e.key === 'Delete') { pushHistory(); removeSelected(); }
+  else if ((e.metaKey || e.ctrlKey) && e.key === 'd') { pushHistory(); duplicateSelected(); }
+  else used = false;
+  if (used) { e.preventDefault(); updateAll(); }
+});
+
+function removeSelected() {
+  if (!state.sel) return;
+  if (state.sel.kind === 'cut') state.cuts = state.cuts.filter(c => c.id !== state.sel.id);
+  else if (state.sel.kind === 'pcb') state.pcbs = state.pcbs.filter(p => p.id !== state.sel.id);
+  else if (state.sel.kind === 'div') state.divs = state.divs.filter(d => d.id !== state.sel.id);
+  else if (state.sel.kind === 'comp') state.comps = state.comps.filter(c => c.id !== state.sel.id);
+  else state.cells = state.cells.filter(c => c.id !== state.sel.id);
+  state.sel = null;
+}
+function duplicateSelected() {
+  const o = selected(); if (!o) return;
+  const copy = Object.assign({}, o, { id: state.nextId++ });
+  if (state.sel.kind === 'cut') { copy.off = r1(copy.off + 8); state.cuts.push(copy); }
+  else if (state.sel.kind === 'pcb') { copy.cy = r1(copy.cy - 10); state.pcbs.push(copy); }
+  else if (state.sel.kind === 'div') { copy.cy = r1(copy.cy - 8); state.divs.push(copy); }
+  else if (state.sel.kind === 'comp') { copy.cy = r1(copy.cy - copy.d - 8); state.comps.push(copy); }
+  else { copy.cy = r1(copy.cy - (copy.rot ? 10 : copy.dia + 7)); state.cells.push(copy); }
+  state.sel = { kind: state.sel.kind, id: copy.id };
+}
+
+// ---------------------------------------------------------------
+// Aperçu 3D (cube CSS, aucune dépendance)
+// ---------------------------------------------------------------
+const p3 = { rx: -24, ry: -34, drag: null, open: false };
+
+// Implantation intérieure du fond pour la vue « couvercle retiré »
+function interiorSvg(w, d) {
+  const Y = y => d / 2 - y;
+  let s = `<rect x="1" y="1" width="${w - 2}" height="${d - 2}" rx="4" fill="#1d2432"/>`;
+  for (const p of state.pcbs) {
+    const pos = p.holes === 2 ? [[-1, -1], [1, 1]] : [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+    for (const [sx, sy] of pos)
+      s += `<circle cx="${w / 2 + p.cx + sx * p.dx / 2}" cy="${Y(p.cy + sy * p.dy / 2)}" r="${p.pd / 2}" fill="#69d2a0"/>`;
+  }
+  for (const c of state.cells) {
+    const cw = c.rot ? c.dia : c.len, ch = c.rot ? c.len : c.dia;
+    s += `<rect x="${w / 2 + c.cx - cw / 2}" y="${Y(c.cy) - ch / 2}" width="${cw}" height="${ch}" rx="${Math.min(cw, ch) / 2}" fill="rgba(232,169,75,.6)"/>`;
+  }
+  for (const dv of state.divs) {
+    const dw = dv.rot ? dv.th : dv.len, dh = dv.rot ? dv.len : dv.th;
+    s += `<rect x="${w / 2 + dv.cx - dw / 2}" y="${Y(dv.cy) - dh / 2}" width="${dw}" height="${dh}" fill="rgba(224,113,155,.85)"/>`;
+  }
+  for (const cp of state.comps) {
+    s += `<rect x="${w / 2 + cp.cx - cp.w / 2 - 0.9}" y="${Y(cp.cy) - cp.d / 2 - 0.9}" width="${cp.w + 1.8}" height="${cp.d + 1.8}" fill="none" stroke="rgba(240,160,90,.9)" stroke-width="1.8"/>`;
+    if (cp.ventFloor)
+      for (const cell of ventCells('hex', cp.w - 3, cp.d - 3))
+        s += `<polygon points="${hexPts(w / 2 + cp.cx + cell.x, Y(cp.cy + cell.y), cell.r)}" fill="#0b0e13"/>`;
+  }
+  for (const c of cutsOn('floor')) {
+    const cx = w / 2 + c.off, cy = Y(c.z);
+    if (c.type === 'circle') s += `<circle cx="${cx}" cy="${cy}" r="${(c.d + state.holeComp) / 2}" fill="#0b0e13"/>`;
+    else s += `<rect x="${cx - c.w / 2}" y="${cy - c.h / 2}" width="${c.w}" height="${c.h}" rx="2" fill="#0b0e13"/>`;
+  }
+  return s;
+}
+
+function faceHolesSvg(faceId, fw, fh) {
+  let s = '';
+  for (const c of cutsOn(faceId)) {
+    const cx = fw / 2 + c.off;
+    const cy = fh - c.z;
+    if (isBtnType(c.type)) {
+      s += `<circle cx="${cx}" cy="${cy}" r="${c.d / 2}" fill="#39435a" stroke="#0b0e13" stroke-width=".6"/>`;
+      continue;
+    }
+    if (c.type === 'circle') {
+      const rr = (c.d + state.holeComp) / 2;
+      if (state.teardrop && c.d + state.holeComp >= 5) {
+        const k = rr / Math.SQRT2;
+        s += `<path d="M ${cx - k} ${cy - k} A ${rr} ${rr} 0 1 0 ${cx + k} ${cy - k} L ${cx} ${cy - rr * Math.SQRT2} Z" fill="#0b0e13"/>`;
+      } else s += `<circle cx="${cx}" cy="${cy}" r="${rr}" fill="#0b0e13"/>`;
+    } else if (c.type === 'window') {
+      s += `<rect x="${cx - c.w / 2}" y="${cy - c.h / 2}" width="${c.w}" height="${c.h}" rx="3" fill="rgba(197,139,255,.22)" stroke="rgba(197,139,255,.55)" stroke-width=".6" stroke-dasharray="2.5 1.5"/>`;
+    } else if (VENT_TYPES.includes(c.type)) {
+      for (const cell of ventCells(c.type, c.w, c.h)) {
+        const x = cx + cell.x, y = cy - cell.y;
+        if (cell.kind === 'circle') s += `<circle cx="${x}" cy="${y}" r="${cell.d / 2}" fill="#0b0e13"/>`;
+        else if (cell.kind === 'hex') s += `<polygon points="${hexPts(x, y, cell.r)}" fill="#0b0e13"/>`;
+        else s += `<rect x="${x - cell.w / 2}" y="${y - cell.h / 2}" width="${cell.w}" height="${cell.h}" rx="${cell.r}" fill="#0b0e13"/>`;
+      }
+    } else if (c.type === 'insert') {
+      s += `<rect x="${cx - (c.w + 3) / 2}" y="${cy - (c.h + 3) / 2}" width="${c.w + 3}" height="${c.h + 3}" rx="2.5" fill="rgba(95,212,208,.22)" stroke="rgba(95,212,208,.7)" stroke-width=".6"/>`;
+      s += `<rect x="${cx - c.w / 2}" y="${cy - c.h / 2}" width="${c.w}" height="${c.h}" rx="2" fill="rgba(95,212,208,.32)"/>`;
+    } else {
+      const w = c.w + state.holeComp, h = c.h + state.holeComp;
+      s += `<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${Math.min(2, h / 3)}" fill="#0b0e13"/>`;
+    }
+  }
+  // aérations de compartiment dans cette paroi
+  for (const cp of state.comps) if (cp.ventWalls) {
+    const contacts = compWallContacts(cp);
+    if (!contacts[faceId]) continue;
+    const along = (faceId === 'left' || faceId === 'right') ? cp.d : cp.w;
+    const offScr = (faceId === 'left' || faceId === 'right')
+      ? cp.cy * FACE_SIGN[faceId] : cp.cx * FACE_SIGN[faceId];
+    const b = Math.max(state.inner.h - 16, 8);
+    for (const cell of ventCells('hex', along - 6, b)) {
+      const x = fw / 2 + offScr + cell.x, y = fh - state.inner.h / 2 - cell.y;
+      s += `<polygon points="${hexPts(x, y, cell.r)}" fill="#0b0e13"/>`;
+    }
+  }
+  // aérations fantômes sur les flancs
+  if (state.vents && (faceId === 'left' || faceId === 'right')) {
+    const usable = state.inner.d - 2 * (CORNER_R + 6);
+    const n = Math.max(Math.floor(usable / 4.5), 3);
+    const vh = Math.max(state.inner.h * 0.38, 8);
+    const zc = 6 + vh / 2;
+    for (let i = 0; i < n; i++) {
+      const xm = fw / 2 + (i - (n - 1) / 2) * 4.5;
+      s += `<rect x="${xm - 0.9}" y="${fh - zc - vh / 2}" width="1.8" height="${vh}" rx=".9" fill="#0b0e13"/>`;
+    }
+  }
+  return s;
+}
+
+// Découpes des faces à plat (couvercle / fond) pour l'aperçu 3D.
+// Le panneau du dessous est vu par en dessous : son axe Y est inversé.
+function flatHolesSvg(faceId, fw, fh) {
+  let s = '';
+  for (const c of cutsOn(faceId)) {
+    const cx = fw / 2 + c.off;
+    const cy = faceId === 'floor' ? fh / 2 + c.z : fh / 2 - c.z;
+    if (c.type === 'circle') {
+      s += `<circle cx="${cx}" cy="${cy}" r="${(c.d + state.holeComp) / 2}" fill="#0b0e13"/>`;
+    } else if (c.type === 'window') {
+      s += `<rect x="${cx - c.w / 2}" y="${cy - c.h / 2}" width="${c.w}" height="${c.h}" rx="3" fill="rgba(197,139,255,.22)" stroke="rgba(197,139,255,.55)" stroke-width=".6" stroke-dasharray="2.5 1.5"/>`;
+    } else if (VENT_TYPES.includes(c.type)) {
+      for (const cell of ventCells(c.type, c.w, c.h)) {
+        const x = cx + cell.x, y = cy - cell.y;
+        if (cell.kind === 'circle') s += `<circle cx="${x}" cy="${y}" r="${cell.d / 2}" fill="#0b0e13"/>`;
+        else if (cell.kind === 'hex') s += `<polygon points="${hexPts(x, y, cell.r)}" fill="#0b0e13"/>`;
+        else s += `<rect x="${x - cell.w / 2}" y="${y - cell.h / 2}" width="${cell.w}" height="${cell.h}" rx="${cell.r}" fill="#0b0e13"/>`;
+      }
+    } else if (c.type === 'insert') {
+      s += `<rect x="${cx - (c.w + 3) / 2}" y="${cy - (c.h + 3) / 2}" width="${c.w + 3}" height="${c.h + 3}" rx="2.5" fill="rgba(95,212,208,.22)" stroke="rgba(95,212,208,.7)" stroke-width=".6"/>`;
+      s += `<rect x="${cx - c.w / 2}" y="${cy - c.h / 2}" width="${c.w}" height="${c.h}" rx="2" fill="rgba(95,212,208,.32)"/>`;
+    } else {
+      const w = c.w + state.holeComp, h = c.h + state.holeComp;
+      s += `<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${Math.min(2, h / 3)}" fill="#0b0e13"/>`;
+    }
+  }
+  return s;
+}
+
+function facePanel(faceId, fw, fh, transform, k, extra) {
+  const holes = extra !== undefined ? extra : faceHolesSvg(faceId, fw, fh);
+  return `<div class="p3face" style="width:${fw * k}px;height:${fh * k}px;` +
+    `margin-left:${-fw * k / 2}px;margin-top:${-fh * k / 2}px;transform:${transform}">` +
+    `<svg viewBox="0 0 ${fw} ${fh}" preserveAspectRatio="none">` +
+    `<rect x="0" y="0" width="${fw}" height="${fh}" rx="2.5" fill="#273043" stroke="#3d475c" stroke-width=".8"/>${holes}</svg></div>`;
+}
+
+function render3d() {
+  const { w, d, h } = state.inner;
+  const k = 132 / Math.max(w, d, h);
+  const cube = $('p3cube');
+  let lidExtra = `<rect x="${w * .08}" y="${d * .08}" width="${w * .84}" height="${d * .84}" rx="3" fill="none" stroke="#3d475c" stroke-width=".5" stroke-dasharray="2 2"/>`;
+  if (state.lidFix === 'screws')
+    for (const sx of [-1, 1]) for (const sy of [-1, 1])
+      lidExtra += `<circle cx="${w / 2 + sx * (w / 2 - 4.3)}" cy="${d / 2 + sy * (d / 2 - 4.3)}" r="1.7" fill="#0b0e13"/>`;
+  lidExtra += flatHolesSvg('lid', w, d);
+  let bottomExtra = flatHolesSvg('floor', w, d);
+  for (const cp of state.comps)
+    for (const cell of ventCells('hex', cp.w - 3, cp.d - 3)) {
+      const hx = w / 2 + cp.cx + cell.x;
+      if (cp.ventLid)
+        lidExtra += `<polygon points="${hexPts(hx, d / 2 - cp.cy - cell.y, cell.r)}" fill="#0b0e13"/>`;
+      if (cp.ventFloor)
+        bottomExtra += `<polygon points="${hexPts(hx, d / 2 + cp.cy + cell.y, cell.r)}" fill="#0b0e13"/>`;
+    }
+  cube.innerHTML =
+    facePanel('front', w, h, `rotateY(0deg) translateZ(${d / 2 * k}px)`, k) +
+    facePanel('back', w, h, `rotateY(180deg) translateZ(${d / 2 * k}px)`, k) +
+    facePanel('right', d, h, `rotateY(90deg) translateZ(${w / 2 * k}px)`, k) +
+    facePanel('left', d, h, `rotateY(-90deg) translateZ(${w / 2 * k}px)`, k) +
+    (p3.open
+      ? facePanel('floorint', w, d, `rotateX(90deg) translateZ(${-h / 2 * k + 0.6}px)`, k, interiorSvg(w, d))
+      : facePanel('lid', w, d, `rotateX(90deg) translateZ(${h / 2 * k}px)`, k, lidExtra)) +
+    facePanel('bottom', w, d, `rotateX(-90deg) translateZ(${h / 2 * k}px)`, k, bottomExtra);
+  applyP3();
+}
+function applyP3() {
+  $('p3cube').style.transform = `rotateX(${p3.rx}deg) rotateY(${p3.ry}deg)`;
+}
+
+// ---------------------------------------------------------------
+// Inspecteur
+// ---------------------------------------------------------------
+function numField(label, val, cb) {
+  const wrap = document.createElement('div');
+  wrap.className = 'rowline';
+  const l = document.createElement('label'); l.textContent = label;
+  const i = document.createElement('input'); i.type = 'number'; i.step = '0.1'; i.value = val;
+  i.addEventListener('input', () => {
+    const v = parseFloat(i.value);
+    if (!isNaN(v)) {
+      pushHistory('field:' + label + ':' + (state.sel ? state.sel.kind + state.sel.id : ''));
+      cb(v); updateAll(false);
+    }
+  });
+  wrap.append(l, i);
+  return wrap;
+}
+function checkRow(label, val, cb) {
+  const wrap = document.createElement('div');
+  wrap.className = 'rowline';
+  const l = document.createElement('label'); l.textContent = label; l.style.width = 'auto'; l.style.flex = '1';
+  const i = document.createElement('input'); i.type = 'checkbox'; i.checked = val;
+  i.addEventListener('change', () => { pushHistory(); cb(i.checked); updateAll(); });
+  wrap.append(l, i);
+  return wrap;
+}
+function selectRow(label, options, val, cb) {
+  const wrap = document.createElement('div');
+  wrap.className = 'rowline';
+  const l = document.createElement('label'); l.textContent = label;
+  const s = document.createElement('select'); s.style.flex = '1';
+  for (const [v, txt] of options) {
+    const o = document.createElement('option'); o.value = v; o.textContent = txt;
+    s.append(o);
+  }
+  s.value = val;
+  s.addEventListener('change', () => { pushHistory(); cb(s.value); updateAll(); });
+  wrap.append(l, s);
+  return wrap;
+}
+
+function actionBtn(label, cb, cls) {
+  const b = document.createElement('button');
+  b.className = 'btn' + (cls ? ' ' + cls : ''); b.textContent = label;
+  b.addEventListener('click', () => { pushHistory(); cb(); updateAll(); });
+  return b;
+}
+function renderObjects() {
+  const rows = [];
+  for (const c of state.cuts) rows.push({
+    kind: 'cut', id: c.id, face: c.face, label: c.label,
+    info: c.type === 'circle' ? `Ø${c.d}` : `${c.w}×${c.h}`,
+    warn: cutWarnings(c).length > 0,
+  });
+  for (const p of state.pcbs) rows.push({
+    kind: 'pcb', id: p.id, face: 'floor',
+    label: p.holes === 2 ? 'Entretoises 2 tr' : 'Entretoises',
+    info: `${p.dx}×${p.dy}`, warn: pcbWarnings(p).length > 0,
+  });
+  for (const c of state.cells) rows.push({
+    kind: 'cell', id: c.id, face: 'floor', label: 'Socle',
+    info: `${c.len}×Ø${c.dia}`, warn: cellWarnings(c).length > 0,
+  });
+  for (const dv of state.divs) rows.push({
+    kind: 'div', id: dv.id, face: 'floor', label: dv.vented ? 'Cloison aérée' : 'Cloison',
+    info: `${dv.len}${dv.ht > 0 ? '×h' + dv.ht : ''}`, warn: false,
+  });
+  for (const cp of state.comps) rows.push({
+    kind: 'comp', id: cp.id, face: 'floor', label: 'Compartiment',
+    info: `${cp.w}×${cp.d}`, warn: compWarnings(cp).length > 0,
+  });
+  $('objects').innerHTML = rows.length ? rows.map(r => {
+    const sel = state.sel && state.sel.kind === r.kind && state.sel.id === r.id;
+    return `<button class="objrow${sel ? ' sel' : ''}" data-kind="${r.kind}" data-id="${r.id}" data-face="${r.face}">` +
+      (r.warn ? '<span class="dot"></span>' : '') +
+      `<span>${esc(r.label)}</span><span class="of">${FACE_LABELS[r.face]}</span>` +
+      `<span class="oi">${esc(r.info)}</span></button>`;
+  }).join('') : '<div class="empty">Aucun objet pour l\'instant.</div>';
+}
+
+function renderInspector() {
+  const box = $('inspector');
+  box.innerHTML = '';
+  const o = selected();
+  if (!o) { box.innerHTML = '<div class="empty">Clique sur un élément du plan, ou ajoute une découpe.</div>'; return; }
+  const d = document.createElement('div');
+  d.className = 'insp';
+  if (state.sel.kind === 'cut') {
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;margin-bottom:8px';
+    title.textContent = o.label
+      + (o.type === 'window' ? ' (fenêtre borgne)' : '')
+      + (o.type === 'insert' ? ' (fenêtre clipsable)' : '')
+      + (isBtnType(o.type) ? ' (tact 6×6)' : '')
+      + (o.type === 'usbc' ? ' (support intégré)' : '')
+      + (VENT_TYPES.includes(o.type) ? ' (aération)' : '');
+    d.append(title);
+    const flat = isFlat(o.face);
+    d.append(numField(flat ? 'Position X' : 'Décalage', o.off, v => o.off = v));
+    d.append(numField(flat ? 'Position Y' : 'Hauteur', o.z, v => o.z = v));
+    if (o.type === 'circle' || isBtnType(o.type))
+      d.append(numField(isBtnType(o.type) ? 'Ø capuchon' : 'Ø', o.d, v => o.d = Math.max(1, v)));
+    else {
+      d.append(numField('Largeur', o.w, v => o.w = Math.max(2, v)));
+      d.append(numField('Hauteur ↕', o.h, v => o.h = Math.max(2, v)));
+      if (o.type === 'window') d.append(numField('Peau', o.skin, v => o.skin = Math.max(0.4, Math.min(v, 2))));
+      if (o.type === 'insert') d.append(numField('Peau', o.skin, v => o.skin = Math.max(0, Math.min(v, 2))));
+    }
+    if (o.type === 'insert') {
+      const hint = document.createElement('div');
+      hint.className = 'empty';
+      hint.textContent = 'Pièce séparée : bouton « Inserts » en bas — PETG transparent ou blanc. Membrane centrale = « Peau » (0.8 diffuse bien) ; 0 = cadre ouvert sans membrane (laser ToF).';
+      d.append(hint);
+    } else if (o.type === 'btnflex') {
+      const hint = document.createElement('div');
+      hint.className = 'empty';
+      hint.textContent = 'Imprimé en place : soude 2 fils sur un tact switch 6×6 et glisse-le dans le berceau intérieur par le haut.';
+      d.append(hint);
+    } else if (o.type === 'btnpiston') {
+      const hint = document.createElement('div');
+      hint.className = 'empty';
+      hint.textContent = 'Le capuchon s\'imprime avec la planche « Inserts » : insère-le par l\'intérieur, puis glisse le switch 6×6 (2 fils soudés) dans le berceau.';
+      d.append(hint);
+    } else if (o.type === 'usbc') {
+      const hint = document.createElement('div');
+      hint.className = 'empty';
+      hint.textContent = 'Soude les fils sur la prise nue, glisse son nez dans l\'ouverture par l\'intérieur et couche-la dans le canal (pont de maintien à l\'arrière). La paroi bloque l\'arrachement, le fond bloque le branchement.';
+      d.append(hint);
+    } else if (o.type !== 'window' && !VENT_TYPES.includes(o.type) && state.holeComp > 0) {
+      const hint = document.createElement('div');
+      hint.className = 'empty';
+      hint.textContent = o.type === 'circle'
+        ? `Perçage imprimé : Ø ${r1(o.d + state.holeComp)}${state.teardrop && o.d + state.holeComp >= 5 ? ' · goutte d’eau' : ''}`
+        : `Découpe imprimée : ${r1(o.w + state.holeComp)} × ${r1(o.h + state.holeComp)}`;
+      d.append(hint);
+    }
+    const acts = document.createElement('div'); acts.className = 'actions';
+    acts.append(
+      actionBtn(flat ? 'Centrer X' : 'Centrer', () => o.off = 0),
+      flat ? actionBtn('Centrer Y', () => o.z = 0)
+           : actionBtn('Mi-hauteur', () => o.z = state.inner.h / 2),
+      actionBtn('Dupliquer', duplicateSelected),
+      actionBtn('Supprimer', removeSelected, 'danger'),
+    );
+    d.append(acts);
+  } else if (state.sel.kind === 'pcb') {
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;margin-bottom:8px';
+    title.textContent = o.holes === 2
+      ? `Entretoises 2 trous · ${o.dx}${o.dy ? ' × ' + o.dy : ''}`
+      : `Entretoises ${o.dx} × ${o.dy}`;
+    d.append(title);
+    d.append(numField('Centre X', o.cx, v => o.cx = v));
+    d.append(numField('Centre Y', o.cy, v => o.cy = v));
+    d.append(numField('Entraxe X', o.dx, v => o.dx = Math.max(5, v)));
+    d.append(numField('Entraxe Y', o.dy, v => o.dy = Math.max(5, v)));
+    d.append(numField('Hauteur', o.sh, v => o.sh = Math.max(2, v)));
+    const acts = document.createElement('div'); acts.className = 'actions';
+    acts.append(
+      actionBtn('Centrer', () => { o.cx = 0; o.cy = 0; }),
+      actionBtn('Pivoter 90°', () => { const t = o.dx; o.dx = o.dy; o.dy = t; }),
+      actionBtn('Dupliquer', duplicateSelected),
+      actionBtn('Supprimer', removeSelected, 'danger'),
+    );
+    d.append(acts);
+  } else if (state.sel.kind === 'div') {
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;margin-bottom:8px';
+    title.textContent = `Cloison ${o.len} mm${o.ht > 0 ? ' · h ' + o.ht : ' · pleine hauteur'}`;
+    d.append(title);
+    d.append(numField('Centre X', o.cx, v => o.cx = v));
+    d.append(numField('Centre Y', o.cy, v => o.cy = v));
+    d.append(numField('Longueur', o.len, v => o.len = Math.max(5, v)));
+    d.append(numField('Épaisseur', o.th, v => o.th = Math.max(1.2, Math.min(v, 5))));
+    d.append(numField('Hauteur', o.ht, v => o.ht = Math.max(0, v)));
+    d.append(numField('Passage câble', o.notchW, v => o.notchW = Math.max(0, v)));
+    if (o.notchW > 0) d.append(numField('Décal. passage', o.notchOff, v => o.notchOff = v));
+    d.append(checkRow('Créneaux d\'aération haut + bas', !!o.vented, v => o.vented = v));
+    const hint = document.createElement('div');
+    hint.className = 'empty';
+    hint.textContent = 'Hauteur 0 = pleine (jusqu\'au couvercle). Passage câble 0 = aucun (encoche en haut sinon).';
+    d.append(hint);
+    const acts = document.createElement('div'); acts.className = 'actions';
+    acts.append(
+      actionBtn('Centrer', () => { o.cx = 0; o.cy = 0; }),
+      actionBtn('Pivoter 90°', () => o.rot = o.rot ? 0 : 90),
+      actionBtn('Dupliquer', duplicateSelected),
+      actionBtn('Supprimer', removeSelected, 'danger'),
+    );
+    d.append(acts);
+  } else if (state.sel.kind === 'comp') {
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;margin-bottom:8px';
+    title.textContent = `Compartiment ${o.w} × ${o.d}`;
+    d.append(title);
+    d.append(numField('Centre X', o.cx, v => o.cx = v));
+    d.append(numField('Centre Y', o.cy, v => o.cy = v));
+    d.append(numField('Largeur', o.w, v => o.w = Math.max(15, v)));
+    d.append(numField('Profondeur', o.d, v => o.d = Math.max(15, v)));
+    d.append(checkRow('Aération dans le fond', !!o.ventFloor, v => o.ventFloor = v));
+    d.append(checkRow('Aération dans le couvercle', !!o.ventLid, v => o.ventLid = v));
+    d.append(checkRow('Aérer les parois en contact', !!o.ventWalls, v => o.ventWalls = v));
+    d.append(selectRow('Passage', [[-1, 'aucun'], [0, 'mur avant'], [1, 'mur arrière'], [2, 'mur gauche'], [3, 'mur droit']],
+      o.notchSide, v => o.notchSide = +v));
+    if (o.notchSide >= 0) d.append(numField('Larg. passage', o.notchW, v => o.notchW = Math.max(4, v)));
+    const hint = document.createElement('div');
+    hint.className = 'empty';
+    hint.textContent = 'Cadre pleine hauteur (murs 1.8). Cale-le contre une paroi : il se raccorde tout seul. Fond + couvercle aérés = l\'air extérieur traverse en cheminée.';
+    d.append(hint);
+    const acts = document.createElement('div'); acts.className = 'actions';
+    acts.append(
+      actionBtn('Pivoter 90°', () => { const t = o.w; o.w = o.d; o.d = t; }),
+      actionBtn('Dupliquer', duplicateSelected),
+      actionBtn('Supprimer', removeSelected, 'danger'),
+    );
+    d.append(acts);
+  } else {
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;margin-bottom:8px';
+    title.textContent = `Socle cellule ${o.len} × Ø ${o.dia}`;
+    d.append(title);
+    d.append(numField('Centre X', o.cx, v => o.cx = v));
+    d.append(numField('Centre Y', o.cy, v => o.cy = v));
+    d.append(numField('Longueur', o.len, v => o.len = Math.max(20, v)));
+    d.append(numField('Ø cellule', o.dia, v => o.dia = Math.max(8, v)));
+    const acts = document.createElement('div'); acts.className = 'actions';
+    acts.append(
+      actionBtn('Centrer', () => { o.cx = 0; o.cy = 0; }),
+      actionBtn('Pivoter 90°', () => o.rot = o.rot ? 0 : 90),
+      actionBtn('Dupliquer', duplicateSelected),
+      actionBtn('Supprimer', removeSelected, 'danger'),
+    );
+    d.append(acts);
+  }
+  box.append(d);
+}
+
+// ---------------------------------------------------------------
+// Export OpenSCAD
+// ---------------------------------------------------------------
+// Liste d'expressions -D partagée : commande copiable ET génération directe
+function cutExpr(c) {
+  const off = r1(c.off * FACE_SIGN[c.face]);
+  if (c.type === 'circle' || isBtnType(c.type))
+    return `["${c.face}","${c.type}",${off},${c.z},${c.d},0,0]`;
+  return `["${c.face}","${c.type}",${off},${c.z},${c.w},${c.h},${(c.type === 'window' || c.type === 'insert') ? c.skin : 0}]`;
+}
+
+function buildArgList(part) {
+  const { w, d, h } = state.inner;
+  const args = [`size_preset="custom"`, `custom_inner=[${w},${d},${h}]`, `part="${part}"`];
+  if (state.lidFix === 'screws') args.push(`lid_fix="screws"`);
+  if (state.holeComp !== 0.3) args.push(`hole_comp=${state.holeComp}`);
+  if (part === 'inserts') {
+    const ins = state.cuts.filter(c => c.type === 'insert' || c.type === 'btnpiston').map(cutExpr);
+    if (ins.length) args.push(`cuts=[${ins.join(',')}]`);
+    return args;
+  }
+  if (part === 'lid') {
+    const lidCuts = state.cuts.filter(c => c.face === 'lid').map(cutExpr);
+    if (lidCuts.length) args.push(`cuts=[${lidCuts.join(',')}]`);
+    const lidComps = compsExpr();
+    if (lidComps) args.push(lidComps);
+    const lidDivs = divsExpr();
+    if (lidDivs) args.push(lidDivs);
+    return args;
+  }
+  args.push('usb_cutout=false', 'standoffs=false');
+  if (!state.vents) args.push('vents=false');
+  if (!state.tieSlots) args.push('tie_slots=false');
+  if (!state.teardrop) args.push('teardrop=false');
+  if (state.mountTabs !== 'none')
+    args.push(`mount_tabs="${state.mountTabs}"`, `mount_n=${state.mountN}`);
+  const cuts = state.cuts.filter(c => c.face !== 'lid').map(cutExpr);
+  const sets = state.pcbs.map(p => `[${p.cx},${p.cy},${p.dx},${p.dy},${p.sh},${p.pd},${p.pp},${p.holes === 2 ? 1 : 0}]`);
+  const cells = state.cells.map(c => `[${c.cx},${c.cy},${c.rot},${c.len},${c.dia}]`);
+  if (cuts.length) args.push(`cuts=[${cuts.join(',')}]`);
+  if (sets.length) args.push(`standoff_sets=[${sets.join(',')}]`);
+  if (cells.length) args.push(`cell_holders=[${cells.join(',')}]`);
+  const divs = divsExpr();
+  if (divs) args.push(divs);
+  const comps = compsExpr();
+  if (comps) args.push(comps);
+  return args;
+}
+function divsExpr() {
+  if (!state.divs.length) return null;
+  return `dividers=[${state.divs.map(dv =>
+    `[${dv.cx},${dv.cy},${dv.rot},${dv.len},${dv.ht},${dv.th},${dv.notchW},${dv.notchOff},${dv.vented ? 1 : 0}]`).join(',')}]`;
+}
+function compsExpr() {
+  if (!state.comps.length) return null;
+  return `compartments=[${state.comps.map(cp =>
+    `[${cp.cx},${cp.cy},${cp.w},${cp.d},${cp.ventFloor ? 1 : 0},${cp.ventLid ? 1 : 0},${cp.notchSide},${cp.notchW},${cp.ventWalls ? 1 : 0}]`).join(',')}]`;
+}
+// parois de la boîte en contact avec un compartiment (mêmes seuils que
+// le .scad) : raccordé = le bord de la ZONE affleure la face intérieure,
+// le cadre est alors entièrement dans l'épaisseur de la paroi
+function compWallContacts(cp) {
+  const { w, d } = state.inner;
+  return {
+    left: cp.cx - cp.w / 2 <= -w / 2 + 0.3,
+    right: cp.cx + cp.w / 2 >= w / 2 - 0.3,
+    front: cp.cy - cp.d / 2 <= -d / 2 + 0.3,
+    back: cp.cy + cp.d / 2 >= d / 2 - 0.3,
+  };
+}
+function compWarnings(cp) {
+  const out = [];
+  if (cp.notchSide >= 0) {
+    const ct = compWallContacts(cp);
+    const att = [ct.front, ct.back, ct.left, ct.right][cp.notchSide];
+    if (att) out.push('Compartiment : le passage câble est sur un mur fondu dans la paroi — choisis un autre côté');
+  }
+  return out;
+}
+
+function buildCommands() {
+  const cmd = (part, name) =>
+    `openscad -o ${name} ${buildArgList(part).map(a => `-D '${a}'`).join(' ')} esp32-box.scad`;
+  return {
+    base: cmd('base', 'ma-boite-base.stl'),
+    lid: cmd('lid', 'ma-boite-couvercle.stl'),
+    inserts: cmd('inserts', 'ma-boite-inserts.stl'),
+  };
+}
+function hasInserts() { return state.cuts.some(c => c.type === 'insert' || c.type === 'btnpiston'); }
+
+// ---------------------------------------------------------------
+// Génération directe via builder-server.py (si lancé)
+// ---------------------------------------------------------------
+const gen = { on: false, busy: false, srv: null };
+const ui = { showCmds: false };
+
+function showGenError(msg) {
+  const el = $('srvNote');
+  el.textContent = 'Échec de génération : ' + msg;
+  el.style.color = 'var(--danger)';
+  clearTimeout(showGenError.t);
+  showGenError.t = setTimeout(() => { el.style.color = ''; updateGenUI(); }, 8000);
+}
+
+async function tryPing(origin) {
+  try {
+    const r = await fetch(origin + '/ping', { signal: AbortSignal.timeout(1200) });
+    return (await r.json()).ok === true;
+  } catch (e) { return false; }
+}
+async function pingServer() {
+  if (gen.pinging) return;
+  gen.pinging = true;
+  try {
+    if (location.origin.startsWith('http')) {
+      gen.on = await tryPing(location.origin);
+      if (gen.on) gen.srv = location.origin;
+    } else if (gen.srv && await tryPing(gen.srv)) {
+      gen.on = true;
+    } else {
+      gen.on = false;
+      for (let p = 8765; p <= 8774; p++) {
+        if (await tryPing('http://127.0.0.1:' + p)) {
+          gen.on = true; gen.srv = 'http://127.0.0.1:' + p; break;
+        }
+      }
+    }
+  } finally { gen.pinging = false; }
+  updateGenUI();
+}
+function updateGenUI() {
+  $('genBase').style.display = gen.on ? '' : 'none';
+  $('genLid').style.display = gen.on ? '' : 'none';
+  $('genIns').style.display = gen.on ? '' : 'none';
+  $('srvNote').textContent = gen.on
+    ? 'génération directe active — le STL se télécharge'
+    : 'à copier dans un terminal — ou double-clique builder.command pour générer en un clic';
+  // commandes repliées par défaut quand la génération directe marche
+  document.querySelector('footer').classList.toggle('nocmd', gen.on && !ui.showCmds);
+}
+async function generate(part, btn) {
+  if (gen.busy || !gen.srv) return;
+  gen.busy = true;
+  const old = btn.textContent;
+  const t0 = Date.now();
+  btn.textContent = 'Génération…';
+  const tick = setInterval(() => {
+    btn.textContent = `Génération… ${Math.round((Date.now() - t0) / 1000)} s`;
+  }, 1000);
+  btn.disabled = true;
+  try {
+    const r = await fetch(gen.srv + '/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ part, args: buildArgList(part) }),
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || 'échec OpenSCAD');
+    }
+    const blob = await r.blob();
+    const { w, d, h } = state.inner;
+    const names = { base: 'base', lid: 'couvercle', inserts: 'inserts' };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `esp32-box-${w}x${d}x${h}-${names[part]}.stl`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    clearInterval(tick);
+    btn.textContent = 'Téléchargé';
+    setTimeout(() => { btn.textContent = old; }, 1800);
+  } catch (e) {
+    clearInterval(tick);
+    showGenError(e.message);
+    btn.textContent = old;
+  } finally {
+    clearInterval(tick);
+    gen.busy = false;
+    btn.disabled = false;
+  }
+}
+
+function copyBtn(btnId, text) {
+  const b = $(btnId);
+  navigator.clipboard.writeText(text).then(() => {
+    b.classList.add('copyok');
+    const old = b.innerHTML;
+    b.innerHTML = 'Copié';
+    setTimeout(() => { b.classList.remove('copyok'); b.innerHTML = old; }, 1200);
+  });
+}
+
+// ---------------------------------------------------------------
+// UI statique
+// ---------------------------------------------------------------
+function buildStatic() {
+  const tabs = $('tabs');
+  for (const f of FACES) {
+    const b = document.createElement('button');
+    b.className = 'tab'; b.dataset.face = f.id; b.textContent = f.label;
+    b.addEventListener('click', () => {
+      state.face = f.id; state.sel = null; resetView();
+      // le panneau suit la face : Fond -> implantation, parois -> découpes
+      if (f.id === 'floor' && state.panel === 'cut') state.panel = 'floor';
+      else if (f.id !== 'floor' && state.panel === 'floor') state.panel = 'cut';
+      updateAll();
+    });
+    tabs.append(b);
+  }
+  const PAL_CATS = [
+    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
+    ['Boutons tact 6×6', ['Bouton languette', 'Bouton poussoir']],
+    ['Fenêtres & inserts', ['Fenêtre LED', 'Fenêtre radar', 'Insert libre', 'Fenêtre libre']],
+    ['Aérations', ['Fentes vert.', 'Fentes horiz.', 'Grille ronde', 'Nid d\'abeille']],
+    ['Formes libres', ['Rect libre', 'Rond libre']],
+  ];
+  const pal = $('palette');
+  for (const [cat, labels] of PAL_CATS) {
+    const hd = document.createElement('div');
+    hd.className = 'palcat'; hd.textContent = cat;
+    pal.append(hd);
+    for (const nm of labels) {
+      const p = PALETTE.find(x => x.label === nm);
+      if (!p) continue;
+    const b = document.createElement('button');
+    b.className = 'pal';
+    b.innerHTML = `<b>${esc(p.label)}</b><small>${esc(p.sub)}</small>`;
+    b.title = p.tip || '';
+    b.addEventListener('click', () => {
+      pushHistory();
+      const c = {
+        id: state.nextId++, face: state.face, type: p.type, label: p.label,
+        off: 0,
+        z: isFlat(state.face) ? 0
+          : (p.dz !== undefined ? p.dz : Math.min(12, state.inner.h / 2)),
+      };
+      if (p.type === 'circle' || isBtnType(p.type)) c.d = p.d;
+      else { c.w = p.w; c.h = p.h; if (p.type === 'window' || p.type === 'insert') c.skin = p.skin; }
+      state.cuts.push(c);
+      state.sel = { kind: 'cut', id: c.id };
+      updateAll();
+    });
+    pal.append(b);
+    }
+  }
+  const pcbSel = $('pcbPreset');
+  let lastGroup = null, curGroup = null;
+  PCB_PRESETS.forEach((p, i) => {
+    if (p.group !== lastGroup) {
+      curGroup = document.createElement('optgroup');
+      curGroup.label = p.group;
+      pcbSel.append(curGroup);
+      lastGroup = p.group;
+    }
+    const o = document.createElement('option'); o.value = i; o.textContent = p.label;
+    curGroup.append(o);
+  });
+  pcbSel.addEventListener('change', () => {
+    const p = PCB_PRESETS[+pcbSel.value];
+    $('pcbDX').value = p.dx; $('pcbDY').value = p.dy;
+    $('pcbHoles').value = p.holes;
+  });
+  $('pcbDX').value = PCB_PRESETS[0].dx; $('pcbDY').value = PCB_PRESETS[0].dy;
+  $('pcbAdd').addEventListener('click', () => {
+    pushHistory();
+    const pr = PCB_PRESETS[+pcbSel.value];
+    const p = {
+      id: state.nextId++, cx: 0, cy: 0, sh: 5,
+      dx: parseFloat($('pcbDX').value) || 40, dy: parseFloat($('pcbDY').value) || 0,
+      holes: +$('pcbHoles').value, pd: pr.d, pp: pr.pilot,
+    };
+    state.pcbs.push(p);
+    state.face = 'floor';
+    state.sel = { kind: 'pcb', id: p.id };
+    updateAll();
+  });
+  const cellSel = $('cellPreset');
+  CELL_PRESETS.forEach((c, i) => {
+    const o = document.createElement('option'); o.value = i; o.textContent = c.label;
+    cellSel.append(o);
+  });
+  $('cellAdd').addEventListener('click', () => {
+    pushHistory();
+    const pr = CELL_PRESETS[+cellSel.value];
+    const c = { id: state.nextId++, cx: 0, cy: 0, rot: 0, len: pr.len, dia: pr.dia };
+    state.cells.push(c);
+    state.face = 'floor';
+    state.sel = { kind: 'cell', id: c.id };
+    updateAll();
+  });
+  $('divAdd').addEventListener('click', () => {
+    pushHistory();
+    const dv = {
+      id: state.nextId++, cx: 0, cy: 0, rot: 90,
+      len: state.inner.d + 6, ht: 0, th: 1.8, notchW: 8, notchOff: 0,
+      vented: false,
+    };
+    state.divs.push(dv);
+    state.face = 'floor';
+    state.sel = { kind: 'div', id: dv.id };
+    updateAll();
+  });
+  $('compAdd').addEventListener('click', () => {
+    pushHistory();
+    const { w, d } = state.inner;
+    // posé directement raccordé dans le coin arrière-gauche
+    const cp = {
+      id: state.nextId++, w: 30, d: 26,
+      cx: r1(-(w - 30) / 2), cy: r1((d - 26) / 2),
+      ventFloor: true, ventLid: true, ventWalls: false, notchSide: 3, notchW: 8,
+    };
+    state.comps.push(cp);
+    state.face = 'floor';
+    state.sel = { kind: 'comp', id: cp.id };
+    updateAll();
+  });
+  const pres = $('presets');
+  for (const p of BOX_PRESETS) {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = p.label;
+    b.dataset.dims = `${p.w},${p.d},${p.h}`;
+    b.addEventListener('click', () => { pushHistory(); state.inner = { w: p.w, d: p.d, h: p.h }; updateAll(); });
+    pres.append(b);
+  }
+  const dimIn = (id, key) => $(id).addEventListener('input', () => {
+    pushHistory('dims');
+    state.inner[key] = +$(id).value || state.inner[key];
+    updateAll(false);
+  });
+  dimIn('dimW', 'w'); dimIn('dimD', 'd'); dimIn('dimH', 'h');
+  $('optVents').addEventListener('change', () => { pushHistory(); state.vents = $('optVents').checked; updateAll(); });
+  $('optTies').addEventListener('change', () => { pushHistory(); state.tieSlots = $('optTies').checked; updateAll(); });
+  $('optLid').addEventListener('change', () => { pushHistory(); state.lidFix = $('optLid').value; updateAll(); });
+  $('optComp').addEventListener('input', () => {
+    const v = parseFloat($('optComp').value);
+    if (!isNaN(v)) { pushHistory('comp'); state.holeComp = v; updateAll(); }
+  });
+  $('optTear').addEventListener('change', () => { pushHistory(); state.teardrop = $('optTear').checked; updateAll(); });
+  $('resetBtn').addEventListener('click', () => {
+    if (confirm('Tout effacer ?')) { pushHistory(); state = DEFAULT_STATE(); updateAll(); }
+  });
+  $('undoBtn').addEventListener('click', undo);
+  $('redoBtn').addEventListener('click', redo);
+  // rail de panneaux
+  document.querySelectorAll('.railbtn').forEach(b =>
+    b.addEventListener('click', () => { state.panel = b.dataset.panel; updateAll(); }));
+  $('dimsSummary').addEventListener('click', () => { state.panel = 'box'; updateAll(); });
+  // clic sur un avertissement -> va sur la face et sélectionne l'élément
+  $('warns').addEventListener('click', e => {
+    const b = e.target.closest('.warnline'); if (!b) return;
+    state.face = b.dataset.face;
+    state.sel = { kind: b.dataset.kind, id: +b.dataset.id };
+    resetView();
+    updateAll();
+  });
+  // clic sur une ligne du panneau Objets -> même comportement
+  $('objects').addEventListener('click', e => {
+    const b = e.target.closest('.objrow'); if (!b) return;
+    if (state.face !== b.dataset.face) { state.face = b.dataset.face; resetView(); }
+    state.sel = { kind: b.dataset.kind, id: +b.dataset.id };
+    updateAll();
+  });
+  // fixation murale
+  $('mountTabs').addEventListener('change', () => {
+    pushHistory(); state.mountTabs = $('mountTabs').value; updateAll();
+  });
+  $('mountN').addEventListener('change', () => {
+    pushHistory(); state.mountN = +$('mountN').value; updateAll();
+  });
+  // zoom (Ctrl+molette / pincer) et panoramique (molette)
+  const wrapEl = $('canvasWrap');
+  wrapEl.addEventListener('wheel', e => {
+    if (e.target.closest('#prev3d')) return;
+    e.preventDefault();
+    const r = wrapEl.getBoundingClientRect();
+    if (e.ctrlKey || e.metaKey) {
+      const f = state.face;
+      const fw = isFlat(f) ? state.inner.w : faceW(f);
+      const fh = isFlat(f) ? state.inner.d : state.inner.h;
+      const cx = e.clientX - r.left, cy = e.clientY - r.top;
+      const s1 = view.scale;
+      const z2 = Math.min(10, Math.max(0.4, view.zoom * Math.exp(-e.deltaY * 0.004)));
+      const s2 = (s1 / view.zoom) * z2;
+      const wx = (cx - view.ox) / s1, wy = (cy - view.oy) / s1;
+      view.zoom = z2;
+      view.panX = cx - wx * s2 - (r.width - fw * s2) / 2;
+      view.panY = cy - wy * s2 - (r.height - fh * s2) / 2;
+    } else {
+      view.panX -= e.deltaX;
+      view.panY -= e.deltaY;
+    }
+    render();
+  }, { passive: false });
+  wrapEl.addEventListener('dblclick', e => {
+    if (e.target.closest('[data-kind]') || e.target.closest('#prev3d')) return;
+    resetView();
+    render();
+  });
+  // aperçu 3D : rotation à la souris + repli
+  const scene = $('p3scene');
+  scene.addEventListener('pointerdown', e => {
+    p3.drag = { x: e.clientX, y: e.clientY, rx: p3.rx, ry: p3.ry };
+    scene.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+  });
+  scene.addEventListener('pointermove', e => {
+    if (!p3.drag) return;
+    p3.ry = p3.drag.ry + (e.clientX - p3.drag.x) * 0.5;
+    p3.rx = Math.max(-88, Math.min(30, p3.drag.rx - (e.clientY - p3.drag.y) * 0.5));
+    applyP3();
+  });
+  scene.addEventListener('pointerup', () => { p3.drag = null; });
+  $('p3toggle').addEventListener('click', () => $('prev3d').classList.toggle('collapsed'));
+  $('p3open').addEventListener('click', () => {
+    p3.open = !p3.open;
+    $('p3open').classList.toggle('active', p3.open);
+    if (p3.open && p3.rx > -35) p3.rx = -55; // bascule en plongée pour voir dedans
+    render3d();
+  });
+  $('cmdToggle').addEventListener('click', () => {
+    ui.showCmds = !ui.showCmds;
+    updateGenUI();
+  });
+  $('copyBase').addEventListener('click', () => copyBtn('copyBase', buildCommands().base));
+  $('copyLid').addEventListener('click', () => copyBtn('copyLid', buildCommands().lid));
+  $('copyIns').addEventListener('click', () => copyBtn('copyIns', buildCommands().inserts));
+  $('genBase').addEventListener('click', () => generate('base', $('genBase')));
+  $('genLid').addEventListener('click', () => generate('lid', $('genLid')));
+  $('genIns').addEventListener('click', () => generate('inserts', $('genIns')));
+  pingServer();
+  setInterval(pingServer, 4000);
+  window.addEventListener('resize', () => render());
+}
+
+// ---------------------------------------------------------------
+// Update global
+// ---------------------------------------------------------------
+function updateAll(withInspector = true) {
+  $('undoBtn').disabled = history.length === 0;
+  $('redoBtn').disabled = future.length === 0;
+  const fcounts = {};
+  for (const c of state.cuts) fcounts[c.face] = (fcounts[c.face] || 0) + 1;
+  fcounts.floor = (fcounts.floor || 0) + state.pcbs.length + state.cells.length + state.divs.length + state.comps.length;
+  fcounts.lid = (fcounts.lid || 0) + state.comps.filter(c => c.ventLid).length;
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.face === state.face);
+    const lbl = FACES.find(x => x.id === t.dataset.face).label;
+    const n = fcounts[t.dataset.face] || 0;
+    t.innerHTML = n ? `${lbl}<span class="tabn">${n}</span>` : lbl;
+  });
+  document.querySelectorAll('.chip[data-dims]').forEach(c => {
+    const [w, d, h] = c.dataset.dims.split(',').map(Number);
+    c.classList.toggle('active', w === state.inner.w && d === state.inner.d && h === state.inner.h);
+  });
+  document.querySelectorAll('.railbtn').forEach(b => b.classList.toggle('active', b.dataset.panel === state.panel));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + state.panel));
+  $('dimsSummary').textContent = `${state.inner.w} × ${state.inner.d} × ${state.inner.h} mm`;
+  $('mountTabs').value = state.mountTabs;
+  $('mountN').value = state.mountN;
+  $('mountNRow').style.display = state.mountTabs === 'none' ? 'none' : '';
+  $('dimW').value = state.inner.w; $('dimD').value = state.inner.d; $('dimH').value = state.inner.h;
+  $('optVents').checked = state.vents; $('optTies').checked = state.tieSlots;
+  $('optLid').value = state.lidFix;
+  if (document.activeElement !== $('optComp')) $('optComp').value = state.holeComp;
+  $('optTear').checked = state.teardrop;
+  render();
+  render3d();
+  if (withInspector) renderInspector();
+  renderObjects();
+  const cmds = buildCommands();
+  $('cmdBase').textContent = cmds.base;
+  $('cmdLid').textContent = cmds.lid;
+  $('cmdIns').textContent = cmds.inserts;
+  $('insBox').style.display = hasInserts() ? '' : 'none';
+  save();
+}
+
+buildStatic();
+updateAll();
+</script>
+</body>
+</html>
