@@ -47,13 +47,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._cors()
         self.end_headers()
 
+    STATIC = {
+        '/esp32-box.scad': 'text/plain; charset=utf-8',
+        '/wasm/openscad.js': 'text/javascript',
+        '/wasm/openscad.wasm.js': 'text/javascript',
+        '/wasm/openscad.wasm': 'application/wasm',
+        '/wasm/worker.js': 'text/javascript',
+    }
+
     def do_GET(self):
-        if self.path in ('/', '/index.html', '/builder.html'):
+        path = self.path.split('?', 1)[0]
+        if path in ('/', '/index.html', '/builder.html'):
             with open(os.path.join(ROOT, 'builder.html'), 'rb') as f:
                 self._reply(200, f.read(), 'text/html; charset=utf-8')
-        elif self.path == '/ping':
+        elif path == '/ping':
             body = json.dumps({'ok': True, 'openscad': OPENSCAD}).encode()
             self._reply(200, body, 'application/json')
+        elif path in self.STATIC:
+            with open(os.path.join(ROOT, path.lstrip('/')), 'rb') as f:
+                self._reply(200, f.read(), self.STATIC[path])
         else:
             self._reply(404, b'{}', 'application/json')
 

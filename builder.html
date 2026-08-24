@@ -1709,6 +1709,13 @@ function hasInserts() { return state.cuts.some(c => c.type === 'insert' || c.typ
 // ---------------------------------------------------------------
 const gen = { on: false, busy: false, srv: null };
 const ui = { showCmds: false };
+// moteur navigateur (OpenSCAD WebAssembly) : disponible sur http(s)
+// quand aucun serveur local ne répond — c'est le mode de la version
+// hébergée en ligne. ?wasm=1 le force (débogage).
+const FORCE_WASM = new URLSearchParams(location.search).get('wasm') === '1';
+const WASM_OK = location.protocol.startsWith('http');
+let wasmWorker = null;
+let scadSrc = null;
 
 function showGenError(msg) {
   const el = $('srvNote');
@@ -1726,6 +1733,7 @@ async function tryPing(origin) {
 }
 async function pingServer() {
   if (gen.pinging) return;
+  if (FORCE_WASM) { gen.on = false; updateGenUI(); return; }
   gen.pinging = true;
   try {
     if (location.origin.startsWith('http')) {
@@ -1745,16 +1753,77 @@ async function pingServer() {
   updateGenUI();
 }
 function updateGenUI() {
-  $('genBase').style.display = gen.on ? '' : 'none';
-  $('genLid').style.display = gen.on ? '' : 'none';
-  $('genIns').style.display = gen.on ? '' : 'none';
+  const wasmMode = !gen.on && WASM_OK;
+  for (const id of ['genBase', 'genLid', 'genIns']) {
+    const b = $(id);
+    b.style.display = (gen.on || wasmMode) ? '' : 'none';
+    if (!gen.busy) b.textContent = wasmMode ? 'Générer (navigateur)' : 'Générer le STL';
+  }
   $('srvNote').textContent = gen.on
     ? 'génération directe active — le STL se télécharge'
-    : 'à copier dans un terminal — ou double-clique builder.command pour générer en un clic';
-  // commandes repliées par défaut quand la génération directe marche
-  document.querySelector('footer').classList.toggle('nocmd', gen.on && !ui.showCmds);
+    : wasmMode
+      ? 'sans serveur local : génération dans ton navigateur (1 à 3 min)'
+      : 'à copier dans un terminal — ou double-clique builder.command pour générer en un clic';
+  // commandes repliées par défaut quand une génération est possible
+  document.querySelector('footer').classList.toggle('nocmd', (gen.on || wasmMode) && !ui.showCmds);
 }
+// téléchargement d'un blob STL généré
+function downloadStl(blob, part) {
+  const { w, d, h } = state.inner;
+  const names = { base: 'base', lid: 'couvercle', inserts: 'inserts' };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `esp32-box-${w}x${d}x${h}-${names[part]}.stl`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// routeur : serveur local si présent, sinon moteur navigateur
 async function generate(part, btn) {
+  if (gen.on) return serverGenerate(part, btn);
+  if (WASM_OK) return wasmGenerate(part, btn);
+}
+
+// génération dans le navigateur (OpenSCAD WebAssembly, dans un worker)
+async function wasmGenerate(part, btn) {
+  if (gen.busy) return;
+  gen.busy = true;
+  const old = btn.textContent;
+  const t0 = Date.now();
+  btn.textContent = 'Chargement du moteur…';
+  const tick = setInterval(() => {
+    btn.textContent = `Génération… ${Math.round((Date.now() - t0) / 1000)} s`;
+  }, 1000);
+  btn.disabled = true;
+  try {
+    if (!scadSrc) scadSrc = await (await fetch('esp32-box.scad')).text();
+    if (!wasmWorker) wasmWorker = new Worker('wasm/worker.js', { type: 'module' });
+    const result = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        wasmWorker.terminate(); wasmWorker = null;
+        reject(new Error('délai dépassé (6 min) — essaie une boîte plus simple'));
+      }, 360000);
+      wasmWorker.onmessage = e => { clearTimeout(timeout); resolve(e.data); };
+      wasmWorker.onerror = e => { clearTimeout(timeout); reject(new Error(e.message || 'erreur du worker')); };
+      wasmWorker.postMessage({ src: scadSrc, args: buildArgList(part) });
+    });
+    if (!result.ok) throw new Error(result.error);
+    clearInterval(tick);
+    downloadStl(new Blob([result.stl], { type: 'application/octet-stream' }), part);
+    btn.textContent = 'Téléchargé';
+    setTimeout(() => { btn.textContent = old; updateGenUI(); }, 1800);
+  } catch (e) {
+    clearInterval(tick);
+    showGenError(e.message);
+    btn.textContent = old;
+  } finally {
+    clearInterval(tick);
+    gen.busy = false;
+    btn.disabled = false;
+  }
+}
+
+async function serverGenerate(part, btn) {
   if (gen.busy || !gen.srv) return;
   gen.busy = true;
   const old = btn.textContent;
@@ -1774,14 +1843,7 @@ async function generate(part, btn) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e.error || 'échec OpenSCAD');
     }
-    const blob = await r.blob();
-    const { w, d, h } = state.inner;
-    const names = { base: 'base', lid: 'couvercle', inserts: 'inserts' };
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `esp32-box-${w}x${d}x${h}-${names[part]}.stl`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadStl(await r.blob(), part);
     clearInterval(tick);
     btn.textContent = 'Téléchargé';
     setTimeout(() => { btn.textContent = old; }, 1800);
