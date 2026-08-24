@@ -5,6 +5,12 @@ Concepteur de boîtiers imprimés en 3D pour l'électronique maker
 tes connecteurs, entretoises PCB, compartiments et aérations en
 glisser-déposer, et qui génère les STL prêts à trancher.
 
+**Essaie en ligne, sans rien installer :**
+**https://timiliris.github.io/esp32-box/builder.html**
+— la génération des STL tourne dans ton navigateur (OpenSCAD
+WebAssembly, ~1 à 3 min par pièce). En local avec OpenSCAD installé,
+c'est nettement plus rapide.
+
 Boîtier au design moderne : coque continue à gros rayons, arêtes en
 congé, couvercle affleurant **clipsé sans aucune vis visible**.
 Un seul fichier source OpenSCAD ([esp32-box.scad](esp32-box.scad)),
