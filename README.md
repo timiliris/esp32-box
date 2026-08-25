@@ -1,34 +1,36 @@
 # ESP32 Box Builder
 
-Concepteur de boîtiers imprimés en 3D pour l'électronique maker
-(ESP32, capteurs, modules…) : une interface web locale où tu poses
-tes connecteurs, entretoises PCB, compartiments et aérations en
-glisser-déposer, et qui génère les STL prêts à trancher.
+*English · [version française](README.fr.md)*
 
-**Essaie en ligne, sans rien installer :**
+A 3D-printed enclosure designer for maker electronics (ESP32,
+sensors, modules…): a web interface where you drag & drop your
+connectors, PCB standoffs, compartments and vents, and generate
+print-ready STLs.
+
+**Try it online, nothing to install:**
 **https://timiliris.github.io/esp32-box/builder.html**
-— la génération des STL tourne dans ton navigateur (OpenSCAD
-WebAssembly, ~1 à 3 min par pièce). En local avec OpenSCAD installé,
-c'est nettement plus rapide.
+— STL generation runs right in your browser (OpenSCAD WebAssembly,
+~1–3 min per part). Running locally with OpenSCAD installed is much
+faster. The interface is bilingual (FR/EN, auto-detected).
 
-Boîtier au design moderne : coque continue à gros rayons, arêtes en
-congé, couvercle affleurant **clipsé sans aucune vis visible**.
-Un seul fichier source OpenSCAD ([esp32-box.scad](esp32-box.scad)),
-entièrement paramétrique.
+A modern enclosure design: continuous shell with large radii,
+filleted top edges, flush **snap-fit lid with no visible screws**.
+A single parametric OpenSCAD source file
+([esp32-box.scad](esp32-box.scad)).
 
-![Aperçu du boîtier](preview/apercu-M-ferme.png)
+![Enclosure preview](preview/apercu-M-ferme.png)
 
 | | |
 |---|---|
-| ![Aérations](preview/apercu-aerations.png) | ![Compartiment](preview/apercu-compartiment.png) |
-| *Aérations posables : nid d'abeille, grille, fentes* | *Compartiment ventilé pour isoler un capteur* |
-| ![Boutons](preview/apercu-boutons.png) | ![Inserts](preview/apercu-inserts.png) |
-| *Boutons pour tact switch 6×6 : languette et piston* | *Fenêtres clipsables à imprimer en transparent* |
+| ![Vents](preview/apercu-aerations.png) | ![Compartment](preview/apercu-compartiment.png) |
+| *Placeable vents: honeycomb, grid, slots* | *Vented compartment to isolate a sensor* |
+| ![Buttons](preview/apercu-boutons.png) | ![Inserts](preview/apercu-inserts.png) |
+| *6×6 tact switch buttons: flex tongue and plunger* | *Snap-in windows to print in clear filament* |
 
-## Installation
+## Install
 
-Prérequis : [OpenSCAD](https://openscad.org) et Python 3 (inclus sur
-macOS ; sur Debian/Ubuntu : `sudo apt install openscad python3`).
+Requirements: [OpenSCAD](https://openscad.org) and Python 3
+(bundled on macOS; on Debian/Ubuntu: `sudo apt install openscad python3`).
 
 ```bash
 git clone https://github.com/timiliris/esp32-box.git
@@ -36,199 +38,143 @@ cd esp32-box
 python3 builder-server.py
 ```
 
-Sur macOS, double-cliquer `builder.command` fait la même chose.
-L'interface s'ouvre sur http://127.0.0.1:8765.
+On macOS, double-clicking `builder.command` does the same.
+The interface opens at http://127.0.0.1:8765.
 
-## Builder visuel
+## The visual builder
 
-Le serveur local (stdlib Python, port 8765) sert l'interface et
-active la **génération directe** : boutons « Générer le STL » qui
-appellent l'OpenSCAD installé et téléchargent le fichier prêt à trancher
-(**STL binaire**, ~5× plus léger que l'ASCII ; si le port 8765 est
-pris, le serveur bascule tout seul sur le suivant et l'interface le
-retrouve).
-Ouvrir `builder.html` seul marche aussi : l'interface retombe alors
-sur les commandes à copier.
+The local server (Python stdlib, port 8765) serves the interface and
+enables **direct generation**: “Generate STL” buttons call your
+installed OpenSCAD and download a print-ready file (**binary STL**,
+~5× smaller than ASCII; if port 8765 is taken the server falls back
+to the next one and the interface finds it). Opening `builder.html`
+alone also works: the interface falls back to copy-paste commands —
+or, on the hosted version, to in-browser generation.
 
-L'interface s'organise autour d'un **rail d'icônes** à gauche
-(façon JetBrains) : panneau **Découpes** (palette par catégories),
-**Implantation du fond** (PCB, socles, cloisons, compartiments),
-**Objets** (liste du projet) et **Boîtier** (dimensions, options,
-fixation murale) — l'inspecteur de sélection reste épinglé en bas.
-Le panneau suit l'onglet actif (Fond ↔ implantation).
+The layout is built around an **icon rail** on the left
+(JetBrains-style): **Cutouts** panel (categorized palette), **Floor
+layout** (PCB, cell holders, walls, compartments), **Objects**
+(project list) and **Case** (dimensions, options, wall mounting) —
+the selection inspector stays pinned at the bottom.
 
-Dans l'interface : édition 2D face
-par face (avant / arrière / flancs / **couvercle** / **fond** —
-écran sur le dessus, aérations dessous, tout est possible),
-glisser-déposer des découpes avec aimantation (centres, alignements
-entre découpes, grille 0.5 mm), **zoom** Ctrl+molette et panoramique
-molette, palette de connecteurs prêts avec infobulles (USB-C, USB-A,
-jack, poussoirs, PG7, rocker, fenêtres LED/radar), panneau
-**Objets** listant tout le projet (clic = y aller), **pattes de
-fixation murale** (2 ou 4 œillets Ø 4.2 imprimés avec la base),
-zones interdites affichées (coins arrondis, bande jupe/clips), et un
-outil
-d'**entraxes PCB** : choisis une carte ou un module (ou entre
-l'entraxe mesuré), pose le groupe d'entretoises sur le fond,
-déplace/pivote-le. La liste couvre les cartes (DevKit), les
-**plaques de proto** des kits standard (2×8 à 9×15 cm, trous d'angle
-Ø2 centrés à ~2 mm des bords : entraxe = dimension − 4, mesuré ≈) et
-les **capteurs/modules courants** — GY-BME280 (2 trous · 10,
-vérifié), OLED 0.96″ SSD1306, GY-521, buck LM2596… — avec gestion
-des cartes à **2 trous** (paire ou diagonale) et plots fins +
-avant-trous M2 pour les petits modules. Les cotes marquées ≈ sont
-les valeurs usuelles des clones : vérifie au pied à coulisse, ça
-varie d'un fabricant à l'autre.
-Des **cloisons internes** pour isoler un capteur (que le BME280 ne
-lise pas la chaleur de l'alim…) : murets imprimés avec la base,
-pleine hauteur (jusqu'au couvercle) ou partielle, épaisseur réglable,
-**passage de câble** optionnel en haut, et option **créneaux
-d'aération** haut + bas pour laisser circuler l'air. Fais-les
-dépasser dans les parois : elles sont rognées au volume intérieur et
-se raccordent proprement
-(`dividers=[[cx,cy,rot,long,haut,ép,passage,décal,aérée],…]`).
-Et des **compartiments** complets : un cadre fermé pleine hauteur
-autour d'une zone, avec en option un **nid d'abeille découpé dans le
-fond dessous et dans le couvercle au-dessus** — l'air extérieur
-traverse le compartiment en cheminée, le capteur mesure l'air de la
-pièce tout en étant isolé de la chaleur de la boîte. Passage de
-câble sur le mur au choix
-(`compartments=[[cx,cy,l,p,aér_fond,aér_couv,côté,larg],…]` —
-le couvercle doit être régénéré si l'aération couvercle est active).
-Même chose pour les **socles de cellule** (18650 / 21700 / 14500) :
-un berceau imprimé à deux joues clipsantes et butées d'extrémité,
-posé sur le fond comme un objet, déplaçable et pivotable
-(`cell_holders=[[cx,cy,rot,longueur,Ø],…]` côté .scad).
-En bas, la commande OpenSCAD prête à copier (base + couvercle) —
-tout passe par les paramètres `cuts` et `standoff_sets` du .scad.
-Le projet est sauvegardé automatiquement dans le navigateur.
+Face-by-face 2D editing (front / back / sides / **lid** / **floor** —
+a screen on top, vents underneath, anything goes), drag & drop with
+snapping (centers, alignment between cutouts, 0.5 mm grid), **zoom**
+(Ctrl+wheel) and panning, a palette of ready-made connectors with
+tooltips (USB-C, USB-A, jack, push buttons, PG7, rocker, LED/radar
+windows), an **Objects** panel listing the whole project (click to
+jump), **wall-mounting tabs** (2 or 4 Ø 4.2 eyelets printed with the
+base), keep-out zones displayed (rounded corners, lid skirt band),
+and a **PCB standoff tool**: pick a board or module (or type a
+measured spacing), drop the standoff group on the floor, move and
+rotate it. The list covers dev boards, standard **proto board** kits
+(2×8 to 9×15 cm — Ø2 corner holes centered ~2 mm from the edges,
+spacing = dimension − 4, measured ≈) and **common sensor modules** —
+GY-BME280 (2 holes · 10, verified), 0.96″ OLED SSD1306, GY-521,
+LM2596 buck… — including **2-hole boards** (pair or diagonal) with
+thin posts and M2 pilot holes for small modules. Values marked ≈ are
+typical clone dimensions: check with calipers, they vary by
+manufacturer.
 
-Aussi : **aperçu 3D** en bas à droite (boîte fermée avec toutes les
-découpes, rotation à la souris, repliable) et **annuler / rétablir**
-(boutons dans l'en-tête, Cmd+Z / Cmd+Maj+Z) — un glisser ou une
-saisie ne comptent que pour une seule étape.
+**Internal walls** to isolate a sensor (keep the BME280 away from
+the PSU heat…): printed with the base, full height (up to the lid)
+or partial, adjustable thickness, optional top **cable pass**, and
+optional **vent crenels** top + bottom to let air flow. Let them
+overlap the outer walls: they get trimmed to the inner volume and
+joined cleanly. And full **compartments**: a closed full-height
+frame around a zone, with optional **honeycomb cut into the floor
+below and the lid above** — outside air flows through the
+compartment like a chimney, the sensor reads room air while staying
+isolated from the box's heat. Cable pass on the wall of your choice
+(regenerate the lid when its vent is enabled). Same for **cell
+holders** (18650 / 21700 / 14500): a printed cradle with two snap
+jaws and end stops, placed on the floor as an object.
 
-## Tailles
+At the bottom, ready-to-copy OpenSCAD commands (base + lid) —
+everything goes through the `.scad`'s `cuts`, `standoff_sets`,
+`cell_holders`, `dividers` and `compartments` parameters. The
+project auto-saves in your browser.
 
-Dimensions **intérieures** (extérieur = +4.8 mm en X/Y) :
+Also: **3D preview** (closed box with every cutout, drag to rotate,
+interior view with the lid removed, collapsible) and **undo/redo**
+(header buttons, Cmd+Z / Cmd+Shift+Z) — a drag or a typed value
+counts as a single step.
 
-| Préréglage | Intérieur (mm) | Usage type |
+## Sizes
+
+**Inner** dimensions (outer = +4.8 mm in X/Y):
+
+| Preset | Inner (mm) | Typical use |
 |---|---|---|
-| S | 70 × 50 × 30 | un ESP32 seul + capteur (POG Sensor) |
-| M | 100 × 70 × 40 | ESP32 + breadboard mini / relais |
-| L | 140 × 100 × 50 | montages multi-modules, alim |
-| XL | 180 × 130 × 60 | gros fourre-tout |
-| custom | `custom_inner = [x, y, z]` | ce que tu veux |
+| S | 70 × 50 × 30 | a lone ESP32 + sensor |
+| M | 100 × 70 × 40 | ESP32 + mini breadboard / relay |
+| L | 140 × 100 × 50 | multi-module builds, PSU |
+| XL | 180 × 130 × 60 | big catch-all |
+| custom | `custom_inner = [x, y, z]` | whatever you need |
 
-## Impression
+## Printing
 
-- **Sans supports**, base et couvercle s'impriment tels quels
-  (le couvercle est déjà modélisé face extérieure sur le plateau).
-- 0.2 mm, 2–3 périmètres, 15 % de remplissage suffisent.
-- PLA ou PETG. PETG si le boîtier chauffe (alim, relais) — et pour
-  des clips plus souples.
-- Si le couvercle est trop serré/lâche : ajuster `lid_clearance`
-  (0.25 par défaut).
-- **Compensation FDM intégrée** : tous les trous et découpes
-  fonctionnels sont élargis de `hole_comp` (0.3 mm par défaut) pour
-  compenser le rétreint d'impression — les cotes que tu donnes sont
-  les cotes nominales du connecteur. Les trous ronds des parois sont
-  en **goutte d'eau** (sommet à 45°, `teardrop`) : pas
-  d'affaissement ni de support. Les deux se règlent dans le builder
-  (« Jeu perçage » / « Goutte d'eau »).
+- **No supports** — base and lid print as-is (the lid is already
+  modeled outer-face down).
+- 0.2 mm layers, 2–3 perimeters, 15 % infill is plenty.
+- PLA or PETG. PETG if the box runs warm (PSU, relays) — and for
+  softer snap clips.
+- Lid too tight/loose? Adjust `lid_clearance` (0.25 default).
+- **Built-in FDM compensation**: every functional hole and cutout is
+  widened by `hole_comp` (0.3 mm default) to counter print
+  shrinkage — the dimensions you enter are the connector's nominal
+  ones. Round holes in walls print as **teardrops** (45° roof,
+  `teardrop`): no sagging, no supports. Both are adjustable in the
+  builder (“Hole clearance” / “Teardrop holes”).
 
-## Fermeture
+## Lid
 
-- Par défaut `lid_fix = "snap"` : couvercle clipsé (bossages sur la
-  jupe, rainures dans les parois), zéro vis visible. Pour l'ouvrir :
-  pousser le bord du couvercle vers le haut par une des deux encoches
-  latérales.
-- `snap_sides` / `notch_sides` (`x` = flancs, `y` = avant/arrière) :
-  place les clips et les encoches sur des faces **sans connecteur**,
-  pour déclipser sans gêner les câbles. Défaut : les flancs.
-- `lid_fix = "screws"` : 4 × **M3×10** fraisées sur le dessus si tu
-  veux verrouiller (avant-trou 2.7, autotaraudeuse ou M3 machine).
-- Carte : 4 × **M2.5** autotaraudeuses sur les entretoises
-  (avant-trou 2.2).
+- Default `lid_fix = "snap"`: snap-fit lid (ridges on the skirt,
+  grooves in the walls), zero visible screws. To open: push the lid
+  edge up through one of the two side notches.
+- `snap_sides` / `notch_sides` (`x` = sides, `y` = front/back): put
+  clips and notches on faces **without connectors**. Default: sides.
+- `lid_fix = "screws"`: 4 × countersunk **M3×10** on top if you want
+  it locked (2.7 pilot, self-tapping or machine M3).
+- Boards: 4 × self-tapping **M2.5** into the standoffs (2.2 pilot).
 
-## Options (Customizer OpenSCAD ou `-D` en CLI)
+## Highlights
 
-- `part` : `base`, `lid`, `both` ou `assembled` (vue fermée)
-- `vents` : la bande de fentes automatique sur les flancs. Pour des
-  aérations **posables** où tu veux (parois, couvercle, fond), la
-  palette du builder a quatre motifs qui remplissent une zone à
-  dimensionner : fentes verticales, fentes horizontales, grille
-  ronde en quinconce et nid d'abeille (types `vslots` / `hslots` /
-  `grid` / `hex` dans `cuts`).
-- `usb_cutout` : ouverture USB face avant (position/taille réglables)
-- `radar_window` : zone amincie à 1 mm dans la paroi avant pour un
-  radar mmWave (LD2410B) — le radar voit à travers, l'extérieur reste
-  lisse. Jamais de métal devant le radar.
-- **USB-C encastré** : pour une prise USB-C femelle **nue** (l'armature
-  métal à souder, sans breakout) — support-canal intégré derrière la
-  paroi, nez de la prise au ras extérieur. L'ouverture (8.7 × 2.9)
-  laisse passer la languette du câble mais pas l'armature : brancher
-  pousse la prise contre le fond du canal, débrancher la plaque
-  contre la paroi — zéro contrainte sur les soudures, zéro colle.
-  Insertion par le haut, pont de maintien à l'arrière, fils vers le
-  dos.
-- **Boutons pour tact switch 6×6** (les petits boutons noirs standard
-  à 4 pattes), deux styles, avec **berceau intégré** côté intérieur :
-  tu soudes deux fils sur le switch et tu le glisses dans son logement
-  par le haut, l'alignement est garanti par construction.
-  « Bouton languette » = imprimé en place (languette flexible dans la
-  paroi, disque affleurant dehors, zéro assemblage) ; « Bouton
-  poussoir » = piston coulissant (capuchon généré avec la planche
-  Inserts, inséré par l'intérieur, retenu par sa collerette — le
-  ressort du switch fait le rappel).
-- `led_window` : fenêtre LED dans la paroi arrière (défaut 74 × 12) —
-  peau de `led_thin` mm laissée côté extérieur qui sert de diffuseur
-  (imprimer en blanc/naturel), ou `led_thin = 0` pour une ouverture
-  traversante. Pensé pour une lueur indirecte vers le mur.
-- **Fenêtres clipsables (inserts)** : les découpes de type `insert`
-  créent un trou traversant à **feuillure** dans la paroi, et
-  `part="inserts"` génère les fenêtres correspondantes — plaque
-  affleurante dehors, corps traversant, deux bossages qui clipsent
-  derrière la paroi. L'intérieur est **évidé** : seule une membrane
-  fine (« Peau », 0.8 par défaut) reste au centre — les LED diffusent
-  bien, le radar voit à travers — et **peau 0 = cadre ouvert** sans
-  membrane, pour un laser ToF ou tout capteur qui doit voir à l'air
-  libre. Imprime-les en **PETG transparent** (LED, radar)
-  ou **blanc** (diffuseur) pendant que la boîte est dans ta couleur.
-  Dans le builder : « Fenêtre LED », « Fenêtre radar » et « Insert
-  libre » dans la palette, et une troisième carte « Inserts » en bas
-  pour générer la pièce. « Fenêtre libre » reste la version à paroi
-  amincie mono-matière.
-- `cable_hole` : trou arrière Ø12.5 pour presse-étoupe PG7
-- `standoffs` : entretoises de carte, entraxes `hole_x` / `hole_y`
-  (défaut 44.5 × 20.5 — **à mesurer sur ta carte**, ça varie selon
-  les clones de DevKit)
-- `tie_slots` : fentes zip-tie dans le fond pour attacher le vrac
+- **Flush USB-C**: for a **bare** female USB-C receptacle (the
+  solder-shell type, no breakout) — a built-in channel mount behind
+  the wall, receptacle nose flush with the outside. The opening
+  (8.7 × 2.9) passes the cable's shell but not the receptacle:
+  plugging pushes it against the channel's back stop, unplugging
+  presses it against the wall — zero stress on the solder joints,
+  zero glue.
+- **6×6 tact switch buttons** (the standard little black 4-pin
+  switches), two styles, both with a **built-in cradle** inside:
+  solder two wires, slide the switch in from the top, alignment is
+  guaranteed by construction. “Flex button” = printed in place
+  (flexible tongue in the wall, flush disc outside, zero assembly);
+  “Plunger button” = sliding piston (cap printed with the Inserts
+  plate, inserted from the inside, retained by its flange — the
+  switch's own spring returns it).
+- **Snap-in windows (inserts)**: `insert` cutouts create a
+  **rabbeted** through-hole in the wall, and `part="inserts"`
+  generates the matching windows — flush plate outside, body through
+  the wall, two ridges snapping behind it. The inside is **hollowed
+  out**: only a thin membrane (“Skin”, 0.8 default) remains — LEDs
+  diffuse nicely, mmWave radar sees through — and **skin 0 = open
+  frame**, for a ToF laser or any sensor that needs open air. Print
+  them in **clear PETG** (LED, radar) or **white** (diffuser) while
+  the box prints in your color.
+- **Placeable vents** anywhere (walls, lid, floor): vertical slots,
+  horizontal slots, staggered round grid, honeycomb.
 
-## Regénérer un STL en CLI
+## Regenerate an STL from the CLI
 
 ```bash
-openscad -o boitier.stl -D 'size_preset="L"' -D 'part="base"' -D 'cable_hole=true' esp32-box.scad
+openscad -o box.stl -D 'size_preset="L"' -D 'part="base"' -D 'cable_hole=true' esp32-box.scad
 ```
 
-## Variantes incluses
+## Included variants
 
-`esp32-box-S-capteur-base.stl` : base S avec fenêtre radar (pour le
-POG Sensor BMP280 + LD2410B) — radar centré face avant, USB décalé à
-droite pour ne pas passer sous le module radar, aérations pour que le
-BMP280 lise la température ambiante et pas celle de l'ESP32.
-(Couvercle : le `esp32-box-S-lid.stl` standard.)
-
-`esp32-box-powerbank-{base,lid}.stl` : intérieur 112 × 80 × 42 pour
-un module power bank multi-ports (ouverture 64 × 10 face avant pour
-la rangée micro-USB / USB-C / 2× USB-A), une 18650, un perf board
-70 × 30 et une bande LED de 70 mm (fenêtre diffusante 74 × 12 au dos,
-lueur vers le mur). En plus, **au dos sous la fenêtre LED** : entrée
-USB-C du module de charge (10 × 6, `side_usbc`) et sortie audio jack
-Ø 6.5 (`audio_hole`) ; **en façade** : trou Ø 7.2 pour un petit
-bouton poussoir châssis (`button_hole`, à droite des ports).
-Aérations coupées sur cette variante (la grande ouverture avant
-suffit à ventiler). Chaque ouverture est paramétrique : face
-(`*_face` : back/front/left/right), décalage (`*_off`) et hauteur
-(`*_z`). Vérifie la position de tes connecteurs avant d'imprimer :
-cotes estimées depuis la photo du module.
+See the [release](https://github.com/timiliris/esp32-box/releases)
+zip for ready-to-print S/M/L/XL bases and lids plus a sensor-box and
+a power-bank variant. Details in the [French README](README.fr.md).

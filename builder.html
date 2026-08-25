@@ -217,6 +217,7 @@
     <svg class="ico" viewBox="0 0 16 16"><path d="M12 7H5a3.5 3.5 0 0 0 0 7h3"/><path d="m9 4 3 3-3 3"/></svg>
   </button>
   <div class="presets" id="presets"></div>
+  <button class="chip" id="langBtn" title="Français / English">EN</button>
   <button class="chip" id="dimsSummary" style="margin-left:auto" title="Dimensions intérieures — ouvre le panneau Boîtier"></button>
 </header>
 
@@ -409,6 +410,258 @@
 
 <script>
 'use strict';
+
+// ---------------------------------------------------------------
+// i18n — français (langue source) / anglais
+// ---------------------------------------------------------------
+let LANG = 'fr';
+try {
+  LANG = localStorage.getItem('esp32boxlang') ||
+    ((navigator.language || 'fr').toLowerCase().startsWith('fr') ? 'fr' : 'en');
+} catch (e) {}
+
+const EN = {
+  // onglets & faces
+  'Avant': 'Front', 'Arrière': 'Back', 'Flanc gauche': 'Left side',
+  'Flanc droit': 'Right side', 'Couvercle': 'Lid', 'Fond': 'Floor',
+  'avant': 'front', 'arrière': 'back', 'flanc gauche': 'left side',
+  'flanc droit': 'right side', 'couvercle': 'lid', 'fond': 'floor',
+  // catégories de palette
+  'Connecteurs': 'Connectors', 'Boutons tact 6×6': '6×6 tact buttons',
+  'Fenêtres & inserts': 'Windows & inserts', 'Aérations': 'Vents',
+  'Formes libres': 'Free shapes',
+  // palette
+  'USB-C encastré': 'Flush USB-C', 'Rangée ports': 'Port row',
+  'Bouton languette': 'Flex button', 'Bouton poussoir': 'Plunger button',
+  'Fenêtre LED': 'LED window', 'Fenêtre radar': 'Radar window',
+  'Insert libre': 'Custom insert', 'Fenêtre libre': 'Custom window',
+  'Fentes vert.': 'Vert. slots', 'Fentes horiz.': 'Horiz. slots',
+  'Grille ronde': 'Round grid', 'Nid d\'abeille': 'Honeycomb',
+  'Rect libre': 'Custom rect', 'Rond libre': 'Custom hole',
+  'Guide LED 1.75': 'LED pipe 1.75', 'Poussoir 7': 'Push btn 7',
+  'Poussoir 12': 'Push btn 12',
+  '8.7 × 2.9 · support': '8.7 × 2.9 · mount',
+  'Ø 1.8 · filament': 'Ø 1.8 · filament',
+  '74 × 12 · insert': '74 × 12 · insert',
+  '35 × 14 · insert': '35 × 14 · insert',
+  '40 × 15 · insert': '40 × 15 · insert',
+  '40 × 15 · peau 1': '40 × 15 · skin 1',
+  '30 × 12 · aération': '30 × 12 · vent',
+  '25 × 25 · aération': '25 × 25 · vent',
+  '30 × 20 · aération': '30 × 20 · vent',
+  // groupes latéraux
+  'Ajouter une découpe': 'Add a cutout',
+  'Objets du projet': 'Project objects',
+  'Dimensions intérieures': 'Inner dimensions',
+  'Options': 'Options', 'Fixation murale': 'Wall mounting',
+  'Projet': 'Project', 'Sélection': 'Selection',
+  'Entretoises PCB': 'PCB standoffs', 'Socle de cellule': 'Cell holder',
+  'Cloisons & compartiments': 'Walls & compartments',
+  'Largeur': 'Width', 'Profondeur': 'Depth', 'Hauteur': 'Height',
+  'Bande d\'aération flancs': 'Side vent strip',
+  'Fentes zip-tie au fond': 'Zip-tie slots in floor',
+  'Fixation': 'Lid fixing', 'couvercle clipsé': 'snap-fit lid',
+  'couvercle vissé': 'screwed lid',
+  'Jeu perçage': 'Hole clearance', 'Goutte d\'eau': 'Teardrop holes',
+  'Pattes': 'Tabs', 'aucune': 'none', 'sur les flancs': 'on the sides',
+  'avant / arrière': 'front / back', 'Nombre': 'Count',
+  'Tout effacer': 'Clear all',
+  'Sauvegarde automatique dans le navigateur.': 'Auto-saved in your browser.',
+  'Carte': 'Board', 'Entraxe': 'Spacing', 'Trous': 'Holes',
+  '4 — rectangle': '4 — rectangle', '2 — paire / diagonale': '2 — pair / diagonal',
+  'Ajouter le groupe': 'Add group', 'Cellule': 'Cell',
+  'Ajouter le socle': 'Add holder', 'Ajouter une cloison': 'Add a wall',
+  'Ajouter un compartiment': 'Add a compartment',
+  'Entraxe = distance entre les centres des trous. Mesure ta carte.':
+    'Spacing = distance between hole centers. Measure your board.',
+  'Berceau imprimé : deux joues clipsantes + butées aux extrémités.':
+    'Printed cradle: two snap jaws + end stops.',
+  'Muret simple, pleine hauteur ou partiel, option créneaux d\'aération haut/bas. Fais-le dépasser dans les parois : il sera rogné et raccordé.':
+    'Simple wall, full or partial height, optional top/bottom vent crenels. Let it overlap the outer walls: it gets trimmed and joined.',
+  'Cadre fermé pour isoler un capteur : aération nid d\'abeille dans le fond dessous et dans le couvercle au-dessus (l\'air extérieur traverse en cheminée), passage câble sur le mur de ton choix. Cale-le contre une paroi ou un coin.':
+    'Closed frame to isolate a sensor: honeycomb vents in the floor below and the lid above (outside air flows through like a chimney), cable pass on the wall of your choice. Snap it against a wall or corner.',
+  'Œillets Ø 4.2 au ras du fond, imprimés avec la base — visibles sur l\'onglet Fond.':
+    'Ø 4.2 eyelets at floor level, printed with the base — shown on the Floor tab.',
+  // inspecteur
+  'Clique sur un élément du plan, ou ajoute une découpe.':
+    'Click an element on the plan, or add a cutout.',
+  'Décalage': 'Offset', 'Position X': 'Position X', 'Position Y': 'Position Y',
+  'Hauteur ↕': 'Height ↕', 'Peau': 'Skin', 'Ø capuchon': 'Cap Ø',
+  'Centre X': 'Center X', 'Centre Y': 'Center Y',
+  'Entraxe X': 'Spacing X', 'Entraxe Y': 'Spacing Y',
+  'Longueur': 'Length', 'Ø cellule': 'Cell Ø', 'Épaisseur': 'Thickness',
+  'Passage câble': 'Cable pass', 'Décal. passage': 'Pass offset',
+  'Larg. passage': 'Pass width', 'Passage': 'Cable pass',
+  'mur avant': 'front wall', 'mur arrière': 'back wall',
+  'mur gauche': 'left wall', 'mur droit': 'right wall',
+  'Aération dans le fond': 'Vent in the floor',
+  'Aération dans le couvercle': 'Vent in the lid',
+  'Aérer les parois en contact': 'Vent touching outer walls',
+  'Créneaux d\'aération haut + bas': 'Vent crenels top + bottom',
+  'Centrer': 'Center', 'Centrer X': 'Center X', 'Centrer Y': 'Center Y',
+  'Mi-hauteur': 'Mid-height', 'Pivoter 90°': 'Rotate 90°',
+  'Dupliquer': 'Duplicate', 'Supprimer': 'Delete',
+  ' (fenêtre borgne)': ' (blind window)', ' (fenêtre clipsable)': ' (snap-in window)',
+  ' (tact 6×6)': ' (6×6 tact)', ' (support intégré)': ' (built-in mount)',
+  ' (aération)': ' (vent)', ' · pleine hauteur': ' · full height',
+  'Cloison': 'Wall', 'Cloison aérée': 'Vented wall',
+  'Compartiment': 'Compartment', 'Socle': 'Holder', 'Entretoises': 'Standoffs',
+  'Entretoises 2 tr': 'Standoffs 2-hole', 'Entretoises 2 trous': '2-hole standoffs',
+  'Socle cellule': 'Cell holder',
+  'Aucun objet pour l\'instant.': 'No objects yet.',
+  // notes & footer
+  'à copier dans un terminal — ou double-clique builder.command pour générer en un clic':
+    'paste in a terminal — or double-click builder.command for one-click generation',
+  'génération directe active — le STL se télécharge':
+    'direct generation active — the STL downloads',
+  'sans serveur local : génération dans ton navigateur (1 à 3 min)':
+    'no local server: generation runs in your browser (1–3 min)',
+  'Générer le STL': 'Generate STL', 'Générer (navigateur)': 'Generate (browser)',
+  'Génération…': 'Generating…', 'Téléchargé': 'Downloaded',
+  'Chargement du moteur…': 'Loading engine…',
+  'Copier': 'Copy', 'Copié': 'Copied',
+  'Base': 'Base', 'Inserts': 'Inserts', 'autre matière': 'other material',
+  'Échec de génération : ': 'Generation failed: ',
+  'délai dépassé (6 min) — essaie une boîte plus simple':
+    'timed out (6 min) — try a simpler box',
+  // canvas
+  'jupe + clips du couvercle': 'lid skirt + clips',
+  'Rien sur cette face — ajoute un élément depuis le panneau à gauche':
+    'Nothing on this face — add an element from the left panel',
+  'glisser = déplacer · molette = naviguer · Ctrl+molette = zoom · double-clic = recadrer · flèches = 1 mm · Suppr = retirer':
+    'drag = move · wheel = pan · Ctrl+wheel = zoom · double-click = reset view · arrows = 1 mm · Del = remove',
+  'Aperçu 3D': '3D preview', 'glisser pour tourner': 'drag to rotate',
+  'compartiment': 'compartment', ' + couvercle aéré': ' + vented lid',
+  'aération compartiment': 'compartment vent', 'cloison': 'wall',
+  'Tout effacer ?': 'Clear everything?',
+  // avertissements
+  'déborde de la paroi': 'overflows the wall',
+  'empiète sur le coin arrondi': 'overlaps the rounded corner',
+  'touche la zone jupe/clips': 'hits the skirt/clip zone',
+  'sous le fond intérieur': 'below the inner floor',
+  'déborde en largeur': 'overflows in width',
+  'déborde en profondeur': 'overflows in depth',
+  'uniquement sur les parois': 'walls only',
+  'trop près du coin (berceau)': 'too close to the corner (cradle)',
+  'trop près du coin (support)': 'too close to the corner (mount)',
+  'trop bas (berceau sous le fond)': 'too low (cradle below floor)',
+  'trop bas (support sous le fond)': 'too low (mount below floor)',
+  'débordent en largeur': 'overflow in width',
+  'débordent en profondeur': 'overflow in depth',
+  'boîte trop basse': 'box too shallow',
+  'Compartiment : le passage câble est sur un mur fondu dans la paroi — choisis un autre côté':
+    'Compartment: the cable pass is on a wall fused into the case — pick another side',
+};
+Object.assign(EN, {
+  // infobulles de la palette
+  'Passage pour un connecteur de câble USB-C entier (prise en retrait derrière la paroi)':
+    'Opening for a full USB-C cable connector (receptacle recessed behind the wall)',
+  'Pour une prise USB-C femelle nue (armature à souder) : support intégré derrière la paroi, nez au ras. Brancher pousse contre le fond, débrancher plaque contre la paroi — rien ne bouge.':
+    'For a bare female USB-C receptacle (solder shell): built-in mount behind the wall, nose flush. Plugging pushes it against the back, unplugging presses it against the wall — nothing moves.',
+  'Passage pour une prise USB-A classique': 'Opening for a standard USB-A plug',
+  'Passage pour une prise micro-USB': 'Opening for a micro-USB plug',
+  'Grande ouverture pour une rangée complète de ports (module power bank…)':
+    'Wide opening for a full port row (power bank module…)',
+  'Jack audio 3.5 mm châssis : se visse dans la paroi avec son écrou':
+    'Panel-mount 3.5 mm audio jack: screws into the wall with its nut',
+  'Bout de filament transparent en guide de lumière pour une LED témoin':
+    'A piece of clear filament as a light pipe for a status LED',
+  'Petit bouton poussoir châssis 7 mm (type PBS-110)':
+    'Small 7 mm panel push button (PBS-110 style)',
+  'Bouton poussoir châssis 12 mm (métal, souvent étanche)':
+    '12 mm panel push button (metal, often waterproof)',
+  'Presse-étoupe PG7 : sortie de câble propre, avec serrage anti-arrachement':
+    'PG7 cable gland: clean cable exit with strain relief',
+  'Interrupteur à bascule KCD1 (le petit rocker rectangulaire standard)':
+    'KCD1 rocker switch (the standard small rectangular rocker)',
+  'Bouton imprimé en place : languette flexible dans la paroi + berceau intégré pour un tact switch 6×6 (glissé dedans, deux fils à souder). Zéro pièce à assembler.':
+    'Printed-in-place button: flexible tongue in the wall + built-in cradle for a 6×6 tact switch (slides in, two wires to solder). Zero parts to assemble.',
+  'Piston coulissant qui presse un tact switch 6×6 dans son berceau intégré. Le capuchon s\'imprime avec la planche Inserts.':
+    'Sliding plunger pressing a 6×6 tact switch in its built-in cradle. The cap prints with the Inserts plate.',
+  'Trou à feuillure + fenêtre clipsable imprimée à part en PETG transparent ou blanc — membrane fine de 0.8 au centre, la lumière diffuse bien':
+    'Rabbeted hole + snap-in window printed separately in clear or white PETG — thin 0.8 membrane in the middle, light diffuses nicely',
+  'Fenêtre clipsable en PETG transparent pour LD2410B (35 mm, la longueur du module) : le mmWave voit à travers la membrane fine':
+    'Snap-in clear PETG window for LD2410B (35 mm, the module length): mmWave sees through the thin membrane',
+  'Fenêtre clipsable à dimensionner librement — peau 0 = cadre ouvert sans membrane (laser ToF, capteur à l\'air libre)':
+    'Freely sized snap-in window — skin 0 = open frame with no membrane (ToF laser, open-air sensor)',
+  'Paroi amincie à 1 mm : la lumière diffuse à travers, l\'extérieur reste lisse':
+    'Wall thinned to 1 mm: light diffuses through, the outside stays smooth',
+  'Bande de fentes verticales arrondies (fentes 2 mm, pas 4.5)':
+    'Strip of rounded vertical slots (2 mm slots, 4.5 pitch)',
+  'Fentes horizontales empilées — discret sur un flanc ou un couvercle':
+    'Stacked horizontal slots — discreet on a side or lid',
+  'Trous Ø 3 en quinconce, façon grille de haut-parleur':
+    'Staggered Ø 3 holes, speaker-grille style',
+  'Hexagones de 5 mm — le motif d\'aération classique, s\'imprime très bien':
+    '5 mm hexagons — the classic vent pattern, prints great',
+  'Découpe rectangulaire à dimensionner librement': 'Freely sized rectangular cutout',
+  'Trou rond à dimensionner librement': 'Freely sized round hole',
+  'Fenêtre borgne à dimensionner librement (peau réglable)':
+    'Freely sized blind window (adjustable skin)',
+  // presets PCB
+  'Cartes': 'Boards', 'Plaques de proto': 'Proto boards',
+  'Capteurs & modules': 'Sensors & modules', 'Libre': 'Custom',
+  'ESP32 DevKit 30 br. — 44.5 × 20.5': '30-pin ESP32 DevKit — 44.5 × 20.5',
+  'GY-BME280 / BMP280 — 2 trous · 10': 'GY-BME280 / BMP280 — 2 holes · 10',
+  'OLED 0.96″ SSD1306 — 23.5 × 23.5 ≈': '0.96″ OLED SSD1306 — 23.5 × 23.5 ≈',
+  'GY-521 (MPU6050) — 2 trous · 15.2 ≈': 'GY-521 (MPU6050) — 2 holes · 15.2 ≈',
+  'Buck LM2596 — 2 trous diag · 30 × 16 ≈': 'LM2596 buck — 2 diag holes · 30 × 16 ≈',
+  'Micro / ampli / petit module — à mesurer': 'Mic / amp / small module — measure it',
+  'Entraxe libre…': 'Custom spacing…',
+  // indices d'inspecteur
+  'Pièce séparée : bouton « Inserts » en bas — PETG transparent ou blanc. Membrane centrale = « Peau » (0.8 diffuse bien) ; 0 = cadre ouvert sans membrane (laser ToF).':
+    'Separate part: “Inserts” button below — clear or white PETG. Center membrane = “Skin” (0.8 diffuses well); 0 = open frame, no membrane (ToF laser).',
+  'Imprimé en place : soude 2 fils sur un tact switch 6×6 et glisse-le dans le berceau intérieur par le haut.':
+    'Printed in place: solder 2 wires on a 6×6 tact switch and slide it into the inner cradle from the top.',
+  'Le capuchon s\'imprime avec la planche « Inserts » : insère-le par l\'intérieur, puis glisse le switch 6×6 (2 fils soudés) dans le berceau.':
+    'The cap prints with the “Inserts” plate: insert it from the inside, then slide the 6×6 switch (2 wires soldered) into the cradle.',
+  'Soude les fils sur la prise nue, glisse son nez dans l\'ouverture par l\'intérieur et couche-la dans le canal (pont de maintien à l\'arrière). La paroi bloque l\'arrachement, le fond bloque le branchement.':
+    'Solder wires on the bare receptacle, slide its nose into the opening from the inside and lay it in the channel (retaining bridge at the rear). The wall blocks pull-out, the back stop takes plug-in force.',
+  'Hauteur 0 = pleine (jusqu\'au couvercle). Passage câble 0 = aucun (encoche en haut sinon).':
+    'Height 0 = full (up to the lid). Cable pass 0 = none (top notch otherwise).',
+  'Cadre pleine hauteur (murs 1.8). Cale-le contre une paroi : il se raccorde tout seul. Fond + couvercle aérés = l\'air extérieur traverse en cheminée.':
+    'Full-height frame (1.8 walls). Snap it against an outer wall: it joins automatically. Vented floor + lid = outside air flows through like a chimney.',
+  'Perçage imprimé : Ø ': 'Printed hole: Ø ', ' · goutte d\'eau': ' · teardrop',
+  'Découpe imprimée : ': 'Printed cutout: ',
+});
+const FRR = {};
+for (const k in EN) FRR[EN[k]] = k;
+function t(s) {
+  if (s === undefined || s === null) return s;
+  return LANG === 'en' ? (EN[s] !== undefined ? EN[s] : s)
+                       : (FRR[s] !== undefined ? FRR[s] : s);
+}
+// traduit les nœuds texte des éléments statiques (feuilles + mixtes)
+function translateStatic() {
+  const sel = '.group h2, .rowline > label, .empty, .cap b, .cap > span, ' +
+    '#hint, .p3head > span, option, .btn, .pal b, .pal small, .palcat, optgroup';
+  document.querySelectorAll(sel).forEach(el => {
+    el.childNodes.forEach(n => {
+      if (n.nodeType === 3 && n.textContent.trim()) {
+        if (!n.__orig) n.__orig = n.textContent.trim();
+        const tr = t(n.__orig);
+        if (tr !== n.textContent.trim()) n.textContent = tr;
+      }
+    });
+  });
+  document.querySelectorAll('[title]').forEach(el => {
+    if (!el.dataset.origTitle) el.dataset.origTitle = el.title;
+    el.title = t(el.dataset.origTitle);
+  });
+  document.querySelectorAll('optgroup').forEach(el => {
+    if (!el.dataset.origLabel) el.dataset.origLabel = el.label;
+    el.label = t(el.dataset.origLabel);
+  });
+}
+function setLang(l) {
+  LANG = l;
+  try { localStorage.setItem('esp32boxlang', l); } catch (e) {}
+  const b = document.getElementById('langBtn');
+  if (b) b.textContent = LANG === 'fr' ? 'EN' : 'FR';
+  translateStatic();
+  updateAll();
+  updateGenUI();
+}
 
 // ---------------------------------------------------------------
 // Constantes géométrie (doivent suivre esp32-box.scad)
@@ -706,7 +959,7 @@ function render() {
     g.push(`<rect x="${x0}" y="${y0}" width="${cw}" height="${fh * S}" fill="rgba(240,179,80,.06)"/>`);
     g.push(`<rect x="${x0 + fw * S - cw}" y="${y0}" width="${cw}" height="${fh * S}" fill="rgba(240,179,80,.06)"/>`);
     g.push(`<rect x="${x0}" y="${y0}" width="${fw * S}" height="${LID_BAND * S}" fill="rgba(240,179,80,.08)"/>`);
-    g.push(`<text x="${x0 + fw * S / 2}" y="${y0 + 13}" fill="#5b6274" font-size="10" text-anchor="middle">jupe + clips du couvercle</text>`);
+    g.push(`<text x="${x0 + fw * S / 2}" y="${y0 + 13}" fill="#5b6274" font-size="10" text-anchor="middle">${t('jupe + clips du couvercle')}</text>`);
   } else {
     // coins arrondis de la boîte
     const cr = CORNER_R * S;
@@ -819,7 +1072,7 @@ function render() {
         const [nx_, ny_] = toPx(npos[0] - (horizN ? cp.notchW / 2 : 1.4), fh / 2 - npos[1] - (horizN ? 1.4 : cp.notchW / 2), fw);
         g.push(`<rect x="${nx_}" y="${ny_}" width="${(horizN ? cp.notchW : 2.8) * S}" height="${(horizN ? 2.8 : cp.notchW) * S}" rx="${1.2 * S}" fill="#10141b" stroke="${col}" stroke-width=".8" stroke-opacity=".6"/>`);
       }
-      g.push(`<text x="${ix_ + cp.w / 2 * S}" y="${iy_ - 8}" fill="${col}" font-size="10" text-anchor="middle">compartiment${cp.ventLid ? ' + couvercle aéré' : ''}</text>`);
+      g.push(`<text x="${ix_ + cp.w / 2 * S}" y="${iy_ - 8}" fill="${col}" font-size="10" text-anchor="middle">${t('compartiment')}${cp.ventLid ? t(' + couvercle aéré') : ''}</text>`);
       g.push(`</g>`);
     }
     // cloisons internes
@@ -841,7 +1094,7 @@ function render() {
         g.push(`<rect x="${nx[0]}" y="${nx[1]}" width="${nw_}" height="${nh_}" fill="#10141b" fill-opacity=".8"/>`);
       }
       const [tx, ty] = toPx(dv.cx, fh / 2 - dv.cy, fw);
-      g.push(`<text x="${tx}" y="${ty - (dh / 2 * S) - 6}" fill="${col}" font-size="10" text-anchor="middle">cloison${dv.ht > 0 ? ' h' + dv.ht : ''}</text>`);
+      g.push(`<text x="${tx}" y="${ty - (dh / 2 * S) - 6}" fill="${col}" font-size="10" text-anchor="middle">${t('cloison')}${dv.ht > 0 ? ' h' + dv.ht : ''}</text>`);
       g.push(`</g>`);
     }
     // pattes de fixation murale (fantômes, hors de la boîte)
@@ -869,7 +1122,7 @@ function render() {
         const [hx, hy] = toPx(cp.cx + cell.x, fh / 2 - cp.cy - cell.y, fw);
         g.push(`<polygon points="${hexPts(hx, hy, cell.r * S)}" fill="rgba(230,233,239,.10)" stroke="${col}" stroke-width=".7"/>`);
       }
-      g.push(`<text x="${zx + cp.w / 2 * S}" y="${zy - 5}" fill="${col}" font-size="10" text-anchor="middle">aération compartiment</text>`);
+      g.push(`<text x="${zx + cp.w / 2 * S}" y="${zy - 5}" fill="${col}" font-size="10" text-anchor="middle">${t('aération compartiment')}</text>`);
       g.push(`</g>`);
     }
   }
@@ -892,7 +1145,7 @@ function render() {
         const [hx, hy] = toPx(offScr + cell.x, fh - zc - cell.y, fw);
         g.push(`<polygon points="${hexPts(hx, hy, cell.r * S)}" fill="rgba(230,233,239,.10)" stroke="${col}" stroke-width=".6"/>`);
       }
-      g.push(`<text x="${zx + (along - 6) / 2 * S}" y="${zy - 5}" fill="${col}" font-size="10" text-anchor="middle">aération compartiment</text>`);
+      g.push(`<text x="${zx + (along - 6) / 2 * S}" y="${zy - 5}" fill="${col}" font-size="10" text-anchor="middle">${t('aération compartiment')}</text>`);
       g.push(`</g>`);
     }
   }
@@ -944,7 +1197,7 @@ function render() {
         }
         g.push(`<line x1="${px - 4}" y1="${py}" x2="${px + 4}" y2="${py}" stroke="${stroke}" stroke-width="1"/>`);
         g.push(`<line x1="${px}" y1="${py - 4}" x2="${px}" y2="${py + 4}" stroke="${stroke}" stroke-width="1"/>`);
-        g.push(`<text x="${px}" y="${py - rr * (state.teardrop ? Math.SQRT2 : 1) - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(c.label)}</text>`);
+        g.push(`<text x="${px}" y="${py - rr * (state.teardrop ? Math.SQRT2 : 1) - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(t(c.label))}</text>`);
       } else if (VENT_TYPES.includes(c.type)) {
         const cy0 = flat ? fh / 2 - c.z : fh - c.z;
         const [zx, zy] = toPx(c.off - c.w / 2, cy0 - c.h / 2, fw);
@@ -961,7 +1214,7 @@ function render() {
             g.push(`<rect x="${px}" y="${py}" width="${cell.w * S}" height="${cell.h * S}" rx="${cell.r * S}" fill="rgba(230,233,239,.10)" stroke="${stroke}" stroke-width=".7"/>`);
           }
         }
-        g.push(`<text x="${zx + c.w / 2 * S}" y="${zy - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(c.label)}</text>`);
+        g.push(`<text x="${zx + c.w / 2 * S}" y="${zy - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(t(c.label))}</text>`);
       } else {
         const [px, py] = toPx(c.off - c.w / 2, (flat ? fh / 2 - c.z : fh - c.z) - c.h / 2, fw);
         const dash = c.type === 'window' ? ` stroke-dasharray="6 3"` : '';
@@ -976,7 +1229,7 @@ function render() {
           g.push(`<rect x="${ux2}" y="${uy2}" width="${14.4 * S}" height="${8.6 * S}" rx="3" fill="none" stroke="${stroke}" stroke-width=".8" stroke-dasharray="3 2" stroke-opacity=".55"/>`);
         }
         g.push(`<rect x="${px}" y="${py}" width="${c.w * S}" height="${c.h * S}" rx="${Math.min(2, c.h / 3) * S}" fill="${isSel ? 'rgba(79,140,255,.14)' : (c.type === 'insert' ? 'rgba(95,212,208,.10)' : 'rgba(230,233,239,.05)')}" stroke="${stroke}" stroke-width="1.6"${dash}/>`);
-        g.push(`<text x="${px + c.w / 2 * S}" y="${py - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(c.label)}</text>`);
+        g.push(`<text x="${px + c.w / 2 * S}" y="${py - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(t(c.label))}</text>`);
       }
       g.push(`</g>`);
     }
@@ -990,7 +1243,7 @@ function render() {
     : cutsOn(f).length;
   if (faceCount === 0) {
     const [ex, ey] = toPx(0, flat ? fh / 2 : fh / 2, fw);
-    g.push(`<text x="${ex}" y="${ey}" fill="#3d4658" font-size="12" text-anchor="middle">Rien sur cette face — ajoute un élément depuis le panneau à gauche</text>`);
+    g.push(`<text x="${ex}" y="${ey}" fill="#3d4658" font-size="12" text-anchor="middle">${t('Rien sur cette face — ajoute un élément depuis le panneau à gauche')}</text>`);
   }
 
   // guides d'aimantation
@@ -1017,54 +1270,54 @@ function cutWarnings(c) {
   const f = c.face, out = [];
   const hw = c.type === 'circle' ? c.d / 2 : c.w / 2;
   const hh = c.type === 'circle' ? c.d / 2 : c.h / 2;
-  const who = `${c.label} (${FACE_LABELS[f]})`;
+  const who = `${t(c.label)} (${t(FACE_LABELS[f])})`;
   if ((isBtnType(c.type) || c.type === 'usbc') && isFlat(f)) {
-    out.push(`${who} : uniquement sur les parois`);
+    out.push(`${who} : ${t('uniquement sur les parois')}`);
     return out;
   }
   if (c.type === 'usbc') {
     const fw2 = faceW(f);
-    if (Math.abs(c.off) + 8 > fw2 / 2 - CORNER_R + 2) out.push(`${who} : trop près du coin (support)`);
-    if (c.z + 5 > state.inner.h - LID_BAND) out.push(`${who} : touche la zone jupe/clips`);
-    if (c.z - 5 < 0) out.push(`${who} : trop bas (support sous le fond)`);
+    if (Math.abs(c.off) + 8 > fw2 / 2 - CORNER_R + 2) out.push(`${who} : ${t('trop près du coin (support)')}`);
+    if (c.z + 5 > state.inner.h - LID_BAND) out.push(`${who} : ${t('touche la zone jupe/clips')}`);
+    if (c.z - 5 < 0) out.push(`${who} : ${t('trop bas (support sous le fond)')}`);
     return out;
   }
   if (isBtnType(c.type)) {
     const bw = c.type === 'btnflex' ? 13.5 : 9;
     const fw2 = faceW(f);
-    if (Math.abs(c.off) + bw > fw2 / 2 - CORNER_R + 2) out.push(`${who} : trop près du coin (berceau)`);
-    if (c.z + 9 > state.inner.h - LID_BAND) out.push(`${who} : touche la zone jupe/clips`);
-    if (c.z - 9 < 0) out.push(`${who} : trop bas (berceau sous le fond)`);
+    if (Math.abs(c.off) + bw > fw2 / 2 - CORNER_R + 2) out.push(`${who} : ${t('trop près du coin (berceau)')}`);
+    if (c.z + 9 > state.inner.h - LID_BAND) out.push(`${who} : ${t('touche la zone jupe/clips')}`);
+    if (c.z - 9 < 0) out.push(`${who} : ${t('trop bas (berceau sous le fond)')}`);
     return out;
   }
   if (isFlat(f)) {
     const { w, d } = state.inner;
     const m = f === 'lid' ? 3.5 : 1; // marge du congé sur le couvercle
-    if (Math.abs(c.off) + hw > w / 2 - m) out.push(`${who} : déborde en largeur`);
-    if (Math.abs(c.z) + hh > d / 2 - m) out.push(`${who} : déborde en profondeur`);
+    if (Math.abs(c.off) + hw > w / 2 - m) out.push(`${who} : ${t('déborde en largeur')}`);
+    if (Math.abs(c.z) + hh > d / 2 - m) out.push(`${who} : ${t('déborde en profondeur')}`);
     else if (Math.abs(c.off) + hw > w / 2 - CORNER_R && Math.abs(c.z) + hh > d / 2 - CORNER_R)
-      out.push(`${who} : empiète sur le coin arrondi`);
+      out.push(`${who} : ${t('empiète sur le coin arrondi')}`);
     return out;
   }
   const fw = faceW(f);
-  if (Math.abs(c.off) + hw > fw / 2 - 1) out.push(`${who} : déborde de la paroi`);
-  else if (Math.abs(c.off) + hw > fw / 2 - CORNER_R) out.push(`${who} : empiète sur le coin arrondi`);
-  if (c.z + hh > state.inner.h - LID_BAND) out.push(`${who} : touche la zone jupe/clips`);
-  if (c.z - hh < 0) out.push(`${who} : sous le fond intérieur`);
+  if (Math.abs(c.off) + hw > fw / 2 - 1) out.push(`${who} : ${t('déborde de la paroi')}`);
+  else if (Math.abs(c.off) + hw > fw / 2 - CORNER_R) out.push(`${who} : ${t('empiète sur le coin arrondi')}`);
+  if (c.z + hh > state.inner.h - LID_BAND) out.push(`${who} : ${t('touche la zone jupe/clips')}`);
+  if (c.z - hh < 0) out.push(`${who} : ${t('sous le fond intérieur')}`);
   return out;
 }
 function pcbWarnings(p) {
   const out = [];
-  if (Math.abs(p.cx) + p.dx / 2 + 3.25 > state.inner.w / 2 - 1) out.push(`Entretoises ${p.dx}×${p.dy} : débordent en largeur`);
-  if (Math.abs(p.cy) + p.dy / 2 + 3.25 > state.inner.d / 2 - 1) out.push(`Entretoises ${p.dx}×${p.dy} : débordent en profondeur`);
+  if (Math.abs(p.cx) + p.dx / 2 + 3.25 > state.inner.w / 2 - 1) out.push(`${t('Entretoises')} ${p.dx}×${p.dy} : ${t('débordent en largeur')}`);
+  if (Math.abs(p.cy) + p.dy / 2 + 3.25 > state.inner.d / 2 - 1) out.push(`${t('Entretoises')} ${p.dx}×${p.dy} : ${t('débordent en profondeur')}`);
   return out;
 }
 function cellWarnings(c) {
   const out = [];
   const [foW, foH] = cellFoot(c);
-  if (Math.abs(c.cx) + foW / 2 > state.inner.w / 2 - 0.5) out.push(`Socle ${c.len}×Ø${c.dia} : déborde en largeur`);
-  if (Math.abs(c.cy) + foH / 2 > state.inner.d / 2 - 0.5) out.push(`Socle ${c.len}×Ø${c.dia} : déborde en profondeur`);
-  if (c.dia * 0.66 > state.inner.h) out.push(`Socle ${c.len}×Ø${c.dia} : boîte trop basse`);
+  if (Math.abs(c.cx) + foW / 2 > state.inner.w / 2 - 0.5) out.push(`${t('Socle')} ${c.len}×Ø${c.dia} : ${t('déborde en largeur')}`);
+  if (Math.abs(c.cy) + foH / 2 > state.inner.d / 2 - 0.5) out.push(`${t('Socle')} ${c.len}×Ø${c.dia} : ${t('déborde en profondeur')}`);
+  if (c.dia * 0.66 > state.inner.h) out.push(`${t('Socle')} ${c.len}×Ø${c.dia} : ${t('boîte trop basse')}`);
   return out;
 }
 function renderWarns() {
@@ -1381,7 +1634,7 @@ function applyP3() {
 function numField(label, val, cb) {
   const wrap = document.createElement('div');
   wrap.className = 'rowline';
-  const l = document.createElement('label'); l.textContent = label;
+  const l = document.createElement('label'); l.textContent = t(label);
   const i = document.createElement('input'); i.type = 'number'; i.step = '0.1'; i.value = val;
   i.addEventListener('input', () => {
     const v = parseFloat(i.value);
@@ -1396,7 +1649,7 @@ function numField(label, val, cb) {
 function checkRow(label, val, cb) {
   const wrap = document.createElement('div');
   wrap.className = 'rowline';
-  const l = document.createElement('label'); l.textContent = label; l.style.width = 'auto'; l.style.flex = '1';
+  const l = document.createElement('label'); l.textContent = t(label); l.style.width = 'auto'; l.style.flex = '1';
   const i = document.createElement('input'); i.type = 'checkbox'; i.checked = val;
   i.addEventListener('change', () => { pushHistory(); cb(i.checked); updateAll(); });
   wrap.append(l, i);
@@ -1405,10 +1658,10 @@ function checkRow(label, val, cb) {
 function selectRow(label, options, val, cb) {
   const wrap = document.createElement('div');
   wrap.className = 'rowline';
-  const l = document.createElement('label'); l.textContent = label;
+  const l = document.createElement('label'); l.textContent = t(label);
   const s = document.createElement('select'); s.style.flex = '1';
   for (const [v, txt] of options) {
-    const o = document.createElement('option'); o.value = v; o.textContent = txt;
+    const o = document.createElement('option'); o.value = v; o.textContent = t(txt);
     s.append(o);
   }
   s.value = val;
@@ -1419,7 +1672,7 @@ function selectRow(label, options, val, cb) {
 
 function actionBtn(label, cb, cls) {
   const b = document.createElement('button');
-  b.className = 'btn' + (cls ? ' ' + cls : ''); b.textContent = label;
+  b.className = 'btn' + (cls ? ' ' + cls : ''); b.textContent = t(label);
   b.addEventListener('click', () => { pushHistory(); cb(); updateAll(); });
   return b;
 }
@@ -1451,9 +1704,9 @@ function renderObjects() {
     const sel = state.sel && state.sel.kind === r.kind && state.sel.id === r.id;
     return `<button class="objrow${sel ? ' sel' : ''}" data-kind="${r.kind}" data-id="${r.id}" data-face="${r.face}">` +
       (r.warn ? '<span class="dot"></span>' : '') +
-      `<span>${esc(r.label)}</span><span class="of">${FACE_LABELS[r.face]}</span>` +
+      `<span>${esc(t(r.label))}</span><span class="of">${t(FACE_LABELS[r.face])}</span>` +
       `<span class="oi">${esc(r.info)}</span></button>`;
-  }).join('') : '<div class="empty">Aucun objet pour l\'instant.</div>';
+  }).join('') : `<div class="empty">${t('Aucun objet pour l\'instant.')}</div>`;
 }
 
 function renderInspector() {
@@ -1466,12 +1719,12 @@ function renderInspector() {
   if (state.sel.kind === 'cut') {
     const title = document.createElement('div');
     title.style.cssText = 'font-weight:600;margin-bottom:8px';
-    title.textContent = o.label
-      + (o.type === 'window' ? ' (fenêtre borgne)' : '')
-      + (o.type === 'insert' ? ' (fenêtre clipsable)' : '')
-      + (isBtnType(o.type) ? ' (tact 6×6)' : '')
-      + (o.type === 'usbc' ? ' (support intégré)' : '')
-      + (VENT_TYPES.includes(o.type) ? ' (aération)' : '');
+    title.textContent = t(o.label)
+      + (o.type === 'window' ? t(' (fenêtre borgne)') : '')
+      + (o.type === 'insert' ? t(' (fenêtre clipsable)') : '')
+      + (isBtnType(o.type) ? t(' (tact 6×6)') : '')
+      + (o.type === 'usbc' ? t(' (support intégré)') : '')
+      + (VENT_TYPES.includes(o.type) ? t(' (aération)') : '');
     d.append(title);
     const flat = isFlat(o.face);
     d.append(numField(flat ? 'Position X' : 'Décalage', o.off, v => o.off = v));
@@ -1487,22 +1740,22 @@ function renderInspector() {
     if (o.type === 'insert') {
       const hint = document.createElement('div');
       hint.className = 'empty';
-      hint.textContent = 'Pièce séparée : bouton « Inserts » en bas — PETG transparent ou blanc. Membrane centrale = « Peau » (0.8 diffuse bien) ; 0 = cadre ouvert sans membrane (laser ToF).';
+      hint.textContent = t('Pièce séparée : bouton « Inserts » en bas — PETG transparent ou blanc. Membrane centrale = « Peau » (0.8 diffuse bien) ; 0 = cadre ouvert sans membrane (laser ToF).');
       d.append(hint);
     } else if (o.type === 'btnflex') {
       const hint = document.createElement('div');
       hint.className = 'empty';
-      hint.textContent = 'Imprimé en place : soude 2 fils sur un tact switch 6×6 et glisse-le dans le berceau intérieur par le haut.';
+      hint.textContent = t('Imprimé en place : soude 2 fils sur un tact switch 6×6 et glisse-le dans le berceau intérieur par le haut.');
       d.append(hint);
     } else if (o.type === 'btnpiston') {
       const hint = document.createElement('div');
       hint.className = 'empty';
-      hint.textContent = 'Le capuchon s\'imprime avec la planche « Inserts » : insère-le par l\'intérieur, puis glisse le switch 6×6 (2 fils soudés) dans le berceau.';
+      hint.textContent = t('Le capuchon s\'imprime avec la planche « Inserts » : insère-le par l\'intérieur, puis glisse le switch 6×6 (2 fils soudés) dans le berceau.');
       d.append(hint);
     } else if (o.type === 'usbc') {
       const hint = document.createElement('div');
       hint.className = 'empty';
-      hint.textContent = 'Soude les fils sur la prise nue, glisse son nez dans l\'ouverture par l\'intérieur et couche-la dans le canal (pont de maintien à l\'arrière). La paroi bloque l\'arrachement, le fond bloque le branchement.';
+      hint.textContent = t('Soude les fils sur la prise nue, glisse son nez dans l\'ouverture par l\'intérieur et couche-la dans le canal (pont de maintien à l\'arrière). La paroi bloque l\'arrachement, le fond bloque le branchement.');
       d.append(hint);
     } else if (o.type !== 'window' && !VENT_TYPES.includes(o.type) && state.holeComp > 0) {
       const hint = document.createElement('div');
@@ -1525,8 +1778,8 @@ function renderInspector() {
     const title = document.createElement('div');
     title.style.cssText = 'font-weight:600;margin-bottom:8px';
     title.textContent = o.holes === 2
-      ? `Entretoises 2 trous · ${o.dx}${o.dy ? ' × ' + o.dy : ''}`
-      : `Entretoises ${o.dx} × ${o.dy}`;
+      ? `${t('Entretoises 2 trous')} · ${o.dx}${o.dy ? ' × ' + o.dy : ''}`
+      : `${t('Entretoises')} ${o.dx} × ${o.dy}`;
     d.append(title);
     d.append(numField('Centre X', o.cx, v => o.cx = v));
     d.append(numField('Centre Y', o.cy, v => o.cy = v));
@@ -1544,7 +1797,7 @@ function renderInspector() {
   } else if (state.sel.kind === 'div') {
     const title = document.createElement('div');
     title.style.cssText = 'font-weight:600;margin-bottom:8px';
-    title.textContent = `Cloison ${o.len} mm${o.ht > 0 ? ' · h ' + o.ht : ' · pleine hauteur'}`;
+    title.textContent = `${t('Cloison')} ${o.len} mm${o.ht > 0 ? ' · h ' + o.ht : t(' · pleine hauteur')}`;
     d.append(title);
     d.append(numField('Centre X', o.cx, v => o.cx = v));
     d.append(numField('Centre Y', o.cy, v => o.cy = v));
@@ -1556,7 +1809,7 @@ function renderInspector() {
     d.append(checkRow('Créneaux d\'aération haut + bas', !!o.vented, v => o.vented = v));
     const hint = document.createElement('div');
     hint.className = 'empty';
-    hint.textContent = 'Hauteur 0 = pleine (jusqu\'au couvercle). Passage câble 0 = aucun (encoche en haut sinon).';
+    hint.textContent = t('Hauteur 0 = pleine (jusqu\'au couvercle). Passage câble 0 = aucun (encoche en haut sinon).');
     d.append(hint);
     const acts = document.createElement('div'); acts.className = 'actions';
     acts.append(
@@ -1569,7 +1822,7 @@ function renderInspector() {
   } else if (state.sel.kind === 'comp') {
     const title = document.createElement('div');
     title.style.cssText = 'font-weight:600;margin-bottom:8px';
-    title.textContent = `Compartiment ${o.w} × ${o.d}`;
+    title.textContent = `${t('Compartiment')} ${o.w} × ${o.d}`;
     d.append(title);
     d.append(numField('Centre X', o.cx, v => o.cx = v));
     d.append(numField('Centre Y', o.cy, v => o.cy = v));
@@ -1583,7 +1836,7 @@ function renderInspector() {
     if (o.notchSide >= 0) d.append(numField('Larg. passage', o.notchW, v => o.notchW = Math.max(4, v)));
     const hint = document.createElement('div');
     hint.className = 'empty';
-    hint.textContent = 'Cadre pleine hauteur (murs 1.8). Cale-le contre une paroi : il se raccorde tout seul. Fond + couvercle aérés = l\'air extérieur traverse en cheminée.';
+    hint.textContent = t('Cadre pleine hauteur (murs 1.8). Cale-le contre une paroi : il se raccorde tout seul. Fond + couvercle aérés = l\'air extérieur traverse en cheminée.');
     d.append(hint);
     const acts = document.createElement('div'); acts.className = 'actions';
     acts.append(
@@ -1595,7 +1848,7 @@ function renderInspector() {
   } else {
     const title = document.createElement('div');
     title.style.cssText = 'font-weight:600;margin-bottom:8px';
-    title.textContent = `Socle cellule ${o.len} × Ø ${o.dia}`;
+    title.textContent = `${t('Socle cellule')} ${o.len} × Ø ${o.dia}`;
     d.append(title);
     d.append(numField('Centre X', o.cx, v => o.cx = v));
     d.append(numField('Centre Y', o.cy, v => o.cy = v));
@@ -1688,7 +1941,7 @@ function compWarnings(cp) {
   if (cp.notchSide >= 0) {
     const ct = compWallContacts(cp);
     const att = [ct.front, ct.back, ct.left, ct.right][cp.notchSide];
-    if (att) out.push('Compartiment : le passage câble est sur un mur fondu dans la paroi — choisis un autre côté');
+    if (att) out.push(t('Compartiment : le passage câble est sur un mur fondu dans la paroi — choisis un autre côté'));
   }
   return out;
 }
@@ -1719,7 +1972,7 @@ let scadSrc = null;
 
 function showGenError(msg) {
   const el = $('srvNote');
-  el.textContent = 'Échec de génération : ' + msg;
+  el.textContent = t('Échec de génération : ') + msg;
   el.style.color = 'var(--danger)';
   clearTimeout(showGenError.t);
   showGenError.t = setTimeout(() => { el.style.color = ''; updateGenUI(); }, 8000);
@@ -1757,13 +2010,13 @@ function updateGenUI() {
   for (const id of ['genBase', 'genLid', 'genIns']) {
     const b = $(id);
     b.style.display = (gen.on || wasmMode) ? '' : 'none';
-    if (!gen.busy) b.textContent = wasmMode ? 'Générer (navigateur)' : 'Générer le STL';
+    if (!gen.busy) b.textContent = wasmMode ? t('Générer (navigateur)') : t('Générer le STL');
   }
   $('srvNote').textContent = gen.on
-    ? 'génération directe active — le STL se télécharge'
+    ? t('génération directe active — le STL se télécharge')
     : wasmMode
-      ? 'sans serveur local : génération dans ton navigateur (1 à 3 min)'
-      : 'à copier dans un terminal — ou double-clique builder.command pour générer en un clic';
+      ? t('sans serveur local : génération dans ton navigateur (1 à 3 min)')
+      : t('à copier dans un terminal — ou double-clique builder.command pour générer en un clic');
   // commandes repliées par défaut quand une génération est possible
   document.querySelector('footer').classList.toggle('nocmd', (gen.on || wasmMode) && !ui.showCmds);
 }
@@ -1790,9 +2043,9 @@ async function wasmGenerate(part, btn) {
   gen.busy = true;
   const old = btn.textContent;
   const t0 = Date.now();
-  btn.textContent = 'Chargement du moteur…';
+  btn.textContent = t('Chargement du moteur…');
   const tick = setInterval(() => {
-    btn.textContent = `Génération… ${Math.round((Date.now() - t0) / 1000)} s`;
+    btn.textContent = `${t('Génération…')} ${Math.round((Date.now() - t0) / 1000)} s`;
   }, 1000);
   btn.disabled = true;
   try {
@@ -1801,7 +2054,7 @@ async function wasmGenerate(part, btn) {
     const result = await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         wasmWorker.terminate(); wasmWorker = null;
-        reject(new Error('délai dépassé (6 min) — essaie une boîte plus simple'));
+        reject(new Error(t('délai dépassé (6 min) — essaie une boîte plus simple')));
       }, 360000);
       wasmWorker.onmessage = e => { clearTimeout(timeout); resolve(e.data); };
       wasmWorker.onerror = e => { clearTimeout(timeout); reject(new Error(e.message || 'erreur du worker')); };
@@ -1810,7 +2063,7 @@ async function wasmGenerate(part, btn) {
     if (!result.ok) throw new Error(result.error);
     clearInterval(tick);
     downloadStl(new Blob([result.stl], { type: 'application/octet-stream' }), part);
-    btn.textContent = 'Téléchargé';
+    btn.textContent = t('Téléchargé');
     setTimeout(() => { btn.textContent = old; updateGenUI(); }, 1800);
   } catch (e) {
     clearInterval(tick);
@@ -1828,9 +2081,9 @@ async function serverGenerate(part, btn) {
   gen.busy = true;
   const old = btn.textContent;
   const t0 = Date.now();
-  btn.textContent = 'Génération…';
+  btn.textContent = t('Génération…');
   const tick = setInterval(() => {
-    btn.textContent = `Génération… ${Math.round((Date.now() - t0) / 1000)} s`;
+    btn.textContent = `${t('Génération…')} ${Math.round((Date.now() - t0) / 1000)} s`;
   }, 1000);
   btn.disabled = true;
   try {
@@ -1845,7 +2098,7 @@ async function serverGenerate(part, btn) {
     }
     downloadStl(await r.blob(), part);
     clearInterval(tick);
-    btn.textContent = 'Téléchargé';
+    btn.textContent = t('Téléchargé');
     setTimeout(() => { btn.textContent = old; }, 1800);
   } catch (e) {
     clearInterval(tick);
@@ -1863,7 +2116,7 @@ function copyBtn(btnId, text) {
   navigator.clipboard.writeText(text).then(() => {
     b.classList.add('copyok');
     const old = b.innerHTML;
-    b.innerHTML = 'Copié';
+    b.innerHTML = t('Copié');
     setTimeout(() => { b.classList.remove('copyok'); b.innerHTML = old; }, 1200);
   });
 }
@@ -1895,15 +2148,15 @@ function buildStatic() {
   const pal = $('palette');
   for (const [cat, labels] of PAL_CATS) {
     const hd = document.createElement('div');
-    hd.className = 'palcat'; hd.textContent = cat;
+    hd.className = 'palcat'; hd.dataset.cat = cat; hd.textContent = t(cat);
     pal.append(hd);
     for (const nm of labels) {
       const p = PALETTE.find(x => x.label === nm);
       if (!p) continue;
     const b = document.createElement('button');
     b.className = 'pal';
-    b.innerHTML = `<b>${esc(p.label)}</b><small>${esc(p.sub)}</small>`;
-    b.title = p.tip || '';
+    b.innerHTML = `<b>${esc(t(p.label))}</b><small>${esc(t(p.sub))}</small>`;
+    b.title = t(p.tip || '');
     b.addEventListener('click', () => {
       pushHistory();
       const c = {
@@ -1926,7 +2179,7 @@ function buildStatic() {
   PCB_PRESETS.forEach((p, i) => {
     if (p.group !== lastGroup) {
       curGroup = document.createElement('optgroup');
-      curGroup.label = p.group;
+      curGroup.label = p.group; curGroup.dataset.origLabel = p.group;
       pcbSel.append(curGroup);
       lastGroup = p.group;
     }
@@ -1954,7 +2207,7 @@ function buildStatic() {
   });
   const cellSel = $('cellPreset');
   CELL_PRESETS.forEach((c, i) => {
-    const o = document.createElement('option'); o.value = i; o.textContent = c.label;
+    const o = document.createElement('option'); o.value = i; o.textContent = t(c.label);
     cellSel.append(o);
   });
   $('cellAdd').addEventListener('click', () => {
@@ -2015,10 +2268,13 @@ function buildStatic() {
   });
   $('optTear').addEventListener('change', () => { pushHistory(); state.teardrop = $('optTear').checked; updateAll(); });
   $('resetBtn').addEventListener('click', () => {
-    if (confirm('Tout effacer ?')) { pushHistory(); state = DEFAULT_STATE(); updateAll(); }
+    if (confirm(t('Tout effacer ?'))) { pushHistory(); state = DEFAULT_STATE(); updateAll(); }
   });
   $('undoBtn').addEventListener('click', undo);
   $('redoBtn').addEventListener('click', redo);
+  // langue
+  $('langBtn').textContent = LANG === 'fr' ? 'EN' : 'FR';
+  $('langBtn').addEventListener('click', () => setLang(LANG === 'fr' ? 'en' : 'fr'));
   // rail de panneaux
   document.querySelectorAll('.railbtn').forEach(b =>
     b.addEventListener('click', () => { state.panel = b.dataset.panel; updateAll(); }));
@@ -2120,11 +2376,11 @@ function updateAll(withInspector = true) {
   for (const c of state.cuts) fcounts[c.face] = (fcounts[c.face] || 0) + 1;
   fcounts.floor = (fcounts.floor || 0) + state.pcbs.length + state.cells.length + state.divs.length + state.comps.length;
   fcounts.lid = (fcounts.lid || 0) + state.comps.filter(c => c.ventLid).length;
-  document.querySelectorAll('.tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.face === state.face);
-    const lbl = FACES.find(x => x.id === t.dataset.face).label;
-    const n = fcounts[t.dataset.face] || 0;
-    t.innerHTML = n ? `${lbl}<span class="tabn">${n}</span>` : lbl;
+  document.querySelectorAll('.tab').forEach(tb => {
+    tb.classList.toggle('active', tb.dataset.face === state.face);
+    const lbl = t(FACES.find(x => x.id === tb.dataset.face).label);
+    const n = fcounts[tb.dataset.face] || 0;
+    tb.innerHTML = n ? `${lbl}<span class="tabn">${n}</span>` : lbl;
   });
   document.querySelectorAll('.chip[data-dims]').forEach(c => {
     const [w, d, h] = c.dataset.dims.split(',').map(Number);
@@ -2154,6 +2410,7 @@ function updateAll(withInspector = true) {
 }
 
 buildStatic();
+if (LANG !== 'fr') translateStatic();
 updateAll();
 </script>
 </body>
