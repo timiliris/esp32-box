@@ -18,6 +18,13 @@ entièrement paramétrique.
 
 ![Aperçu du boîtier](preview/apercu-M-ferme.png)
 
+| | |
+|---|---|
+| ![Aérations](preview/apercu-aerations.png) | ![Compartiment](preview/apercu-compartiment.png) |
+| *Aérations posables : nid d'abeille, grille, fentes* | *Compartiment ventilé pour isoler un capteur* |
+| ![Boutons](preview/apercu-boutons.png) | ![Inserts](preview/apercu-inserts.png) |
+| *Boutons pour tact switch 6×6 : languette et piston* | *Fenêtres clipsables à imprimer en transparent* |
+
 ## Installation
 
 Prérequis : [OpenSCAD](https://openscad.org) et Python 3 (inclus sur
