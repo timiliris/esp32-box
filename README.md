@@ -27,6 +27,12 @@ A single parametric OpenSCAD source file
 | ![Buttons](preview/apercu-boutons.png) | ![Inserts](preview/apercu-inserts.png) |
 | *6×6 tact switch buttons: flex tongue and plunger* | *Snap-in windows to print in clear filament* |
 
+## Documentation
+
+Full docs in [`docs/`](docs/Home.md): [getting started](docs/Getting-Started.md),
+[builder guide](docs/Builder-Guide.md), [elements reference](docs/Elements-Reference.md),
+[printing & assembly](docs/Printing-and-Assembly.md), [OpenSCAD reference](docs/OpenSCAD-Reference.md).
+
 ## Install
 
 Requirements: [OpenSCAD](https://openscad.org) and Python 3
