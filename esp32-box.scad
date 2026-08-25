@@ -480,8 +480,10 @@ module switch_cradle(front_y, tongue_clear) {
 // (8.94 x 3.16) -> brancher pousse la prise contre le fond du canal,
 // débrancher la plaque contre la paroi. Insertion par le haut,
 // pont de maintien à l'arrière, fils vers le dos.
-module usbc_cradle() {
-    L = 7.6;
+// L = longueur de l'armature (les variantes courantes font 7.35,
+// 10.5, 11.1 ou 12.6 mm — mesure la tienne, le fond de butée doit
+// affleurer son dos).
+module usbc_cradle(L) {
     difference() {
         translate([-7.2, 0, -4.3]) cube([14.4, L + 1.8, 8.6]);
         // canal de l'armature (9.2 x 3.45 int, centré sur l'ouverture)
@@ -503,7 +505,8 @@ module buttons_solids() {
             (c[0] == "front" || c[0] == "back" ||
              c[0] == "left" || c[0] == "right"))
             on_iwall(c[0], c[2], c[3]) {
-                if (c[1] == "usbc") usbc_cradle();
+                if (c[1] == "usbc")
+                    usbc_cradle(len(c) > 6 && c[6] > 0 ? c[6] : 12.6);
                 else if (c[1] == "btnflex") {
                     // capuchon extérieur sur la languette
                     translate([0, -wall + 0.01, -1])

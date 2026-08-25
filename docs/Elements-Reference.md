@@ -7,7 +7,7 @@ compensation (default +0.3 mm) is applied at generation time.
 
 | Element | Opening | Notes |
 |---|---|---|
-| Flush USB-C | 8.7 × 2.9 | For a **bare** female USB-C receptacle (solder shell). Built-in channel mount behind the wall; nose flush outside. Geometric lock: plugging pushes against the back stop, unplugging presses the shell against the wall. Insert from the top, wires out the back. Default channel fits ~7.5 mm-long shells. |
+| Flush USB-C | 8.7 × 2.9 | For a **bare** female USB-C receptacle (solder shell). Built-in channel mount behind the wall; nose flush outside. Geometric lock: plugging pushes against the back stop, unplugging presses the shell against the wall. Insert from the top, wires out the back. Shell length is adjustable in the inspector (default 12.6 mm — measure yours: 7.35 / 10.5 / 12.6 mm variants exist). |
 | USB-C | 10 × 6 | Pass-through for a whole cable connector, when the receptacle sits recessed on a board. |
 | USB-A | 14 × 8 | Same, USB-A. |
 | micro-USB | 9 × 5 | Same, micro-USB. |

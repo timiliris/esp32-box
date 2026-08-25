@@ -556,8 +556,9 @@ Object.assign(EN, {
   // infobulles de la palette
   'Passage pour un connecteur de câble USB-C entier (prise en retrait derrière la paroi)':
     'Opening for a full USB-C cable connector (receptacle recessed behind the wall)',
-  'Pour une prise USB-C femelle nue (armature à souder) : support intégré derrière la paroi, nez au ras. Brancher pousse contre le fond, débrancher plaque contre la paroi — rien ne bouge.':
-    'For a bare female USB-C receptacle (solder shell): built-in mount behind the wall, nose flush. Plugging pushes it against the back, unplugging presses it against the wall — nothing moves.',
+  'Pour une prise USB-C femelle nue (armature à souder) : support intégré derrière la paroi, nez au ras. Brancher pousse contre le fond, débrancher plaque contre la paroi — rien ne bouge. Mesure la longueur de ton armature (7.35 / 10.5 / 12.6 mm selon les variantes).':
+    'For a bare female USB-C receptacle (solder shell): built-in mount behind the wall, nose flush. Plugging pushes it against the back stop, unplugging presses it against the wall — nothing moves. Measure your shell length (7.35 / 10.5 / 12.6 mm depending on the variant).',
+  'Longueur prise': 'Shell length',
   'Passage pour une prise USB-A classique': 'Opening for a standard USB-A plug',
   'Passage pour une prise micro-USB': 'Opening for a micro-USB plug',
   'Grande ouverture pour une rangée complète de ports (module power bank…)':
@@ -730,8 +731,8 @@ function hexPts(px, py, R) {
 const PALETTE = [
   { label: 'USB-C',        sub: '10 × 6',   type: 'rect',   w: 10,  h: 6,
     tip: 'Passage pour un connecteur de câble USB-C entier (prise en retrait derrière la paroi)' },
-  { label: 'USB-C encastré', sub: '8.7 × 2.9 · support', type: 'usbc', w: 8.7, h: 2.9, dz: 6,
-    tip: 'Pour une prise USB-C femelle nue (armature à souder) : support intégré derrière la paroi, nez au ras. Brancher pousse contre le fond, débrancher plaque contre la paroi — rien ne bouge.' },
+  { label: 'USB-C encastré', sub: '8.7 × 2.9 · support', type: 'usbc', w: 8.7, h: 2.9, dz: 6, clen: 12.6,
+    tip: 'Pour une prise USB-C femelle nue (armature à souder) : support intégré derrière la paroi, nez au ras. Brancher pousse contre le fond, débrancher plaque contre la paroi — rien ne bouge. Mesure la longueur de ton armature (7.35 / 10.5 / 12.6 mm selon les variantes).' },
   { label: 'USB-A',        sub: '14 × 8',   type: 'rect',   w: 14,  h: 8,
     tip: 'Passage pour une prise USB-A classique' },
   { label: 'micro-USB',    sub: '9 × 5',    type: 'rect',   w: 9,   h: 5,
@@ -828,6 +829,9 @@ try {
   if (!state.cells) state.cells = [];
   if (!state.divs) state.divs = [];
   if (!state.comps) state.comps = [];
+  // migration : les prises USB-C existantes reçoivent une longueur 12.6
+  for (const c of state.cuts)
+    if (c.type === 'usbc' && c.clen === undefined) c.clen = 12.6;
   // migration : les inserts existants reçoivent une membrane 0.8
   for (const c of state.cuts)
     if (c.type === 'insert' && c.skin === undefined) c.skin = 0.8;
@@ -1736,6 +1740,7 @@ function renderInspector() {
       d.append(numField('Hauteur ↕', o.h, v => o.h = Math.max(2, v)));
       if (o.type === 'window') d.append(numField('Peau', o.skin, v => o.skin = Math.max(0.4, Math.min(v, 2))));
       if (o.type === 'insert') d.append(numField('Peau', o.skin, v => o.skin = Math.max(0, Math.min(v, 2))));
+      if (o.type === 'usbc') d.append(numField('Longueur prise', o.clen || 12.6, v => o.clen = Math.max(6, Math.min(v, 20))));
     }
     if (o.type === 'insert') {
       const hint = document.createElement('div');
@@ -1874,7 +1879,9 @@ function cutExpr(c) {
   const off = r1(c.off * FACE_SIGN[c.face]);
   if (c.type === 'circle' || isBtnType(c.type))
     return `["${c.face}","${c.type}",${off},${c.z},${c.d},0,0]`;
-  return `["${c.face}","${c.type}",${off},${c.z},${c.w},${c.h},${(c.type === 'window' || c.type === 'insert') ? c.skin : 0}]`;
+  const extra = (c.type === 'window' || c.type === 'insert') ? c.skin
+              : c.type === 'usbc' ? (c.clen || 12.6) : 0;
+  return `["${c.face}","${c.type}",${off},${c.z},${c.w},${c.h},${extra}]`;
 }
 
 function buildArgList(part) {
@@ -2166,7 +2173,11 @@ function buildStatic() {
           : (p.dz !== undefined ? p.dz : Math.min(12, state.inner.h / 2)),
       };
       if (p.type === 'circle' || isBtnType(p.type)) c.d = p.d;
-      else { c.w = p.w; c.h = p.h; if (p.type === 'window' || p.type === 'insert') c.skin = p.skin; }
+      else {
+        c.w = p.w; c.h = p.h;
+        if (p.type === 'window' || p.type === 'insert') c.skin = p.skin;
+        if (p.type === 'usbc') c.clen = p.clen;
+      }
       state.cuts.push(c);
       state.sel = { kind: 'cut', id: c.id };
       updateAll();
