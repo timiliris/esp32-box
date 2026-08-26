@@ -608,6 +608,11 @@ Object.assign(EN, {
   'GY-521 (MPU6050) — 2 trous · 15.2 ≈': 'GY-521 (MPU6050) — 2 holes · 15.2 ≈',
   'Buck LM2596 — 2 trous diag · 30 × 16 ≈': 'LM2596 buck — 2 diag holes · 30 × 16 ≈',
   'Micro / ampli / petit module — à mesurer': 'Mic / amp / small module — measure it',
+  'Module charge power bank 65.5 × 27 — 58.5 × 19.5': 'Power bank charger module 65.5 × 27 — 58.5 × 19.5',
+  'Ports power bank': 'Power bank ports',
+  '62 × 9 · module 65.5': '62 × 9 · 65.5 module',
+  'Ouverture pour la rangée de ports d\'un module de charge power bank 65.5 × 27 × 7.5 (entraxe 58.5 × 19.5). Hauteur calée pour le module posé sur des entretoises de 5 mm — ajuste si tu changes leur hauteur.':
+    'Opening for the port row of a 65.5 × 27 × 7.5 power bank charger module (58.5 × 19.5 hole spacing). Height set for the module sitting on 5 mm standoffs — adjust if you change them.',
   'Entraxe libre…': 'Custom spacing…',
   // indices d'inspecteur
   'Pièce séparée : bouton « Inserts » en bas — PETG transparent ou blanc. Membrane centrale = « Peau » (0.8 diffuse bien) ; 0 = cadre ouvert sans membrane (laser ToF).':
@@ -739,6 +744,8 @@ const PALETTE = [
     tip: 'Passage pour une prise micro-USB' },
   { label: 'Rangée ports', sub: '64 × 10',  type: 'rect',   w: 64,  h: 10,
     tip: 'Grande ouverture pour une rangée complète de ports (module power bank…)' },
+  { label: 'Ports power bank', sub: '62 × 9 · module 65.5', type: 'rect', w: 62, h: 9, dz: 10.5,
+    tip: 'Ouverture pour la rangée de ports d\'un module de charge power bank 65.5 × 27 × 7.5 (entraxe 58.5 × 19.5). Hauteur calée pour le module posé sur des entretoises de 5 mm — ajuste si tu changes leur hauteur.' },
   { label: 'Jack 3.5',     sub: 'Ø 6.5',    type: 'circle', d: 6.5,
     tip: 'Jack audio 3.5 mm châssis : se visse dans la paroi avec son écrou' },
   { label: 'Guide LED 1.75', sub: 'Ø 1.8 · filament', type: 'circle', d: 1.8,
@@ -800,6 +807,7 @@ const PCB_PRESETS = [
   { group: 'Capteurs & modules', label: 'OLED 0.96″ SSD1306 — 23.5 × 23.5 ≈', dx: 23.5, dy: 23.5, holes: 4, d: 4.5, pilot: 1.8 },
   { group: 'Capteurs & modules', label: 'GY-521 (MPU6050) — 2 trous · 15.2 ≈', dx: 15.2, dy: 0, holes: 2, d: 4.5, pilot: 2.2 },
   { group: 'Capteurs & modules', label: 'Buck LM2596 — 2 trous diag · 30 × 16 ≈', dx: 30, dy: 16, holes: 2, d: 5, pilot: 2.2 },
+  { group: 'Capteurs & modules', label: 'Module charge power bank 65.5 × 27 — 58.5 × 19.5', dx: 58.5, dy: 19.5, holes: 4, d: 5, pilot: 2.2 },
   { group: 'Capteurs & modules', label: 'Micro / ampli / petit module — à mesurer', dx: 10, dy: 0, holes: 2, d: 4.5, pilot: 1.8 },
   { group: 'Libre', label: 'Entraxe libre…', dx: 40, dy: 20, holes: 4, d: 6.5, pilot: 2.2 },
 ];
@@ -2146,7 +2154,7 @@ function buildStatic() {
     tabs.append(b);
   }
   const PAL_CATS = [
-    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
+    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Ports power bank', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
     ['Boutons tact 6×6', ['Bouton languette', 'Bouton poussoir']],
     ['Fenêtres & inserts', ['Fenêtre LED', 'Fenêtre radar', 'Insert libre', 'Fenêtre libre']],
     ['Aérations', ['Fentes vert.', 'Fentes horiz.', 'Grille ronde', 'Nid d\'abeille']],

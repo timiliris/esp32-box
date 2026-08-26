@@ -12,6 +12,7 @@ compensation (default +0.3 mm) is applied at generation time.
 | USB-A | 14 × 8 | Same, USB-A. |
 | micro-USB | 9 × 5 | Same, micro-USB. |
 | Port row | 64 × 10 | Wide opening for a power-bank module's port row. |
+| Power bank ports | 62 × 9 | Port-row opening matched to a 65.5 × 27 × 7.5 power bank charger module. Default height assumes the module sits on 5 mm standoffs — pair it with the matching standoff preset. |
 | Jack 3.5 | Ø 6.5 | Panel-mount jack, screws with its own nut. |
 | Push btn 7 / 12 | Ø 7.2 / 12.2 | Panel-mount push buttons (PBS-110 style / 12 mm metal). |
 | PG7 | Ø 12.5 | Cable gland for a clean strain-relieved cable exit. |
@@ -61,7 +62,8 @@ Case panel.
   diagonal) posts with self-tapping pilot holes. Presets: dev
   boards, proto-board kits 2×8 → 9×15 cm (spacing = dimension − 4),
   common modules (GY-BME280 2-hole·10 verified, SSD1306 0.96″,
-  GY-521, LM2596…). Small modules get thin Ø 4.5 posts with M2
+  GY-521, LM2596…, power bank charger module 65.5 × 27 →
+  58.5 × 19.5, measured). Small modules get thin Ø 4.5 posts with M2
   pilots. Measure clone boards with calipers — ≈ values vary.
 - **Cell holders** — printed cradles for 18650 / 21700 / 14500:
   two snap jaws (0.5 mm lip each side) + end stops. Rotate 90°,
