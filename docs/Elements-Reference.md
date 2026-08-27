@@ -59,11 +59,23 @@ panel border.
 PCB, so the 4 mounting holes are **not reachable from the front** — a
 boss coming down from the lid would crush the glass. The module is
 **sandwiched** instead: the lid frame retains the glass from the
-front, and 4 posts rising from the floor push the PCB from behind.
-Give those posts a **locating pin** (“Locating pin Ø”, 2.6 for Ø3
-holes) instead of a screw pilot: the pin drops into the mounting hole
-and locks the board in X/Y. Post height = inner height − the module's
-front stack (glass + panel + PCB, about 6 mm) — measure yours.
+front, and 4 posts rising from the floor meet the board from behind.
+
+Two depths matter, both measured from the glass resting under the lid
+(values below measured on the real module):
+
+| | mm |
+|---|---|
+| Screen assembly (glass + panel + PCB) | **8.6** — the edge connectors sit at this level |
+| Tallest point of the board (top of its own standoffs) | **14.5** — where our printed posts land |
+
+So the board carries ~6 mm standoffs of its own. The template uses a
+45 mm inner height: the module takes 14.5 from the lid, leaving about
+30 mm for the down-facing plugs and their cables. Posts are
+30.5 mm tall with a screw pilot, so a screw can secure them into the
+board's standoffs. For a board with bare holes instead, set
+“Locating pin Ø” (2.6 for Ø3 holes) and the pin locates it without
+screws.
 
 Board edge features, measured from the drawing (distance from the
 top edge, back view — mirror the X when seen from the front):

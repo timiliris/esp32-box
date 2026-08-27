@@ -2071,16 +2071,24 @@ function buildCommands() {
 // décalée (bordures 3.06 / 6.65 / 4.02 / 8.73). Vue de l'extérieur du
 // couvercle : USB à gauche, boutons à droite, microSD en façade.
 function applyTemplateP4_7B() {
-  const H = 40, FRONT = 6;   // hauteur intérieure ; verre+dalle+PCB
-  const pcb = H - FRONT;     // dessous de la carte sous le couvercle
+  // Deux cotes différentes, mesurées depuis le verre plaqué sous le
+  // couvercle :
+  //   TOP_MAX 14.5 = point le plus haut de la carte (sommet des
+  //     entretoises déjà en place) -> c'est là que nos plots arrivent
+  //   STACK 8.6 = épaisseur de l'écran (verre + dalle + PCB) -> c'est
+  //     là que sont les connecteurs de bord
+  // (14.5 - 8.6 = 5.9 : les entretoises déjà montées sur la carte)
+  // H laisse ~30 mm sous la carte pour les fiches qui pointent vers le bas.
+  const H = 45, TOP_MAX = 14.5, STACK = 8.6;
+  const pcb = H - STACK;     // dos de la carte = niveau des connecteurs
   state.inner = { w: 176, d: 109, h: H };
   state.cuts = []; state.pcbs = []; state.cells = []; state.divs = []; state.comps = [];
   // La dalle couvre toute la carte : impossible de visser depuis le
   // couvercle. La carte est prise en sandwich — le cadre du couvercle
-  // retient le verre, 4 plots montés du fond la poussent par l'arrière,
-  // leurs pions entrent dans les trous de fixation pour la caler.
-  state.pcbs.push({ id: state.nextId++, cx: 0, cy: 0, sh: r1(H - FRONT), dx: 156, dy: 89,
-                    holes: 4, pd: 7, pp: 2.2, pin: 2.6, onLid: false });
+  // retient le verre, 4 plots montés du fond viennent buter sous les
+  // entretoises de la carte (avant-trou : une vis peut les y fixer).
+  state.pcbs.push({ id: state.nextId++, cx: 0, cy: 0, sh: r1(H - TOP_MAX), dx: 156, dy: 89,
+                    holes: 4, pd: 7, pp: 2.2, pin: 0, onLid: false });
   const cut = (o) => { state.cuts.push(Object.assign({ id: state.nextId++, fromTop: true }, o)); };
   cut({ face: 'lid', type: 'rect', label: 'Écran 7″ 1024×600',
         off: -1.8, z: 2.4, w: 151.6, h: 83.4, fromTop: false });
