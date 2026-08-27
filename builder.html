@@ -290,8 +290,8 @@
               <input type="number" id="optComp" step="0.05" min="0" max="1"></div>
             <div class="rowline" title="Trous ronds des parois avec sommet à 45° : impression sans support ni affaissement"><label style="width:auto;flex:1">Goutte d'eau</label>
               <input type="checkbox" id="optTear"></div>
-            <div class="rowline" title="Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d'un écran ; en dessous de 2 mm il gondole."><label style="width:auto;flex:1">Épaisseur couvercle</label>
-              <input type="number" id="optLidT" step="0.2" min="1.6" max="6"></div>
+            <div class="rowline" title="Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d'un écran. La jupe raidit le pourtour, mais sous 1.6 mm une grande plaque reste souple."><label style="width:auto;flex:1">Épaisseur couvercle</label>
+              <input type="number" id="optLidT" step="0.2" min="1" max="6"></div>
           </div>
         </div>
         <div class="group">
@@ -495,11 +495,17 @@ const EN = {
   'couvercle vissé': 'screwed lid',
   'Jeu perçage': 'Hole clearance', 'Goutte d\'eau': 'Teardrop holes',
   'Épaisseur couvercle': 'Lid thickness', 'Régénérer': 'Rebuild',
+  'Couvercle à': 'Lid at',
+  'grande plaque, imprime-la à plat et prévois un léger voile':
+    'large plate — print it flat and expect a slight bow',
+  'très fin, mais la jupe le raidit': 'very thin, but the skirt stiffens it',
+  'Vis M3 : la fraisure fait 1.4 de profondeur, elle traverse un couvercle si fin — passe en couvercle clipsé':
+    'M3 screws: the countersink is 1.4 deep and breaks through a lid this thin — switch to the snap-fit lid',
+  'Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d\'un écran. La jupe raidit le pourtour, mais sous 1.6 mm une grande plaque reste souple.':
+    'Thickness of the lid\'s top plate. Thinner = slimmer border around a screen. The skirt stiffens the rim, but below 1.6 mm a large plate stays floppy.',
   'Ce projet vient d’une version plus ancienne du modèle : les cotes de la caméra et l’épaisseur du couvercle ont changé depuis. Régénère-le pour en profiter — tes réglages du panneau Boîtier seront réécrits.':
     'This project comes from an older version of the template: the camera dimensions and the lid thickness have changed since. Rebuild it to pick them up — your Case panel settings will be overwritten.',
   'Retrait objectif': 'Lens setback', 'Ouverture extérieure : Ø ': 'Outer opening: Ø ',
-  'Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d\'un écran ; en dessous de 2 mm il gondole.':
-    'Thickness of the lid\'s top plate. Thinner = slimmer border around a screen; below 2 mm it warps.',
   'Pattes': 'Tabs', 'aucune': 'none', 'sur les flancs': 'on the sides',
   'avant / arrière': 'front / back', 'Nombre': 'Count',
   'Tout effacer': 'Clear all',
@@ -1571,6 +1577,18 @@ function renderWarns() {
     for (const m of cutNotes(c)) notes.push({ m, kind: 'cut', id: c.id, face: c.face });
   for (const k of state.clips)
     for (const m of clipWarnings(k)) notes.push({ m, kind: 'clip', id: k.id, face: 'lid', libre: true });
+  // un couvercle mince gondole d'autant plus qu'il est grand, et la
+  // fraisure d'une vis M3 fait déjà 1.4 de profondeur
+  if (state.lidT < 1.6) {
+    const grand = Math.max(state.inner.w, state.inner.d) > 120;
+    notes.push({ m: `${t('Couvercle à')} ${state.lidT} mm : ` +
+      t(grand ? 'grande plaque, imprime-la à plat et prévois un léger voile'
+             : 'très fin, mais la jupe le raidit'),
+      kind: 'cut', id: -1, face: 'lid', libre: true });
+    if (state.lidFix === 'screws')
+      notes.push({ m: t('Vis M3 : la fraisure fait 1.4 de profondeur, elle traverse un couvercle si fin — passe en couvercle clipsé'),
+                   kind: 'cut', id: -1, face: 'lid', libre: true });
+  }
   let html = all.slice(0, 4).map(w =>
     `<button class="warnline" data-kind="${w.kind}" data-id="${w.id}" data-face="${w.face}" title="Cliquer pour voir l'élément">${esc(w.m)}</button>`
   ).join('');
@@ -2314,7 +2332,7 @@ function buildCommands() {
 // Version du modèle 7B. À incrémenter dès que la géométrie change :
 // un projet enregistré garde ses valeurs, il ne se met pas à jour tout
 // seul, et l'interface propose alors de le régénérer.
-const TPL_7B_V = 4;
+const TPL_7B_V = 5;
 
 function applyTemplateP4_7B() {
   // Cotes mesurées, depuis le verre plaqué sous le couvercle :
@@ -2330,7 +2348,7 @@ function applyTemplateP4_7B() {
   // la dalle, à 5 mm de là, masquerait déjà tout au-delà de 19°.
   const CAM = 8.4, LENS_D = 7.2, FOV = 72.9;
   const LENS_GAP = 5;              // centre de l'objectif au bord du verre
-  const LID_T = 2;                 // fin : la bordure autour de l'écran
+  const LID_T = 1;                 // fin : la bordure autour de l'écran
   const W = 176;
   // Ouverture extérieure : l'objectif est un peu en retrait dans son
   // barillet, le trou s'évase donc sur l'épaisseur du couvercle.
@@ -2740,7 +2758,7 @@ function buildStatic() {
   $('optTear').addEventListener('change', () => { pushHistory(); state.teardrop = $('optTear').checked; updateAll(); });
   $('optLidT').addEventListener('input', () => {
     const v = parseFloat($('optLidT').value);
-    if (!isNaN(v) && v >= 1.6) { pushHistory('lidT'); state.lidT = v; updateAll(); }
+    if (!isNaN(v) && v >= 1) { pushHistory('lidT'); state.lidT = v; updateAll(); }
   });
   $('resetBtn').addEventListener('click', () => {
     if (confirm(t('Tout effacer ?'))) { pushHistory(); state = DEFAULT_STATE(); updateAll(); }

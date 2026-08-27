@@ -155,8 +155,9 @@ the full 8.6 mm down, exactly as long as the display's own clips.
 **The angle in the plastic.** The lens sits a little way inside its
 barrel, so the hole is a **cone**: Ø 7.2 at the lid's inner face,
 opening at the field-of-view angle through the lid's thickness. On a
-2 mm lid at 72.9° it reaches **Ø 10.5** outside — a clean webcam hole
-in the bezel, with nothing left to vignette the corners.
+1 mm lid at 72.9° it reaches **Ø 9** outside — a clean webcam hole in
+the bezel, with nothing left to vignette the corners. A thicker lid
+widens that opening: it is the lid's thickness the cone has to cross.
 
 **Clips on three sides, front open.** The front edge (facing the
 screen) has no clip: it is the insertion side, and it is also where
@@ -252,6 +253,9 @@ Case panel.
 
 Inner dimensions, side-vent strip, zip-tie slots, lid fixing
 (snap-fit / screwed), FDM hole clearance, teardrop holes, **lid
-thickness** (3 mm default; drop it to 2 for a slimmer border around a
-screen — below 2 the plate warps), and **wall-mounting tabs**: 2 or 4 Ø 4.2 eyelets at floor level, on the
+thickness** (3 mm default, down to 1; thinner means a slimmer border
+around a screen, and the skirt stiffens the rim like an angle
+section — but below 1.6 a large plate stays floppy, and the builder
+says so. M3 countersinks are 1.4 deep and break through such a lid,
+so keep the snap-fit fixing), and **wall-mounting tabs**: 2 or 4 Ø 4.2 eyelets at floor level, on the
 sides or front/back, printed with the base.
