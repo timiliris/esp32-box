@@ -631,6 +631,7 @@ Object.assign(EN, {
   'Waveshare ESP32-P4 7B (164 × 97) — 156 × 89': 'Waveshare ESP32-P4 7B (164 × 97) — 156 × 89',
   'Écran 7″ 1024×600': '7″ 1024×600 display',
   'Carte microSD': 'microSD card', 'Interrupteur à glissière': 'Slide switch',
+  'Caméra': 'Camera', 'Ø 8 · objectif': 'Ø 8 · lens',
   'Modèles': 'Templates', 'Waveshare ESP32-P4 7B — écran 7″': 'Waveshare ESP32-P4 7B — 7″ display',
   'Hauteur liée au couvercle': 'Height tied to the lid',
   'Pion centrage Ø': 'Locating pin Ø',
@@ -801,6 +802,8 @@ const PALETTE = [
     tip: 'Bouton poussoir châssis 12 mm (métal, souvent étanche)' },
   { label: 'PG7',          sub: 'Ø 12.5',   type: 'circle', d: 12.5,
     tip: 'Presse-étoupe PG7 : sortie de câble propre, avec serrage anti-arrachement' },
+  { label: 'Caméra', sub: 'Ø 8 · objectif', type: 'circle', d: 8,
+    tip: 'Trou pour l\'objectif d\'un module caméra monté en bord de carte. Sur l\'ESP32-P4-7B la caméra est parfaitement centrée sur le bord opposé au lecteur microSD (78 mm de chaque côté).' },
   { label: 'Carte microSD', sub: '15 × 2.5', type: 'rect', w: 15, h: 2.5,
     tip: 'Fente pour un lecteur microSD / TF en bord de carte (la carte s\'insère à travers la paroi). Sur l\'ESP32-P4-7B le lecteur va de 78 à 91 mm depuis le bord des boutons : quasi centré sur la carte.' },
   { label: 'Interrupteur à glissière', sub: '9 × 5', type: 'rect', w: 9, h: 5,
@@ -2250,6 +2253,10 @@ function applyTemplateP4_7B() {
   // carte) -> fente 78..91, centre 84.5 en vue arrière, soit 79.5 en
   // vue de face, à 2.5 mm du centre du boîtier
   cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: -2.5, z: r1(pcb - 1.1), w: 14, h: 3 });
+  // caméra : bord opposé au lecteur, parfaitement centrée (78 mm de
+  // chaque côté sur une carte de 164) — hauteur à confirmer selon le
+  // module caméra utilisé
+  cut({ face: 'back', type: 'circle', label: 'Caméra', off: 0, z: r1(pcb - 4), d: 8 });
   state.face = 'lid';
   state.panel = 'box';
   state.sel = null;
@@ -2440,7 +2447,7 @@ function buildStatic() {
     tabs.append(b);
   }
   const PAL_CATS = [
-    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Ports power bank', 'Carte microSD', 'Interrupteur à glissière', 'Accès bouton', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
+    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Ports power bank', 'Carte microSD', 'Caméra', 'Interrupteur à glissière', 'Accès bouton', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
     ['Boutons tact 6×6', ['Bouton languette', 'Bouton poussoir']],
     ['Fenêtres & inserts', ['Écran 7″ 1024×600', 'Fenêtre LED', 'Fenêtre radar', 'Insert libre', 'Fenêtre libre']],
     ['Aérations', ['Fentes vert.', 'Fentes horiz.', 'Grille ronde', 'Nid d\'abeille']],
