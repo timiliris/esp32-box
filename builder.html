@@ -495,6 +495,8 @@ const EN = {
   'couvercle vissé': 'screwed lid',
   'Jeu perçage': 'Hole clearance', 'Goutte d\'eau': 'Teardrop holes',
   'Épaisseur couvercle': 'Lid thickness', 'Régénérer': 'Rebuild',
+  'L\'accroche EST l\'épaisseur du module : le module est pincé entre la face intérieure du couvercle et la lèvre. Trop profonde, il flotte et bascule ; trop faible, le couvercle ne ferme pas. Pour une caméra, mesure le corps seul, barillet exclu — le barillet passe dans le trou.':
+    'The catch depth IS the module\'s thickness: the module is pinched between the lid\'s inner face and the lip. Too deep and it floats and tips; too shallow and the lid will not close. For a camera, measure the body alone, barrel excluded — the barrel goes through the hole.',
   'Couvercle à': 'Lid at',
   'grande plaque, imprime-la à plat et prévois un léger voile':
     'large plate — print it flat and expect a slight bow',
@@ -2147,6 +2149,10 @@ function renderInspector() {
     d.append(numField('Larg. module', o.w, v => o.w = Math.max(10, v)));
     d.append(numField('Prof. module', o.d, v => o.d = Math.max(10, v)));
     d.append(numField('Accroche', o.catch, v => o.catch = Math.max((o.recess || 0) + 0.8, v)));
+    const ch = document.createElement('div');
+    ch.className = 'empty';
+    ch.textContent = t('L\'accroche EST l\'épaisseur du module : le module est pincé entre la face intérieure du couvercle et la lèvre. Trop profonde, il flotte et bascule ; trop faible, le couvercle ne ferme pas. Pour une caméra, mesure le corps seul, barillet exclu — le barillet passe dans le trou.');
+    d.append(ch);
     d.append(numField('Retrait', o.recess || 0, v => {
       // la rainure garde la même largeur : l'accroche suit le retrait
       const ep = o.catch - (o.recess || 0);
@@ -2332,7 +2338,7 @@ function buildCommands() {
 // Version du modèle 7B. À incrémenter dès que la géométrie change :
 // un projet enregistré garde ses valeurs, il ne se met pas à jour tout
 // seul, et l'interface propose alors de le régénérer.
-const TPL_7B_V = 6;
+const TPL_7B_V = 7;
 
 function applyTemplateP4_7B() {
   // Cotes mesurées, depuis le verre plaqué sous le couvercle :
@@ -2341,12 +2347,14 @@ function applyTemplateP4_7B() {
   const H = 45, STACK = 8.6;
   const GW = 164.28, GD = 99.17;   // encombrement du verre
   // Caméra FPC : corps carré 8.4, barillet rond Ø7.2 quasi centré,
-  // 6.6 d'épaisseur nappe comprise — mesuré sur la pièce imprimée, la
-  // rainure de 8.6 laissait 2 mm de jeu et le module basculait par son
-  // côté ouvert. L'objectif est plaqué sous le couvercle :
+  // 7.6 d'épaisseur pour le corps carré seul, barillet exclu : c'est
+  // lui qui porte contre la face intérieure, le barillet passant dans
+  // le trou. La rainure vaut exactement ça — trop profonde, le module
+  // flotte et bascule par son côté ouvert.
+  // L'objectif est plaqué sous le couvercle :
   // c'est obligatoire, en le descendant de seulement 3.6 le VERRE de
   // la dalle, à 5 mm de là, masquerait déjà tout au-delà de 19°.
-  const CAM = 8.4, CAM_H = 6.6, LENS_D = 7.2, FOV = 72.9;
+  const CAM = 8.4, CAM_H = 7.6, LENS_D = 7.2, FOV = 72.9;
   const LENS_GAP = 5;              // centre de l'objectif au bord du verre
   const LID_T = 1;                 // fin : la bordure autour de l'écran
   const W = 176;
