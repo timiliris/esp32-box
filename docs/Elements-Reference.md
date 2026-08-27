@@ -104,18 +104,19 @@ top edge, back view — mirror the X when seen from the front):
 | USB-C (USB) | right | center 68.2 from top |
 | USB-C (to UART) | right | center 83.4 from top |
 | RESET / BOOT buttons | left | centers **10 and 19** from the top edge — measured on the real board |
-| Camera | top (opposite the card reader) | **perfectly centred**: 78 mm from each side, 8 mm wide |
+| Camera | top (opposite the card reader) | **perfectly centred**: 78 mm from each side. Lens centre **5 mm beyond the glass edge** — measured on the real module |
 | microSD (TF) slot | bottom | slot spans **78 → 91** from the button edge (78 + 13 + 73 = 164), so 2.5 mm off the board centre — measured on the real board |
 
 Minimum box for this display: about **176 × 109** inner, so the
 window clears the rounded corners. The module itself is 10–15 mm
 thick but its bottom-facing plugs need room: allow **40 mm** of
-inner height.
+inner height. **With the camera, 176 × 116 × 45** — see below.
 
 **One-click template** — the *Case* panel has a **Templates**
 section: “Waveshare ESP32-P4 7B — 7″ display” builds the whole
-project (176 × 109 × 40 box, offset screen window, standoffs under
-the lid, and all seven edge openings at the right height). Wall
+project (176 × 116 × 45 box, offset screen window, retaining clips,
+the camera above the screen, and all seven edge openings at the
+right height). Wall
 openings created this way are **tied to the lid**: change the box
 height and they follow the board instead of staying at a fixed
 height above the floor. Any wall cutout can be tied that way with
@@ -134,34 +135,64 @@ that the **lid must be regenerated** along with the base.
 
 *Add a camera holder* (Floor layout panel) drops a pocket for a small
 camera module on the lid, plus the lens hole. Defaults match the
-**Waveshare RPi FPC Camera (B)**, the mini module this display board
-supports: **35 × 16 mm**, field of view **72.9°**.
+**tiny FPC camera** that ships with this display board, measured on
+the real part:
 
-- The pocket is made of the same clips, but with a **Recess**: the
-  module is held a few millimetres *below* the lid's inner face
-  (5 mm by default, the height of the lens barrel) so its lens ends
-  up flush with the lid, while the board itself sits back. The clip
-  finger becomes a groove — a shoulder in front of the module, the
-  retaining lip behind it.
-- In the **3D preview** the lid shows the lens hole at its real
-  **outer** diameter (that is the side you look at), the module
-  outline dashed, and the clips holding it.
-- The lens hole is a **cone** cut: `Lens Ø` at the inner face,
-  widening through the lid at the `Field of view` angle so nothing
-  vignettes the picture. With 5 mm and 72.9° it opens to about
-  9.4 mm on the outside.
+| | mm |
+|---|---|
+| Square body | **8.4 × 8.4** |
+| Lens barrel | **Ø 7.2**, near-centred |
+| Total height | **5** (≈ 3 of barrel + 2 of body) |
+| Lens centre to the glass edge | **5** |
 
-The other Waveshare options, if you use a different module: RPi
-Camera (B) 32 × 32 / 43°, (E) 25 × 24 / 69.8°, (F) 25 × 24 / 50°,
-(G) and (H) 25 × 24 / 160°, (M) 25 × 24 / 200°, OV5647-70 19 × 19 /
-70°. Set *Module width/depth* and *Field of view* accordingly.
+**Straight bore, not a cone.** The barrel is nearly as wide as the
+body, and 3 mm of it is exactly the lid's thickness: the barrel
+**passes through the lid** and the lens ends up flush with the outer
+face, so nothing can vignette it. The hole is therefore a plain
+Ø 7.2 circle on the lid, and the square body bears against the lid's
+inner face around it. Only the four corners of the body do the
+bearing — the flats leave barely half a millimetre — which is
+normal for this module.
+
+**Clips on three sides, front open.** The front edge (facing the
+screen) has no clip: it is the insertion side, and it is also where
+the flex cable leaves for the board. Once the display is clipped in,
+its glass closes that side and the camera cannot come back out.
+
+**Watch the clip length on a small module.** Two clips on adjacent
+sides meet in the corner as soon as their half-length reaches the
+lip setback, and the solid stops being manifold. The builder now
+refuses that combination with a warning giving the maximum length
+(5 mm on this 8.4 module). Bigger modules are unaffected.
+
+- A **Recess** holds the module a few millimetres *below* the lid's
+  inner face, for a camera whose lens is short enough to stay inside
+  the lid. The clip finger then becomes a groove — a shoulder in
+  front of the module, the retaining lip behind it. Changing the
+  recess keeps the groove width: the catch depth follows it.
+- For a lens that does *not* reach the outer face, use a **cone**
+  cut instead of a circle: `Lens Ø` at the inner face, widening
+  through the lid at the `Field of view` angle. In the **3D
+  preview** the lid shows that hole at its real **outer** diameter
+  (that is the side you look at), the module outline dashed, and the
+  clips holding it.
+
+Other Waveshare modules, if you use one: RPi Camera (B) 32 × 32 /
+43°, (E) 25 × 24 / 69.8°, (F) 25 × 24 / 50°, (G) and (H) 25 × 24 /
+160°, (M) 25 × 24 / 200°, OV5647-70 19 × 19 / 70°, RPi FPC Camera
+(B) 35 × 16 / 72.9°. Set *Module width/depth* and *Field of view*
+accordingly.
 
 **The camera looks through the lid, not through a wall** — like a
-laptop webcam, in the bezel above the screen. The **7B template**
-lays that out for you: box 176 × 128 × 45, the display module pushed
-towards the card-reader side, and the camera strip above it. Its
-wall openings are recomputed from the board's new position, so USB,
+laptop webcam, in the bezel above the screen. At its natural spot it
+lands right in the **lid-skirt band**, so the 7B template stretches
+the box to **176 × 116 × 45** — the strict minimum for the camera
+and its clips to clear the 1.8 mm skirt — rather than notching the
+skirt. The display is pushed down against the card-reader side and
+every wall opening is recomputed from its new position, so USB,
 buttons and card slot still line up.
+
+![Lid with the camera](../preview/p4-camera-detail.png)
 
 ## Windows & inserts (any face)
 

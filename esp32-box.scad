@@ -697,20 +697,24 @@ module lid_cuts() {
 module lid_clip_one(len, catch, grab, recess = 0) {
     ft = 2;      // épaisseur du doigt
     lt = 1.2;    // épaisseur de la lèvre
+    // le doigt remonte de `weld` DANS le couvercle : posé pile sur la
+    // face intérieure il ne la touchait que par une face d'épaisseur
+    // nulle, et CGAL sortait chaque crochet en volume détaché
+    weld = 0.6;
     translate([0, -len / 2, seam - catch - lt])
-        cube([ft, len, catch + lt]);
+        cube([ft, len, catch + lt + weld]);
     if (recess > 0)
         translate([-grab, -len / 2, seam - recess])
-            cube([grab + ft, len, recess]);
+            cube([grab + ft, len, recess + weld]);
     // lèvre : face plate qui retient le dos du module, chanfrein 45°
     // dessous pour l'insertion (et pour imprimer sans support)
     translate([0, -len / 2, 0])
         rotate([90, 0, 0])
             translate([0, 0, -len])
                 linear_extrude(height = len)
-                    polygon([[0, seam - catch],
+                    polygon([[weld, seam - catch],
                              [-grab, seam - catch],
-                             [0, seam - catch - grab - lt]]);
+                             [weld, seam - catch - grab - lt]]);
 }
 
 module lid_clips_all() {
