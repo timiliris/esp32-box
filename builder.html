@@ -2240,8 +2240,10 @@ function applyTemplateP4_7B() {
   cut({ face: 'left', type: 'rect', label: 'USB-C UART', off: 34.9, z: r1(pcb - 1.7), w: 10, h: 4.6 });
   cut({ face: 'left', type: 'rect', label: 'Interrupteur à glissière', off: -36.4, z: r1(pcb - 2), w: 9, h: 5 });
   // bord boutons (flanc droit)
-  cut({ face: 'right', type: 'circle', label: 'RESET', off: 37.5, z: r1(pcb - 1.5), d: 4 });
-  cut({ face: 'right', type: 'circle', label: 'BOOT',  off: 33,   z: r1(pcb - 1.5), d: 4 });
+  // RESET et BOOT, mesurés du bord de la carte au centre du bouton :
+  // 10 et 19 -> 48.5 - 10 = 38.5 et 48.5 - 19 = 29.5 le long du bord
+  cut({ face: 'right', type: 'circle', label: 'RESET', off: 38.5, z: r1(pcb - 1.5), d: 4 });
+  cut({ face: 'right', type: 'circle', label: 'BOOT',  off: 29.5, z: r1(pcb - 1.5), d: 4 });
   // microSD en façade
   // lecteur TF, mesuré sur la carte : 78 mm depuis le bord des boutons,
   // 73 mm depuis celui des USB-C (78 + 13 + 73 = 164, la largeur de la

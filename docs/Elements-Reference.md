@@ -103,7 +103,7 @@ top edge, back view — mirror the X when seen from the front):
 | USB-A (OTG) | right | center 49.4 from top |
 | USB-C (USB) | right | center 68.2 from top |
 | USB-C (to UART) | right | center 83.4 from top |
-| RESET / BOOT buttons | left | centers 11.0 and 15.5 from top |
+| RESET / BOOT buttons | left | centers **10 and 19** from the top edge — measured on the real board |
 | microSD (TF) slot | bottom | slot spans **78 → 91** from the button edge (78 + 13 + 73 = 164), so 2.5 mm off the board centre — measured on the real board |
 
 Minimum box for this display: about **176 × 109** inner, so the
