@@ -138,7 +138,7 @@ dividers = [];
 compartments = [];
 // Crochets de maintien d'un module sur le couvercle (écran…) :
 // UN crochet par entrée : [cx, cy, largeur, profondeur, accroche,
-//                          prise, côté, position, largeur]
+//                          prise, côté, position, largeur, retrait]
 //   largeur × profondeur : encombrement du module (le VERRE, pas le PCB)
 //   accroche : profondeur sous le couvercle où le crochet prend, càd
 //              l'épaisseur de l'écran (dos du PCB)
@@ -662,6 +662,15 @@ module lid_cuts() {
                 linear_extrude(height = lid_t + 1 - skin)
                     rrect(c[4], c[5], min(3, min(c[4], c[5]) / 3));
         }
+        if (c[1] == "cone") {
+            // dégagement d'angle de vision : s'élargit vers l'extérieur
+            // a = Ø au ras intérieur, b = angle de champ (degrés)
+            ang = c[5] > 0 ? c[5] : 72.9;
+            translate([c[2], c[3], seam - 0.01])
+                cylinder(d1 = c[4] + hole_comp,
+                         d2 = c[4] + hole_comp + 2 * lid_t * tan(ang / 2),
+                         h = lid_t + 0.02);
+        }
         if (c[1] == "insert") {
             translate([c[2], c[3], seam - 1])
                 linear_extrude(height = lid_t + 2)
@@ -682,11 +691,17 @@ module lid_cuts() {
 
 // Un crochet : doigt vertical le long du module, lèvre rentrante au
 // bout. Orienté +X (le doigt est en x>0, la lèvre pointe vers -X).
-module lid_clip_one(len, catch, grab) {
+// recess > 0 : le module ne touche pas le couvercle, il est tenu dans
+// une rainure — épaulement de 0 à recess (butée avant), vide jusqu'à
+// catch (le module), puis la lèvre de retenue.
+module lid_clip_one(len, catch, grab, recess = 0) {
     ft = 2;      // épaisseur du doigt
     lt = 1.2;    // épaisseur de la lèvre
     translate([0, -len / 2, seam - catch - lt])
         cube([ft, len, catch + lt]);
+    if (recess > 0)
+        translate([-grab, -len / 2, seam - recess])
+            cube([grab + ft, len, recess]);
     // lèvre : face plate qui retient le dos du module, chanfrein 45°
     // dessous pour l'insertion (et pour imprimer sans support)
     translate([0, -len / 2, 0])
@@ -706,19 +721,20 @@ module lid_clips_all() {
         side  = len(c) > 6 ? c[6] : 0;
         pos   = len(c) > 7 ? c[7] : 0;
         L     = len(c) > 8 ? c[8] : 14;
+        rec   = len(c) > 9 ? c[9] : 0;
         clear = 0.3;
         if (side == 3)
             translate([c[0] + W / 2 + clear, c[1] + pos, 0])
-                lid_clip_one(L, catch, grab);
+                lid_clip_one(L, catch, grab, rec);
         if (side == 2)
             translate([c[0] - W / 2 - clear, c[1] + pos, 0])
-                rotate([0, 0, 180]) lid_clip_one(L, catch, grab);
+                rotate([0, 0, 180]) lid_clip_one(L, catch, grab, rec);
         if (side == 1)
             translate([c[0] + pos, c[1] + D / 2 + clear, 0])
-                rotate([0, 0, 90]) lid_clip_one(L, catch, grab);
+                rotate([0, 0, 90]) lid_clip_one(L, catch, grab, rec);
         if (side == 0)
             translate([c[0] + pos, c[1] - D / 2 - clear, 0])
-                rotate([0, 0, -90]) lid_clip_one(L, catch, grab);
+                rotate([0, 0, -90]) lid_clip_one(L, catch, grab, rec);
     }
 }
 

@@ -130,6 +130,32 @@ note — “N cutouts cross the skirt — regenerate the lid” — which is
 not a problem: the openings do go through, it is only a reminder
 that the **lid must be regenerated** along with the base.
 
+## Camera holder (lid)
+
+*Add a camera holder* (Floor layout panel) drops a pocket for a small
+camera module on the lid, plus the lens hole. Defaults match the
+**Waveshare RPi FPC Camera (B)**, the mini module this display board
+supports: **35 × 16 mm**, field of view **72.9°**.
+
+- The pocket is made of the same clips, but with a **Recess**: the
+  module is held a few millimetres *below* the lid's inner face
+  (5 mm by default, the height of the lens barrel) so its lens ends
+  up flush with the lid, while the board itself sits back. The clip
+  finger becomes a groove — a shoulder in front of the module, the
+  retaining lip behind it.
+- The lens hole is a **cone** cut: `Lens Ø` at the inner face,
+  widening through the lid at the `Field of view` angle so nothing
+  vignettes the picture. With 5 mm and 72.9° it opens to about
+  9.4 mm on the outside.
+
+The other Waveshare options, if you use a different module: RPi
+Camera (B) 32 × 32 / 43°, (E) 25 × 24 / 69.8°, (F) 25 × 24 / 50°,
+(G) and (H) 25 × 24 / 160°, (M) 25 × 24 / 200°, OV5647-70 19 × 19 /
+70°. Set *Module width/depth* and *Field of view* accordingly.
+
+**Make room.** The camera needs its own space beside the screen: a
+35 × 16 module above a 7″ panel means roughly 20 mm more inner depth.
+
 ## Windows & inserts (any face)
 
 - **LED window** (74 × 12), **Radar window** (35 × 14 — the length

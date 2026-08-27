@@ -349,6 +349,11 @@
           Ajouter une cloison
         </button>
         <div class="empty" style="margin-top:6px">Muret simple, pleine hauteur ou partiel, option créneaux d'aération haut/bas. Fais-le dépasser dans les parois : il sera rogné et raccordé.</div>
+        <button class="btn primary" id="camAdd" style="margin-top:8px">
+          <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+          Ajouter un support caméra
+        </button>
+        <div class="empty" style="margin-top:6px">Poche à rainure sur le couvercle pour un module caméra (RPi FPC Camera B : 35 × 16, champ 72.9°), avec le trou d'objectif conique qui dégage l'angle de vision. Le module est tenu en retrait du couvercle, son objectif affleure.</div>
         <button class="btn primary" id="clipAdd" style="margin-top:8px">
           <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
           Ajouter des crochets
@@ -632,6 +637,8 @@ Object.assign(EN, {
   'Écran 7″ 1024×600': '7″ 1024×600 display',
   'Carte microSD': 'microSD card', 'Interrupteur à glissière': 'Slide switch',
   'Caméra': 'Camera', 'Ø 8 · objectif': 'Ø 8 · lens',
+  'Retrait': 'Recess', 'Ø objectif': 'Lens Ø', 'Angle de champ': 'Field of view',
+  'Ajouter un support caméra': 'Add a camera holder',
   'Modèles': 'Templates', 'Waveshare ESP32-P4 7B — écran 7″': 'Waveshare ESP32-P4 7B — 7″ display',
   'Hauteur liée au couvercle': 'Height tied to the lid',
   'Pion centrage Ø': 'Locating pin Ø',
@@ -1321,7 +1328,14 @@ function render() {
       const warn = cutWarnings(c).length > 0;
       const stroke = warn ? 'var(--danger)' : col;
       g.push(`<g data-kind="cut" data-id="${c.id}" style="cursor:grab">`);
-      if (c.type === 'circle' || isBtnType(c.type)) {
+      if (c.type === 'cone') {
+        const [px, py] = toPx(c.off, flat ? fh / 2 - c.z : fh - c.z, fw);
+        const rIn = (c.d + state.holeComp) / 2 * S;
+        const rOut = rIn + 3 * Math.tan((c.fov || 72.9) / 2 * Math.PI / 180) * S;
+        g.push(`<circle cx="${px}" cy="${py}" r="${rOut}" fill="rgba(230,233,239,.05)" stroke="${stroke}" stroke-width="1" stroke-dasharray="3 2"/>`);
+        g.push(`<circle cx="${px}" cy="${py}" r="${rIn}" fill="${isSel ? 'rgba(79,140,255,.14)' : 'rgba(230,233,239,.06)'}" stroke="${stroke}" stroke-width="1.6"/>`);
+        g.push(`<text x="${px}" y="${py - rOut - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(t(c.label))}</text>`);
+      } else if (c.type === 'circle' || isBtnType(c.type)) {
         const [px, py] = toPx(c.off, flat ? fh / 2 - c.z : fh - c.z, fw);
         const rr = (c.d + (isBtnType(c.type) ? 0 : state.holeComp)) / 2 * S;
         const fill = isSel ? 'rgba(79,140,255,.14)' : 'rgba(230,233,239,.05)';
@@ -1933,7 +1947,10 @@ function renderInspector() {
     const flat = isFlat(o.face);
     d.append(numField(flat ? 'Position X' : 'Décalage', o.off, v => o.off = v));
     d.append(numField(flat ? 'Position Y' : 'Hauteur', o.z, v => o.z = v));
-    if (o.type === 'circle' || isBtnType(o.type))
+    if (o.type === 'cone') {
+      d.append(numField('Ø objectif', o.d, v => o.d = Math.max(1, v)));
+      d.append(numField('Angle de champ', o.fov || 72.9, v => o.fov = Math.max(10, Math.min(v, 175))));
+    } else if (o.type === 'circle' || isBtnType(o.type))
       d.append(numField(isBtnType(o.type) ? 'Ø capuchon' : 'Ø', o.d, v => o.d = Math.max(1, v)));
     else {
       d.append(numField('Largeur', o.w, v => o.w = Math.max(2, v)));
@@ -2042,6 +2059,7 @@ function renderInspector() {
     d.append(numField('Larg. module', o.w, v => o.w = Math.max(10, v)));
     d.append(numField('Prof. module', o.d, v => o.d = Math.max(10, v)));
     d.append(numField('Accroche', o.catch, v => o.catch = Math.max(1, v)));
+    d.append(numField('Retrait', o.recess || 0, v => o.recess = Math.max(0, v)));
     d.append(numField('Prise', o.grab, v => o.grab = Math.max(0.8, Math.min(v, 5))));
     d.append(numField('Largeur crochet', o.cw || 14, v => o.cw = Math.max(6, Math.min(v, 30))));
     d.append(numField('Crochets ↔', o.nx, v => o.nx = Math.max(0, Math.round(v))));
@@ -2113,6 +2131,8 @@ function renderInspector() {
 // Liste d'expressions -D partagée : commande copiable ET génération directe
 function cutExpr(c) {
   const off = r1(c.off * FACE_SIGN[c.face]);
+  if (c.type === 'cone')
+    return `["${c.face}","cone",${off},${c.z},${c.d},${c.fov || 72.9},0]`;
   if (c.type === 'circle' || isBtnType(c.type))
     return `["${c.face}","${c.type}",${off},${c.z},${c.d},0,0]`;
   const extra = (c.type === 'window' || c.type === 'insert') ? c.skin
@@ -2142,7 +2162,7 @@ function buildArgList(part) {
     if (state.clips.length)
       args.push(`lid_clips=[${state.clips.flatMap(k =>
         [0, 1, 2, 3].flatMap(side => clipPositions(k, side).map(pos =>
-          `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${side},${pos},${k.cw || 14}]`))).join(',')}]`);
+          `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${side},${pos},${k.cw || 14},${k.recess || 0}]`))).join(',')}]`);
     return args;
   }
   args.push('usb_cutout=false', 'standoffs=false');
@@ -2543,6 +2563,17 @@ function buildStatic() {
     state.divs.push(dv);
     state.face = 'floor';
     state.sel = { kind: 'div', id: dv.id };
+    updateAll();
+  });
+  $('camAdd').addEventListener('click', () => {
+    pushHistory();
+    const y = r1(state.inner.d / 2 - 12);
+    state.clips.push({ id: state.nextId++, cx: 0, cy: y, w: 35, d: 16,
+                       catch: 6.6, recess: 5, grab: 2, cw: 10, nx: 2, ny: 1, open: 3 });
+    state.cuts.push({ id: state.nextId++, face: 'lid', type: 'cone',
+                      label: 'Caméra', off: 0, z: y, d: 5, fov: 72.9 });
+    state.face = 'lid'; resetView();
+    state.sel = { kind: 'clip', id: state.clips[state.clips.length - 1].id };
     updateAll();
   });
   $('clipAdd').addEventListener('click', () => {
