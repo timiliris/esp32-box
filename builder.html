@@ -537,7 +537,7 @@ const EN = {
   // avertissements
   'déborde de la paroi': 'overflows the wall',
   'empiète sur le coin arrondi': 'overlaps the rounded corner',
-  'touche la zone jupe/clips': 'hits the skirt/clip zone',
+  'traverse la jupe — régénère le couvercle': 'crosses the skirt — regenerate the lid',
   'sous le fond intérieur': 'below the inner floor',
   'déborde en largeur': 'overflows in width',
   'déborde en profondeur': 'overflows in depth',
@@ -596,6 +596,8 @@ Object.assign(EN, {
   'Hexagones de 5 mm — le motif d\'aération classique, s\'imprime très bien':
     '5 mm hexagons — the classic vent pattern, prints great',
   'Découpe rectangulaire à dimensionner librement': 'Freely sized rectangular cutout',
+  'Fenêtre pour un écran 7″ 1024×600 (Waveshare ESP32-P4-7B et panneaux équivalents) : zone active standard 154.2 × 85.9 moins ~2 mm de recouvrement de cadre. Pose-la sur le couvercle, avec le groupe d\'entretoises « Waveshare ESP32-P4 7B » suspendu dessous. Vérifie sur ta dalle avant d\'imprimer.':
+    'Window for a 7″ 1024×600 display (Waveshare ESP32-P4-7B and equivalent panels): standard 154.2 × 85.9 active area minus ~2 mm of bezel overlap. Place it on the lid, with the “Waveshare ESP32-P4 7B” standoff group hanging underneath. Check against your panel before printing.',
   'Trou rond à dimensionner librement': 'Freely sized round hole',
   'Fenêtre borgne à dimensionner librement (peau réglable)':
     'Freely sized blind window (adjustable skin)',
@@ -609,6 +611,13 @@ Object.assign(EN, {
   'Buck LM2596 — 2 trous diag · 30 × 16 ≈': 'LM2596 buck — 2 diag holes · 30 × 16 ≈',
   'Micro / ampli / petit module — à mesurer': 'Mic / amp / small module — measure it',
   'Module charge power bank 65.5 × 27 — 58.5 × 19.5': 'Power bank charger module 65.5 × 27 — 58.5 × 19.5',
+  'Écrans': 'Displays',
+  'Waveshare ESP32-P4 7B (164 × 97) — 156 × 89': 'Waveshare ESP32-P4 7B (164 × 97) — 156 × 89',
+  'Écran 7″ 1024×600': '7″ 1024×600 display',
+  'Carte microSD': 'microSD card', 'Interrupteur à glissière': 'Slide switch',
+  'Accès bouton': 'Button access', '151.6 × 83.4 · couvercle': '151.6 × 83.4 · lid',
+  '152 × 84 · couvercle': '152 × 84 · lid',
+  'Monter sous le couvercle': 'Mount under the lid',
   'Ports power bank': 'Power bank ports',
   '62 × 9 · module 65.5': '62 × 9 · 65.5 module',
   'Ouverture pour la rangée de ports d\'un module de charge power bank 65.5 × 27 × 7.5 (entraxe 58.5 × 19.5). Hauteur calée pour le module posé sur des entretoises de 5 mm — ajuste si tu changes leur hauteur.':
@@ -756,6 +765,12 @@ const PALETTE = [
     tip: 'Bouton poussoir châssis 12 mm (métal, souvent étanche)' },
   { label: 'PG7',          sub: 'Ø 12.5',   type: 'circle', d: 12.5,
     tip: 'Presse-étoupe PG7 : sortie de câble propre, avec serrage anti-arrachement' },
+  { label: 'Carte microSD', sub: '15 × 2.5', type: 'rect', w: 15, h: 2.5,
+    tip: 'Fente pour un lecteur microSD / TF en bord de carte (la carte s\'insère à travers la paroi). Sur l\'ESP32-P4-7B le lecteur est sur le bord bas, centré à 126 mm depuis la gauche vu de l\'extérieur du couvercle.' },
+  { label: 'Interrupteur à glissière', sub: '9 × 5', type: 'rect', w: 9, h: 5,
+    tip: 'Fente d\'accès pour un petit interrupteur à glissière en bord de carte (ON/OFF de l\'ESP32-P4-7B).' },
+  { label: 'Accès bouton', sub: 'Ø 4', type: 'circle', d: 4,
+    tip: 'Trou d\'accès pour appuyer sur un bouton CMS en bord de carte (RESET / BOOT) avec le doigt ou une pointe.' },
   { label: 'Rocker KCD1',  sub: '19.2 × 13.2', type: 'rect', w: 19.2, h: 13.2,
     tip: 'Interrupteur à bascule KCD1 (le petit rocker rectangulaire standard)' },
   { label: 'Bouton languette', sub: 'tact 6×6 · Ø 9.5', type: 'btnflex', d: 9.5,
@@ -776,6 +791,8 @@ const PALETTE = [
     tip: 'Trous Ø 3 en quinconce, façon grille de haut-parleur' },
   { label: 'Nid d\'abeille', sub: '30 × 20 · aération', type: 'hex', w: 30, h: 20,
     tip: 'Hexagones de 5 mm — le motif d\'aération classique, s\'imprime très bien' },
+  { label: 'Écran 7″ 1024×600', sub: '151.6 × 83.4 · couvercle', type: 'rect', w: 151.6, h: 83.4, dz: 0, dx: -1.8, dy: 2.4,
+    tip: 'Fenêtre pour l\'écran Waveshare ESP32-P4-7B : zone active 154.58 × 86.42 moins 1.5 mm de recouvrement par bord. La dalle n\'est PAS centrée (bordures 3.06 gauche / 6.65 droite / 4.02 haut / 8.73 bas) — la fenêtre naît décalée de −1.8 en X et +2.4 en Y, vue de l\'extérieur du couvercle, connecteurs USB à gauche.' },
   { label: 'Rect libre',   sub: '20 × 10',  type: 'rect',   w: 20,  h: 10,
     tip: 'Découpe rectangulaire à dimensionner librement' },
   { label: 'Rond libre',   sub: 'Ø 8',      type: 'circle', d: 8,
@@ -809,6 +826,7 @@ const PCB_PRESETS = [
   { group: 'Capteurs & modules', label: 'Buck LM2596 — 2 trous diag · 30 × 16 ≈', dx: 30, dy: 16, holes: 2, d: 5, pilot: 2.2 },
   { group: 'Capteurs & modules', label: 'Module charge power bank 65.5 × 27 — 58.5 × 19.5', dx: 58.5, dy: 19.5, holes: 4, d: 5, pilot: 2.2 },
   { group: 'Capteurs & modules', label: 'Micro / ampli / petit module — à mesurer', dx: 10, dy: 0, holes: 2, d: 4.5, pilot: 1.8 },
+  { group: 'Écrans', label: 'Waveshare ESP32-P4 7B (164 × 97) — 156 × 89', dx: 156, dy: 89, holes: 4, d: 7, pilot: 2.7, onLid: true },
   { group: 'Libre', label: 'Entraxe libre…', dx: 40, dy: 20, holes: 4, d: 6.5, pilot: 2.2 },
 ];
 
@@ -937,6 +955,29 @@ function resetView() { view.zoom = 1; view.panX = 0; view.panY = 0; }
 // ou depuis le centre (fond). SVG : y vers le bas.
 function toPx(xmm, ymmFromTop, fw) { return [view.ox + (xmm + fw / 2) * view.scale, view.oy + ymmFromTop * view.scale]; }
 
+// Groupe d'entretoises PCB (fond ou couvercle, même repère X/Y)
+function pcbGroupSvg(p, fw, fh) {
+  const S = view.scale;
+  const g = [];
+  const selCls = state.sel && state.sel.kind === 'pcb' && state.sel.id === p.id;
+  const col = selCls ? 'var(--accent)' : (p.onLid ? '#7fc7ff' : '#69d2a0');
+  const [gx, gy] = toPx(p.cx - p.dx / 2, fh / 2 - p.cy - p.dy / 2, fw);
+  g.push(`<g data-kind="pcb" data-id="${p.id}" style="cursor:grab">`);
+  g.push(`<rect x="${gx - 3 * S}" y="${gy - 3 * S}" width="${(p.dx + 6) * S}" height="${(p.dy + 6) * S}" rx="6" fill="${selCls ? 'rgba(79,140,255,.10)' : (p.onLid ? 'rgba(127,199,255,.06)' : 'rgba(105,210,160,.06)')}" stroke="${col}" stroke-dasharray="5 4"/>`);
+  const pos = p.holes === 2 ? [[-1, -1], [1, 1]]
+            : [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+  for (const [sx, sy] of pos) {
+    const [hx, hy] = toPx(p.cx + sx * p.dx / 2, fh / 2 - (p.cy + sy * p.dy / 2), fw);
+    g.push(`<circle cx="${hx}" cy="${hy}" r="${p.pd / 2 * S}" fill="#10141b" stroke="${col}" stroke-width="1.5"/>`);
+    g.push(`<circle cx="${hx}" cy="${hy}" r="${p.pp / 2 * S}" fill="${col}"/>`);
+  }
+  const [tx, ty] = toPx(p.cx, fh / 2 - p.cy, fw);
+  const plabel = p.holes === 2 ? (p.dy ? `2 tr diag ${p.dx} × ${p.dy}` : `2 tr · ${p.dx}`) : `${p.dx} × ${p.dy}`;
+  g.push(`<text x="${tx}" y="${ty + 3}" fill="${col}" font-size="10.5" text-anchor="middle" font-family="var(--mono)">${plabel}</text>`);
+  g.push(`</g>`);
+  return g.join('');
+}
+
 function render() {
   const f = state.face;
   const isFloor = f === 'floor';
@@ -1003,25 +1044,8 @@ function render() {
         g.push(`<rect x="${ax}" y="${ay}" width="${3.5 * S}" height="${9 * S}" rx="${1.5 * S}" fill="none" stroke="#3a4358" stroke-dasharray="3 3"/>`);
       }
     }
-    // groupes PCB
-    for (const p of state.pcbs) {
-      const selCls = state.sel && state.sel.kind === 'pcb' && state.sel.id === p.id;
-      const col = selCls ? 'var(--accent)' : '#69d2a0';
-      const [gx, gy] = toPx(p.cx - p.dx / 2, fh / 2 - p.cy - p.dy / 2, fw);
-      g.push(`<g data-kind="pcb" data-id="${p.id}" style="cursor:grab">`);
-      g.push(`<rect x="${gx - 3 * S}" y="${gy - 3 * S}" width="${(p.dx + 6) * S}" height="${(p.dy + 6) * S}" rx="6" fill="${selCls ? 'rgba(79,140,255,.10)' : 'rgba(105,210,160,.06)'}" stroke="${col}" stroke-dasharray="5 4"/>`);
-      const pos = p.holes === 2 ? [[-1, -1], [1, 1]]
-                : [[-1, -1], [-1, 1], [1, -1], [1, 1]];
-      for (const [sx, sy] of pos) {
-        const [hx, hy] = toPx(p.cx + sx * p.dx / 2, fh / 2 - (p.cy + sy * p.dy / 2), fw);
-        g.push(`<circle cx="${hx}" cy="${hy}" r="${p.pd / 2 * S}" fill="#10141b" stroke="${col}" stroke-width="1.5"/>`);
-        g.push(`<circle cx="${hx}" cy="${hy}" r="${p.pp / 2 * S}" fill="${col}"/>`);
-      }
-      const [tx, ty] = toPx(p.cx, fh / 2 - p.cy, fw);
-      const plabel = p.holes === 2 ? (p.dy ? `2 tr diag ${p.dx} × ${p.dy}` : `2 tr · ${p.dx}`) : `${p.dx} × ${p.dy}`;
-      g.push(`<text x="${tx}" y="${ty + 3}" fill="${col}" font-size="10.5" text-anchor="middle" font-family="var(--mono)">${plabel}</text>`);
-      g.push(`</g>`);
-    }
+    // groupes PCB montés sur le fond
+    for (const p of state.pcbs) if (!p.onLid) g.push(pcbGroupSvg(p, fw, fh));
     // socles de cellule
     for (const c of state.cells) {
       const isSel = state.sel && state.sel.kind === 'cell' && state.sel.id === c.id;
@@ -1123,6 +1147,8 @@ function render() {
     }
   }
   if (f === 'lid') {
+    // groupes PCB suspendus sous le couvercle (écran…)
+    for (const p of state.pcbs) if (p.onLid) g.push(pcbGroupSvg(p, fw, fh));
     // aérations de compartiment découpées dans le couvercle
     for (const cp of state.comps) if (cp.ventLid) {
       const isSel = state.sel && state.sel.kind === 'comp' && state.sel.id === cp.id;
@@ -1290,7 +1316,7 @@ function cutWarnings(c) {
   if (c.type === 'usbc') {
     const fw2 = faceW(f);
     if (Math.abs(c.off) + 8 > fw2 / 2 - CORNER_R + 2) out.push(`${who} : ${t('trop près du coin (support)')}`);
-    if (c.z + 5 > state.inner.h - LID_BAND) out.push(`${who} : ${t('touche la zone jupe/clips')}`);
+    if (c.z + 5 > state.inner.h - LID_BAND) out.push(`${who} : ${t('traverse la jupe — régénère le couvercle')}`);
     if (c.z - 5 < 0) out.push(`${who} : ${t('trop bas (support sous le fond)')}`);
     return out;
   }
@@ -1298,7 +1324,7 @@ function cutWarnings(c) {
     const bw = c.type === 'btnflex' ? 13.5 : 9;
     const fw2 = faceW(f);
     if (Math.abs(c.off) + bw > fw2 / 2 - CORNER_R + 2) out.push(`${who} : ${t('trop près du coin (berceau)')}`);
-    if (c.z + 9 > state.inner.h - LID_BAND) out.push(`${who} : ${t('touche la zone jupe/clips')}`);
+    if (c.z + 9 > state.inner.h - LID_BAND) out.push(`${who} : ${t('traverse la jupe — régénère le couvercle')}`);
     if (c.z - 9 < 0) out.push(`${who} : ${t('trop bas (berceau sous le fond)')}`);
     return out;
   }
@@ -1314,7 +1340,7 @@ function cutWarnings(c) {
   const fw = faceW(f);
   if (Math.abs(c.off) + hw > fw / 2 - 1) out.push(`${who} : ${t('déborde de la paroi')}`);
   else if (Math.abs(c.off) + hw > fw / 2 - CORNER_R) out.push(`${who} : ${t('empiète sur le coin arrondi')}`);
-  if (c.z + hh > state.inner.h - LID_BAND) out.push(`${who} : ${t('touche la zone jupe/clips')}`);
+  if (c.z + hh > state.inner.h - LID_BAND) out.push(`${who} : ${t('traverse la jupe — régénère le couvercle')}`);
   if (c.z - hh < 0) out.push(`${who} : ${t('sous le fond intérieur')}`);
   return out;
 }
@@ -1337,7 +1363,7 @@ function renderWarns() {
   for (const c of state.cuts)
     for (const m of cutWarnings(c)) all.push({ m, kind: 'cut', id: c.id, face: c.face });
   for (const p of state.pcbs)
-    for (const m of pcbWarnings(p)) all.push({ m, kind: 'pcb', id: p.id, face: 'floor' });
+    for (const m of pcbWarnings(p)) all.push({ m, kind: 'pcb', id: p.id, face: p.onLid ? 'lid' : 'floor' });
   for (const c of state.cells)
     for (const m of cellWarnings(c)) all.push({ m, kind: 'cell', id: c.id, face: 'floor' });
   for (const cp of state.comps)
@@ -1696,7 +1722,7 @@ function renderObjects() {
     warn: cutWarnings(c).length > 0,
   });
   for (const p of state.pcbs) rows.push({
-    kind: 'pcb', id: p.id, face: 'floor',
+    kind: 'pcb', id: p.id, face: p.onLid ? 'lid' : 'floor',
     label: p.holes === 2 ? 'Entretoises 2 tr' : 'Entretoises',
     info: `${p.dx}×${p.dy}`, warn: pcbWarnings(p).length > 0,
   });
@@ -1799,6 +1825,11 @@ function renderInspector() {
     d.append(numField('Entraxe X', o.dx, v => o.dx = Math.max(5, v)));
     d.append(numField('Entraxe Y', o.dy, v => o.dy = Math.max(5, v)));
     d.append(numField('Hauteur', o.sh, v => o.sh = Math.max(2, v)));
+    d.append(checkRow('Monter sous le couvercle', !!o.onLid, v => {
+      o.onLid = v;
+      state.face = v ? 'lid' : 'floor';
+      resetView();
+    }));
     const acts = document.createElement('div'); acts.className = 'actions';
     acts.append(
       actionBtn('Centrer', () => { o.cx = 0; o.cy = 0; }),
@@ -1903,12 +1934,14 @@ function buildArgList(part) {
     return args;
   }
   if (part === 'lid') {
-    const lidCuts = state.cuts.filter(c => c.face === 'lid').map(cutExpr);
+    const lidCuts = state.cuts.filter(c => c.face !== 'floor').map(cutExpr);
     if (lidCuts.length) args.push(`cuts=[${lidCuts.join(',')}]`);
     const lidComps = compsExpr();
     if (lidComps) args.push(lidComps);
     const lidDivs = divsExpr();
     if (lidDivs) args.push(lidDivs);
+    const lidSets = lidSetsExpr();
+    if (lidSets) args.push(lidSets);
     return args;
   }
   args.push('usb_cutout=false', 'standoffs=false');
@@ -1918,7 +1951,7 @@ function buildArgList(part) {
   if (state.mountTabs !== 'none')
     args.push(`mount_tabs="${state.mountTabs}"`, `mount_n=${state.mountN}`);
   const cuts = state.cuts.filter(c => c.face !== 'lid').map(cutExpr);
-  const sets = state.pcbs.map(p => `[${p.cx},${p.cy},${p.dx},${p.dy},${p.sh},${p.pd},${p.pp},${p.holes === 2 ? 1 : 0}]`);
+  const sets = state.pcbs.filter(p => !p.onLid).map(setExpr);
   const cells = state.cells.map(c => `[${c.cx},${c.cy},${c.rot},${c.len},${c.dia}]`);
   if (cuts.length) args.push(`cuts=[${cuts.join(',')}]`);
   if (sets.length) args.push(`standoff_sets=[${sets.join(',')}]`);
@@ -1928,6 +1961,13 @@ function buildArgList(part) {
   const comps = compsExpr();
   if (comps) args.push(comps);
   return args;
+}
+function setExpr(p) {
+  return `[${p.cx},${p.cy},${p.dx},${p.dy},${p.sh},${p.pd},${p.pp},${p.holes === 2 ? 1 : 0},${p.onLid ? 1 : 0}]`;
+}
+function lidSetsExpr() {
+  const l = state.pcbs.filter(p => p.onLid);
+  return l.length ? `standoff_sets=[${l.map(setExpr).join(',')}]` : null;
 }
 function divsExpr() {
   if (!state.divs.length) return null;
@@ -2154,9 +2194,9 @@ function buildStatic() {
     tabs.append(b);
   }
   const PAL_CATS = [
-    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Ports power bank', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
+    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Ports power bank', 'Carte microSD', 'Interrupteur à glissière', 'Accès bouton', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
     ['Boutons tact 6×6', ['Bouton languette', 'Bouton poussoir']],
-    ['Fenêtres & inserts', ['Fenêtre LED', 'Fenêtre radar', 'Insert libre', 'Fenêtre libre']],
+    ['Fenêtres & inserts', ['Écran 7″ 1024×600', 'Fenêtre LED', 'Fenêtre radar', 'Insert libre', 'Fenêtre libre']],
     ['Aérations', ['Fentes vert.', 'Fentes horiz.', 'Grille ronde', 'Nid d\'abeille']],
     ['Formes libres', ['Rect libre', 'Rond libre']],
   ];
@@ -2176,8 +2216,8 @@ function buildStatic() {
       pushHistory();
       const c = {
         id: state.nextId++, face: state.face, type: p.type, label: p.label,
-        off: 0,
-        z: isFlat(state.face) ? 0
+        off: p.dx !== undefined ? p.dx : 0,
+        z: isFlat(state.face) ? (p.dy !== undefined ? p.dy : 0)
           : (p.dz !== undefined ? p.dz : Math.min(12, state.inner.h / 2)),
       };
       if (p.type === 'circle' || isBtnType(p.type)) c.d = p.d;
@@ -2218,9 +2258,11 @@ function buildStatic() {
       id: state.nextId++, cx: 0, cy: 0, sh: 5,
       dx: parseFloat($('pcbDX').value) || 40, dy: parseFloat($('pcbDY').value) || 0,
       holes: +$('pcbHoles').value, pd: pr.d, pp: pr.pilot,
+      onLid: !!pr.onLid,
     };
     state.pcbs.push(p);
-    state.face = 'floor';
+    state.face = p.onLid ? 'lid' : 'floor';
+    resetView();
     state.sel = { kind: 'pcb', id: p.id };
     updateAll();
   });

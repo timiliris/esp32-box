@@ -100,9 +100,11 @@ mount_tabs = "none"; // [none, x, y]  x = flancs, y = avant/arrière
 mount_n = 2;         // [2, 4]
 mount_hole = 4.2;    // Ø du trou de vis
 // Groupes d'entretoises PCB :
-// [cx, cy, entraxe_x, entraxe_y, h, dia, avant-trou, deux_trous]
+// [cx, cy, entraxe_x, entraxe_y, h, dia, avant-trou, deux_trous, couvercle]
 // deux_trous : 0 = 4 plots en rectangle, 1 = 2 plots seulement, aux
 // positions (±x/2, ±y/2) liées — paire alignée ou diagonale
+// couvercle : 1 = plots suspendus sous le couvercle (écran, carte
+// vissée contre la face intérieure du couvercle) au lieu du fond
 standoff_sets = [];
 // Socles de cellule cylindrique (18650…) : [cx, cy, rot, longueur, dia]
 // rot : 0 = axe le long de X, 90 = le long de Y
@@ -610,8 +612,22 @@ module cuts_all() {
     }
 }
 
-// Découpes du couvercle (appelé dans lid_assembled)
+// Découpes du couvercle (appelé dans lid_assembled).
+// Les découpes de PAROI sont soustraites au couvercle aussi : quand
+// un connecteur est haut (carte vissée sous le couvercle), il traverse
+// la jupe — celle-ci est entaillée au même endroit. Sans effet si la
+// découpe est trop basse pour atteindre la jupe.
 module lid_cuts() {
+    for (c = cuts)
+        if (c[0] == "front" || c[0] == "back" || c[0] == "left" || c[0] == "right") {
+            horiz = c[0] == "front" || c[0] == "back";
+            a = c[1] == "circle" || is_btn(c[1]) ? c[4] : (horiz ? c[4] : c[5]);
+            b = c[1] == "circle" || is_btn(c[1]) ? c[4] : (horiz ? c[5] : c[4]);
+            on_wall(c[0], c[2], c[3])
+                linear_extrude(height = wall + 6, center = true)
+                    rrect(a + hole_comp, b + hole_comp,
+                          min(2, min(a, b) / 3));
+        }
     for (c = cuts) if (c[0] == "lid") {
         if (c[1] == "circle")
             translate([c[2], c[3], seam - 1])
@@ -735,22 +751,35 @@ module standoff_post(h, d, p) {
     }
 }
 
+// Positions d'un groupe : 4 en rectangle, ou 2 à signes liés
+function standoff_pos(s) =
+    len(s) > 7 && s[7] == 1
+        ? [for (sx = [-1, 1]) [s[0] + sx * s[2] / 2, s[1] + sx * s[3] / 2]]
+        : [for (sx = [-1, 1], sy = [-1, 1])
+              [s[0] + sx * s[2] / 2, s[1] + sy * s[3] / 2]];
+
+// Entretoises du fond (9e champ absent ou 0)
 module standoff_sets_all() {
-    for (s = standoff_sets) {
-        h = len(s) > 4 ? s[4] : 5;
-        d = len(s) > 5 ? s[5] : 6.5;
-        p = len(s) > 6 ? s[6] : 2.2;
-        two = len(s) > 7 && s[7] == 1;
-        if (two) {
-            for (sx = [-1, 1])
-                translate([s[0] + sx * s[2] / 2, s[1] + sx * s[3] / 2, floor_t])
-                    standoff_post(h, d, p);
-        } else {
-            for (sx = [-1, 1], sy = [-1, 1])
-                translate([s[0] + sx * s[2] / 2, s[1] + sy * s[3] / 2, floor_t])
-                    standoff_post(h, d, p);
-        }
-    }
+    for (s = standoff_sets)
+        if (!(len(s) > 8 && s[8] == 1))
+            for (q = standoff_pos(s))
+                translate([q[0], q[1], floor_t])
+                    standoff_post(len(s) > 4 ? s[4] : 5,
+                                  len(s) > 5 ? s[5] : 6.5,
+                                  len(s) > 6 ? s[6] : 2.2);
+}
+
+// Entretoises suspendues sous le couvercle (9e champ = 1) : pour
+// visser un écran ou une carte contre la face intérieure du couvercle
+module standoff_sets_lid() {
+    for (s = standoff_sets)
+        if (len(s) > 8 && s[8] == 1)
+            for (q = standoff_pos(s))
+                translate([q[0], q[1], seam])
+                    rotate([180, 0, 0])
+                        standoff_post(len(s) > 4 ? s[4] : 5,
+                                      len(s) > 5 ? s[5] : 6.5,
+                                      len(s) > 6 ? s[6] : 2.2);
 }
 
 // Ouverture USB-C (entrée du module de charge)
@@ -1064,6 +1093,7 @@ module lid_assembled() {
                             rotate([0, 0, 90])
                                 xcapsule(snap_len, snap_r);
             }
+            standoff_sets_lid();
         }
         if (lid_fix == "screws")
             for (sx = [-1, 1], sy = [-1, 1])

@@ -35,6 +35,50 @@ two wires, slide the switch in — alignment is guaranteed.
 Keep them away from corners (the cradle needs ~13 mm of wall on each
 side for the flex version) — the builder warns if too close.
 
+## Displays
+
+**7″ 1024×600 display window** (lid) — sized for the Waveshare
+ESP32-P4-WIFI6-Touch-LCD-7B and equivalent panels. Measured from the
+official drawings:
+
+| | mm |
+|---|---|
+| PCB outline | 164.00 × 97.00 |
+| Mounting holes (spacing) | **156.00 × 89.00**, centered on the PCB |
+| Cover glass | 164.28 × 99.17 |
+| **Active area** | **154.58 × 86.42** |
+| Bezels | left 3.06 · right 6.65 · top 4.02 · bottom 8.73 |
+
+The panel is **not centered**: its active area sits 1.79 mm left of
+and 2.36 mm above the board center. The palette window is placed with
+that offset already applied (viewed from outside the lid, USB side on
+the left) and is 1.5 mm smaller per edge so the bezel overlaps the
+panel border. Pair it with the **Waveshare ESP32-P4 7B** standoff
+preset, which mounts **under the lid**.
+
+Board edge features, measured from the drawing (distance from the
+top edge, back view — mirror the X when seen from the front):
+
+| Feature | Edge | Position |
+|---|---|---|
+| ON/OFF slide switch | right | 12.1 from top |
+| USB-A (OTG) | right | center 49.4 from top |
+| USB-C (USB) | right | center 68.2 from top |
+| USB-C (to UART) | right | center 83.4 from top |
+| RESET / BOOT buttons | left | centers 11.0 and 15.5 from top |
+| microSD (TF) slot | bottom | center 38.0 from the left edge |
+
+Minimum box for this display: about **176 × 109** inner, so the
+window clears the rounded corners.
+
+## Side openings and the lid skirt
+
+Wall cutouts near the top of the box (typical when a board hangs
+under the lid) now also **notch the lid skirt**, so connectors,
+card slots and buttons pass through. The builder flags them with
+“crosses the skirt — regenerate the lid”: it is not an error, just a
+reminder that the **lid must be regenerated** along with the base.
+
 ## Windows & inserts (any face)
 
 - **LED window** (74 × 12), **Radar window** (35 × 14 — the length
@@ -59,7 +103,9 @@ Case panel.
 ## Floor tools
 
 - **PCB standoffs** — groups of 4 (rectangle) or 2 (pair /
-  diagonal) posts with self-tapping pilot holes. Presets: dev
+  diagonal) posts with self-tapping pilot holes. “Mount under the
+  lid” hangs the posts from the lid's inner face instead of the
+  floor — that is how a display is fixed behind its window. Presets: dev
   boards, proto-board kits 2×8 → 9×15 cm (spacing = dimension − 4),
   common modules (GY-BME280 2-hole·10 verified, SSD1306 0.96″,
   GY-521, LM2596…, power bank charger module 65.5 × 27 →
