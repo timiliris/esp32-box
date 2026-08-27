@@ -252,6 +252,13 @@
       </div>
       <div class="panel" id="panel-box">
         <div class="group">
+          <h2>Modèles</h2>
+          <div class="insp">
+            <button class="btn primary" id="tplP4_7B" style="text-align:left">Waveshare ESP32-P4 7B — écran 7″</button>
+            <div class="empty" style="margin-top:6px">Projet complet : boîte 176 × 109 × 40, écran suspendu sous le couvercle avec sa fenêtre décalée, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.</div>
+          </div>
+        </div>
+        <div class="group">
           <h2>Dimensions intérieures</h2>
           <div class="insp">
             <div class="rowline"><label>Largeur</label><input type="number" id="dimW" min="30" max="300" step="1"><span class="unit">mm</span></div>
@@ -615,6 +622,11 @@ Object.assign(EN, {
   'Waveshare ESP32-P4 7B (164 × 97) — 156 × 89': 'Waveshare ESP32-P4 7B (164 × 97) — 156 × 89',
   'Écran 7″ 1024×600': '7″ 1024×600 display',
   'Carte microSD': 'microSD card', 'Interrupteur à glissière': 'Slide switch',
+  'Modèles': 'Templates', 'Waveshare ESP32-P4 7B — écran 7″': 'Waveshare ESP32-P4 7B — 7″ display',
+  'Hauteur liée au couvercle': 'Height tied to the lid',
+  'Remplacer le projet actuel ?': 'Replace the current project?',
+  'Projet complet : boîte 176 × 109 × 40, écran suspendu sous le couvercle avec sa fenêtre décalée, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.':
+    'Complete project: 176 × 109 × 40 box, display hanging under the lid with its offset window, and the 7 edge openings (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) at the right height.',
   'Accès bouton': 'Button access', '151.6 × 83.4 · couvercle': '151.6 × 83.4 · lid',
   '152 × 84 · couvercle': '152 × 84 · lid',
   'Monter sous le couvercle': 'Mount under the lid',
@@ -1776,6 +1788,8 @@ function renderInspector() {
       if (o.type === 'insert') d.append(numField('Peau', o.skin, v => o.skin = Math.max(0, Math.min(v, 2))));
       if (o.type === 'usbc') d.append(numField('Longueur prise', o.clen || 12.6, v => o.clen = Math.max(6, Math.min(v, 20))));
     }
+    if (!flat)
+      d.append(checkRow('Hauteur liée au couvercle', !!o.fromTop, v => o.fromTop = v));
     if (o.type === 'insert') {
       const hint = document.createElement('div');
       hint.className = 'empty';
@@ -2010,6 +2024,36 @@ function buildCommands() {
     inserts: cmd('inserts', 'ma-boite-inserts.stl'),
   };
 }
+// Modèle « Waveshare ESP32-P4-WIFI6-Touch-LCD-7B »
+// Carte 164 × 97, entraxe 156 × 89, dalle active 154.58 × 86.42
+// décalée (bordures 3.06 / 6.65 / 4.02 / 8.73). Vue de l'extérieur du
+// couvercle : USB à gauche, boutons à droite, microSD en façade.
+function applyTemplateP4_7B() {
+  const H = 40, SH = 5;              // hauteur intérieure, entretoise
+  const pcb = H - SH - 1.6;          // dessous de la carte
+  state.inner = { w: 176, d: 109, h: H };
+  state.cuts = []; state.pcbs = []; state.cells = []; state.divs = []; state.comps = [];
+  state.pcbs.push({ id: state.nextId++, cx: 0, cy: 0, sh: SH, dx: 156, dy: 89,
+                    holes: 4, pd: 7, pp: 2.7, onLid: true });
+  const cut = (o) => { state.cuts.push(Object.assign({ id: state.nextId++, fromTop: true }, o)); };
+  cut({ face: 'lid', type: 'rect', label: 'Écran 7″ 1024×600',
+        off: -1.8, z: 2.4, w: 151.6, h: 83.4, fromTop: false });
+  // bord USB (flanc gauche vu de l'extérieur du couvercle)
+  cut({ face: 'left', type: 'rect', label: 'USB-A', off: 0.9,  z: r1(pcb - 3.3), w: 14.5, h: 8 });
+  cut({ face: 'left', type: 'rect', label: 'USB-C', off: 19.7, z: r1(pcb - 1.7), w: 10, h: 4.6 });
+  cut({ face: 'left', type: 'rect', label: 'USB-C UART', off: 34.9, z: r1(pcb - 1.7), w: 10, h: 4.6 });
+  cut({ face: 'left', type: 'rect', label: 'Interrupteur à glissière', off: -36.4, z: r1(pcb - 2), w: 9, h: 5 });
+  // bord boutons (flanc droit)
+  cut({ face: 'right', type: 'circle', label: 'RESET', off: 37.5, z: r1(pcb - 1.5), d: 4 });
+  cut({ face: 'right', type: 'circle', label: 'BOOT',  off: 33,   z: r1(pcb - 1.5), d: 4 });
+  // microSD en façade
+  cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: 44, z: r1(pcb - 1.1), w: 15, h: 3 });
+  state.face = 'lid';
+  state.panel = 'box';
+  state.sel = null;
+  resetView();
+}
+
 function hasInserts() { return state.cuts.some(c => c.type === 'insert' || c.type === 'btnpiston'); }
 
 // ---------------------------------------------------------------
@@ -2316,7 +2360,13 @@ function buildStatic() {
   }
   const dimIn = (id, key) => $(id).addEventListener('input', () => {
     pushHistory('dims');
-    state.inner[key] = +$(id).value || state.inner[key];
+    const prev = state.inner[key];
+    state.inner[key] = +$(id).value || prev;
+    // les découpes ancrées au couvercle suivent la hauteur de boîte
+    if (key === 'h') {
+      const dz = state.inner.h - prev;
+      for (const c of state.cuts) if (c.fromTop) c.z = r1(c.z + dz);
+    }
     updateAll(false);
   });
   dimIn('dimW', 'w'); dimIn('dimD', 'd'); dimIn('dimH', 'h');
@@ -2330,6 +2380,14 @@ function buildStatic() {
   $('optTear').addEventListener('change', () => { pushHistory(); state.teardrop = $('optTear').checked; updateAll(); });
   $('resetBtn').addEventListener('click', () => {
     if (confirm(t('Tout effacer ?'))) { pushHistory(); state = DEFAULT_STATE(); updateAll(); }
+  });
+  $('tplP4_7B').addEventListener('click', () => {
+    const busy = state.cuts.length || state.pcbs.length || state.cells.length ||
+                 state.divs.length || state.comps.length;
+    if (busy && !confirm(t('Remplacer le projet actuel ?'))) return;
+    pushHistory();
+    applyTemplateP4_7B();
+    updateAll();
   });
   $('undoBtn').addEventListener('click', undo);
   $('redoBtn').addEventListener('click', redo);

@@ -69,7 +69,18 @@ top edge, back view — mirror the X when seen from the front):
 | microSD (TF) slot | bottom | center 38.0 from the left edge |
 
 Minimum box for this display: about **176 × 109** inner, so the
-window clears the rounded corners.
+window clears the rounded corners. The module itself is 10–15 mm
+thick but its bottom-facing plugs need room: allow **40 mm** of
+inner height.
+
+**One-click template** — the *Case* panel has a **Templates**
+section: “Waveshare ESP32-P4 7B — 7″ display” builds the whole
+project (176 × 109 × 40 box, offset screen window, standoffs under
+the lid, and all seven edge openings at the right height). Wall
+openings created this way are **tied to the lid**: change the box
+height and they follow the board instead of staying at a fixed
+height above the floor. Any wall cutout can be tied that way with
+the “Height tied to the lid” checkbox.
 
 ## Side openings and the lid skirt
 
