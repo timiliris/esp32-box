@@ -2064,8 +2064,13 @@ function renderInspector() {
     d.append(numField('Centre Y', o.cy, v => o.cy = v));
     d.append(numField('Larg. module', o.w, v => o.w = Math.max(10, v)));
     d.append(numField('Prof. module', o.d, v => o.d = Math.max(10, v)));
-    d.append(numField('Accroche', o.catch, v => o.catch = Math.max(1, v)));
-    d.append(numField('Retrait', o.recess || 0, v => o.recess = Math.max(0, v)));
+    d.append(numField('Accroche', o.catch, v => o.catch = Math.max((o.recess || 0) + 0.8, v)));
+    d.append(numField('Retrait', o.recess || 0, v => {
+      // la rainure garde la même largeur : l'accroche suit le retrait
+      const ep = o.catch - (o.recess || 0);
+      o.recess = Math.max(0, v);
+      o.catch = r1(o.recess + ep);
+    }));
     d.append(numField('Prise', o.grab, v => o.grab = Math.max(0.8, Math.min(v, 5))));
     d.append(numField('Largeur crochet', o.cw || 14, v => o.cw = Math.max(6, Math.min(v, 30))));
     d.append(numField('Crochets ↔', o.nx, v => o.nx = Math.max(0, Math.round(v))));
