@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ESP32 Box Builder</title>
 <style>
+      .tplstale { margin-top:8px; padding:8px 10px; border-radius:7px;
+        background:rgba(240,179,80,.10); border:1px solid rgba(240,179,80,.45);
+        font-size:12px; line-height:1.45; color:#e9d3a8 }
+      .tplstale .btn { margin-top:7px; width:100% }
   :root {
     --bg: #0f1115; --panel: #161a21; --panel2: #1c212b; --line: #262c38;
     --text: #e6e9ef; --muted: #8b93a7; --accent: #4f8cff; --accent2: #7db0ff;
@@ -259,6 +263,10 @@
           <h2>Modèles</h2>
           <div class="insp">
             <button class="btn primary" id="tplP4_7B" style="text-align:left">Waveshare ESP32-P4 7B — écran 7″</button>
+            <div id="tplStale" class="tplstale" style="display:none">
+              <span id="tplStaleTxt">Ce projet vient d’une version plus ancienne du modèle.</span>
+              <button class="btn" id="tplUpdate">Régénérer</button>
+            </div>
             <div class="empty" style="margin-top:6px">Projet complet : boîte 176 × 117 × 45, écran clipsé sous le couvercle avec sa fenêtre décalée, la caméra qui regarde au-dessus de l’écran, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.</div>
           </div>
         </div>
@@ -486,7 +494,9 @@ const EN = {
   'Fixation': 'Lid fixing', 'couvercle clipsé': 'snap-fit lid',
   'couvercle vissé': 'screwed lid',
   'Jeu perçage': 'Hole clearance', 'Goutte d\'eau': 'Teardrop holes',
-  'Épaisseur couvercle': 'Lid thickness',
+  'Épaisseur couvercle': 'Lid thickness', 'Régénérer': 'Rebuild',
+  'Ce projet vient d’une version plus ancienne du modèle : les cotes de la caméra et l’épaisseur du couvercle ont changé depuis. Régénère-le pour en profiter — tes réglages du panneau Boîtier seront réécrits.':
+    'This project comes from an older version of the template: the camera dimensions and the lid thickness have changed since. Rebuild it to pick them up — your Case panel settings will be overwritten.',
   'Retrait objectif': 'Lens setback', 'Ouverture extérieure : Ø ': 'Outer opening: Ø ',
   'Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d\'un écran ; en dessous de 2 mm il gondole.':
     'Thickness of the lid\'s top plate. Thinner = slimmer border around a screen; below 2 mm it warps.',
@@ -929,6 +939,11 @@ try {
     if (Math.abs(cp.cy - (-(ay) + 0.8)) < 0.15) cp.cy = -ay;
     if (Math.abs(cp.cy - (ay - 0.8)) < 0.15) cp.cy = ay;
   }
+  // migration : un projet 7B enregistré avant le versionnage du modèle
+  // est repéré à sa dalle (164.28 × 99.17) et daté v0, pour que
+  // l'interface propose de le régénérer
+  if (!state.tpl && state.clips.some(k => Math.abs(k.w - 164.28) < 0.5))
+    state.tpl = { id: 'p4_7b', v: 0 };
   if (!state.mountTabs) state.mountTabs = 'none';
   if (!state.mountN) state.mountN = 2;
   if (!state.panel) state.panel = 'cut';
@@ -2296,6 +2311,11 @@ function buildCommands() {
 // Carte 164 × 97, entraxe 156 × 89, dalle active 154.58 × 86.42
 // décalée (bordures 3.06 / 6.65 / 4.02 / 8.73). Vue de l'extérieur du
 // couvercle : USB à gauche, boutons à droite, microSD en façade.
+// Version du modèle 7B. À incrémenter dès que la géométrie change :
+// un projet enregistré garde ses valeurs, il ne se met pas à jour tout
+// seul, et l'interface propose alors de le régénérer.
+const TPL_7B_V = 4;
+
 function applyTemplateP4_7B() {
   // Cotes mesurées, depuis le verre plaqué sous le couvercle :
   //   STACK 8.6 = épaisseur de l'écran -> niveau des connecteurs
@@ -2367,6 +2387,7 @@ function applyTemplateP4_7B() {
   state.cuts.push({ id: state.nextId++, face: 'lid', type: 'cone',
                     label: 'Caméra', off: 0, z: camY, d: LENS_D, fov: FOV });
 
+  state.tpl = { id: 'p4_7b', v: TPL_7B_V };
   state.face = 'lid';
   state.panel = 'box';
   state.sel = null;
@@ -2732,6 +2753,9 @@ function buildStatic() {
     applyTemplateP4_7B();
     updateAll();
   });
+  $('tplUpdate').addEventListener('click', () => {
+    pushHistory(); applyTemplateP4_7B(); updateAll();
+  });
   $('undoBtn').addEventListener('click', undo);
   $('redoBtn').addEventListener('click', redo);
   // langue
@@ -2860,6 +2884,10 @@ function updateAll(withInspector = true) {
   if (document.activeElement !== $('optComp')) $('optComp').value = state.holeComp;
   $('optTear').checked = state.teardrop;
   if (document.activeElement !== $('optLidT')) $('optLidT').value = state.lidT;
+  const stale = state.tpl && state.tpl.id === 'p4_7b' && state.tpl.v < TPL_7B_V;
+  $('tplStale').style.display = stale ? '' : 'none';
+  if (stale) $('tplStaleTxt').textContent =
+    t('Ce projet vient d’une version plus ancienne du modèle : les cotes de la caméra et l’épaisseur du couvercle ont changé depuis. Régénère-le pour en profiter — tes réglages du panneau Boîtier seront réécrits.');
   render();
   render3d();
   if (withInspector) renderInspector();

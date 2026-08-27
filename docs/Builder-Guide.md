@@ -62,3 +62,12 @@ button removes the lid and shows the interior layout (standoffs,
 cell holders, walls, compartments) from above. Every cutout, vent
 and window is drawn on the box at its real position — including the
 lid and bottom faces.
+
+## The template is a starting point, not a link
+
+Clicking a template writes a project into your browser; from then on
+the project is **yours**, and it does not follow later changes to the
+template. If the template's geometry has moved on since — new
+measurements, a different box size — the *Case* panel shows an amber
+**Rebuild** banner. Rebuilding replaces the whole project with the
+current template, so anything you added by hand goes with it.
