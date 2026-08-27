@@ -744,16 +744,23 @@ module lid_clips_all() {
         if (side == 0)
             translate([c[0] + pos, c[1] - D / 2 - clear, 0])
                 rotate([0, 0, -90]) lid_clip_one(L, catch, grab, rec);
-        // Module tenu en retrait : plafond plein au-dessus de lui, que
-        // la découpe (l'objectif) perce ensuite. Sans ce plafond il ne
-        // porterait que sur les trois épaulements des crochets — sur un
-        // petit module ça ne fait plus qu'un demi-millimètre d'appui,
-        // alors que les coins du plafond en donnent plusieurs.
-        if (rec > 0)
-            translate([c[0], c[1], seam - rec])
+        // Module tenu en retrait : bloc d'appui plein entre le couvercle
+        // et lui, que la découpe (l'objectif) perce ensuite. Sans ce
+        // bloc le module ne porterait que sur les épaulements des
+        // crochets, et le cône de champ les mange en approchant du
+        // couvercle. Le bloc ne déborde du module que du côté de ce
+        // crochet : du côté ouvert il reste au ras, parce que c'est là
+        // qu'on glisse le module et que le voisin est juste à côté.
+        if (rec > 0) {
+            ext = 2.5;
+            ox = side == 3 ? ext / 2 : side == 2 ? -ext / 2 : 0;
+            oy = side == 1 ? ext / 2 : side == 0 ? -ext / 2 : 0;
+            translate([c[0] + ox, c[1] + oy, seam - rec])
                 linear_extrude(height = rec + 0.6)
-                    square([W + 2 * (clear + 2), D + 2 * (clear + 2)],
+                    square([W + 2 * clear + (side >= 2 ? ext : 0),
+                            D + 2 * clear + (side <= 1 ? ext : 0)],
                            center = true);
+        }
     }
 }
 

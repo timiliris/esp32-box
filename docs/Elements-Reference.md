@@ -142,24 +142,29 @@ the real part:
 |---|---|
 | Square body | **8.4 × 8.4** |
 | Lens barrel | **Ø 7.2**, near-centred |
-| Height | **6.6** — flex connector included, measured against a printed lid |
+| Height | **3.6** — from the back, level with the PCB, to the lens |
 | Lens centre to the glass edge | **5** |
 
-**The lens must sit against the lid.** This is not a style choice.
-Drop it even 3.6 mm — flush with the *front* of the board instead of
-its back — and the display's own cover glass, 5 mm away and now
-higher than the lens, cuts everything past **19°** off the picture.
-So the module's top presses on the lid's inner face, and the groove is
-cut to the module's own 6.6 mm — no more. A groove even 2 mm too deep
-lets the module float, and since its front edge carries no clip, it
-tips: the picture comes out at an angle.
+**The camera cannot come up to the lid.** It is fixed against the
+board, so the *whole* screen stack sits in front of it: its back is
+level with the back of the PCB and its lens ends up **5 mm below the
+lid's inner face**. Nothing can raise it — the board carries it.
 
-**The angle in the plastic.** The lens sits a little way inside its
-barrel, so the hole is a **cone**: Ø 7.2 at the lid's inner face,
-opening at the field-of-view angle through the lid's thickness. On a
-1 mm lid at 72.9° it reaches **Ø 9** outside — a clean webcam hole in
-the bezel, with nothing left to vignette the corners. A thicker lid
-widens that opening: it is the lid's thickness the cone has to cross.
+**So it gets a support block.** A solid boss drops from the lid down
+to the lens plane; the module is pressed up against its end face, and
+the **cone** is bored straight through boss and lid at the field-of-view
+angle. The boss overhangs the module by 2.5 mm on each clipped side,
+but stays flush on the open side — the display glass is 0.5 mm away
+there. Without the boss the module would bear only on the three clip
+shoulders, and the widening cone eats those as it nears the lid.
+
+**60° clears the glass.** The display's cover glass is 5 mm away and,
+once the lens is set back, higher than it — so it does limit the
+field, but far less than the barrel diameter suggests. What matters
+is the entrance pupil, roughly 1.5 mm in radius on these modules: the
+extreme ray reaches 4.4 mm from the axis at the glass plane, and the
+glass starts at 5. At 72.9° it would just begin to clip. On a 1 mm
+lid the cone opens to **Ø 14.4** outside.
 
 **Clips on three sides, front open.** The front edge (facing the
 screen) has no clip: it is the insertion side, and it is also where

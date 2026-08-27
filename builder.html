@@ -2338,7 +2338,7 @@ function buildCommands() {
 // Version du modèle 7B. À incrémenter dès que la géométrie change :
 // un projet enregistré garde ses valeurs, il ne se met pas à jour tout
 // seul, et l'interface propose alors de le régénérer.
-const TPL_7B_V = 7;
+const TPL_7B_V = 8;
 
 function applyTemplateP4_7B() {
   // Cotes mesurées, depuis le verre plaqué sous le couvercle :
@@ -2346,27 +2346,34 @@ function applyTemplateP4_7B() {
   //   14.5 = point le plus haut de la carte (ses entretoises)
   const H = 45, STACK = 8.6;
   const GW = 164.28, GD = 99.17;   // encombrement du verre
-  // Caméra FPC : corps carré 8.4, barillet rond Ø7.2 quasi centré,
-  // 7.6 d'épaisseur pour le corps carré seul, barillet exclu : c'est
-  // lui qui porte contre la face intérieure, le barillet passant dans
-  // le trou. La rainure vaut exactement ça — trop profonde, le module
-  // flotte et bascule par son côté ouvert.
-  // L'objectif est plaqué sous le couvercle :
+  // Caméra FPC : corps carré 8.4, barillet rond Ø7.2 quasi centré.
+  // Elle est plaquée contre le PCB, donc TOUTE l'épaisseur de l'écran
+  // (STACK) est devant elle : son dos est au niveau du dos de la
+  // carte, son objectif 5 mm sous la face intérieure du couvercle.
+  // Elle ne peut pas remonter — c'est la carte qui la porte.
+  // Un bloc d'appui descend du couvercle jusqu'à ce plan et le trou
+  // s'y évase à 60° pour dégager le champ. À 60° le verre de la dalle,
+  // à 5 mm de là, ne coupe rien : la pupille d'entrée fait ~1.5 mm de
+  // rayon, le rayon extrême arrive à 4.4 du centre alors que le verre
+  // commence à 5.
   // c'est obligatoire, en le descendant de seulement 3.6 le VERRE de
   // la dalle, à 5 mm de là, masquerait déjà tout au-delà de 19°.
-  const CAM = 8.4, CAM_H = 7.6, LENS_D = 7.2, FOV = 72.9;
+  const CAM = 8.4, LENS_D = 7.2, FOV = 60;
+  const CAM_REC = 5;               // objectif sous la face intérieure
+  const BLOC_EXT = 2.5;            // débord du bloc d'appui, cf. .scad
   const LENS_GAP = 5;              // centre de l'objectif au bord du verre
   const LID_T = 1;                 // fin : la bordure autour de l'écran
   const W = 176;
   // Ouverture extérieure : l'objectif est un peu en retrait dans son
   // barillet, le trou s'évase donc sur l'épaisseur du couvercle.
-  const APER = (LENS_D + 0.3) / 2 + LID_T * Math.tan(FOV / 2 * Math.PI / 180);
+  const APER = (LENS_D + 0.3) / 2 +
+               (CAM_REC + LID_T) * Math.tan(FOV / 2 * Math.PI / 180);
   // Profondeur : la caméra tombe pile dans la bande de la jupe si on
   // garde la boîte de 109. On l'allonge du strict nécessaire pour
   // qu'elle passe devant, plutôt que d'entailler la jupe :
   //   3 de marge avant + le verre + l'objectif + le plus encombrant
   //   du module (ouverture ou crochet) + son jeu + la jupe et son jeu
-  const ENC = Math.max(APER, CAM / 2 + 0.3 + 2);
+  const ENC = Math.max(APER, CAM / 2 + 0.3 + BLOC_EXT);
   const D = Math.ceil(3 + GD + LENS_GAP + ENC + 0.5 + 2.05);
   // la dalle est calée vers le bas (côté lecteur SD), la caméra au-dessus
   const bY = r1(-D / 2 + 3 + GD / 2);
@@ -2401,17 +2408,17 @@ function applyTemplateP4_7B() {
   cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: -2.5, z: r1(pcb - 1.1), w: 14, h: 3 });
 
   // Caméra : elle regarde à travers le COUVERCLE, au-dessus de l'écran.
-  // La rainure fait exactement l'épaisseur du module : trop profonde,
-  // il flotte et bascule, puisque son côté avant n'a pas de crochet.
-  // Le trou s'évase sur l'épaisseur du couvercle pour dégager le champ de
-  // l'objectif, un peu en retrait dans son barillet. Crochets sur
-  // trois côtés : l'avant reste ouvert pour glisser le module et
-  // sortir sa nappe, la dalle referme ce côté ensuite.
+  // Le module est tenu entre le bloc d'appui (dessus) et les lèvres
+  // (dessous) : rainure de CAM_REC à STACK, soit son épaisseur exacte.
+  // Crochets sur trois côtés : l'avant reste ouvert pour glisser le
+  // module et sortir sa nappe, la dalle referme ce côté ensuite.
   const camY = r1(bY + GD / 2 + LENS_GAP);
   state.clips.push({ id: state.nextId++, cx: 0, cy: camY, w: CAM, d: CAM,
-                     catch: CAM_H, grab: 1.5, cw: 5, nx: 1, ny: 1, open: 0 });
+                     catch: STACK, recess: CAM_REC, grab: 1.5, cw: 5,
+                     nx: 1, ny: 1, open: 0 });
   state.cuts.push({ id: state.nextId++, face: 'lid', type: 'cone',
-                    label: 'Caméra', off: 0, z: camY, d: LENS_D, fov: FOV });
+                    label: 'Caméra', off: 0, z: camY, d: LENS_D,
+                    fov: FOV, recess: CAM_REC });
 
   state.tpl = { id: 'p4_7b', v: TPL_7B_V };
   state.face = 'lid';
