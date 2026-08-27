@@ -637,6 +637,8 @@ Object.assign(EN, {
   'Crochets de maintien': 'Retaining clips', 'crochets de maintien': 'retaining clips',
   'Crochets': 'Clips', 'Larg. module': 'Module width', 'Prof. module': 'Module depth',
   'Accroche': 'Catch depth', 'Prise': 'Lip', 'Crochets ↔': 'Clips ↔', 'Crochets ↕': 'Clips ↕',
+  'Côté d\'insertion': 'Insertion side', 'aucun (à clipser)': 'none (snap in)',
+  'avant': 'front', 'arrière': 'back', 'gauche': 'left', 'droite': 'right',
   'Ajouter des crochets': 'Add retaining clips',
   'Larg./prof. = encombrement du module (le verre). Accroche = épaisseur de l\'écran : le crochet contourne le verre et vient prendre le dos de la carte.':
     'Width/depth = the module outline (the glass). Catch depth = the screen thickness: the clip goes around the glass and grabs the back of the board.',
@@ -1192,6 +1194,7 @@ function render() {
       for (let i = 0; i < k.ny; i++) {
         const y = k.ny === 1 ? k.cy : k.cy - k.d / 2 + k.d * (i + 0.5) / k.ny;
         for (const sx of [-1, 1]) {
+          if ((k.open === 2 && sx < 0) || (k.open === 3 && sx > 0)) continue;
           const [px, py] = toPx(k.cx + sx * (k.w / 2 + 0.3) - (sx > 0 ? 0 : 2), fh / 2 - y - L / 2, fw);
           g.push(`<rect x="${px}" y="${py}" width="${2 * S2}" height="${L * S2}" fill="${col}"/>`);
         }
@@ -1199,9 +1202,16 @@ function render() {
       for (let i = 0; i < k.nx; i++) {
         const x = k.nx === 1 ? k.cx : k.cx - k.w / 2 + k.w * (i + 0.5) / k.nx;
         for (const sy of [-1, 1]) {
+          if ((k.open === 0 && sy < 0) || (k.open === 1 && sy > 0)) continue;
           const [px, py] = toPx(x - L / 2, fh / 2 - (k.cy + sy * (k.d / 2 + 0.3)) - (sy > 0 ? 2 : 0), fw);
           g.push(`<rect x="${px}" y="${py}" width="${L * S2}" height="${2 * S2}" fill="${col}"/>`);
         }
+      }
+      if (k.open >= 0) {
+        const a = { 0: [k.cx, k.cy - k.d / 2 - 6, 0, -1], 1: [k.cx, k.cy + k.d / 2 + 6, 0, 1],
+                    2: [k.cx - k.w / 2 - 6, k.cy, -1, 0], 3: [k.cx + k.w / 2 + 6, k.cy, 1, 0] }[k.open];
+        const [ax, ay] = toPx(a[0], fh / 2 - a[1], fw);
+        g.push(`<text x="${ax}" y="${ay + 3}" fill="${col}" font-size="11" text-anchor="middle">${a[2] ? (a[2] > 0 ? '\u25c0' : '\u25b6') : (a[3] > 0 ? '\u25bc' : '\u25b2')}</text>`);
       }
       const [tx, ty] = toPx(k.cx, fh / 2 - k.cy - k.d / 2, fw);
       g.push(`<text x="${tx}" y="${ty - 6}" fill="${col}" font-size="10" text-anchor="middle">${t('crochets de maintien')}</text>`);
@@ -1979,6 +1989,9 @@ function renderInspector() {
     d.append(numField('Prise', o.grab, v => o.grab = Math.max(0.8, Math.min(v, 5))));
     d.append(numField('Crochets ↔', o.nx, v => o.nx = Math.max(0, Math.round(v))));
     d.append(numField('Crochets ↕', o.ny, v => o.ny = Math.max(0, Math.round(v))));
+    d.append(selectRow('Côté d\'insertion',
+      [[-1, 'aucun (à clipser)'], [0, 'avant'], [1, 'arrière'], [2, 'gauche'], [3, 'droite']],
+      o.open === undefined ? -1 : o.open, v => o.open = +v));
     const hint = document.createElement('div');
     hint.className = 'empty';
     hint.textContent = t('Larg./prof. = encombrement du module (le verre). Accroche = épaisseur de l\'écran : le crochet contourne le verre et vient prendre le dos de la carte.');
@@ -2071,7 +2084,7 @@ function buildArgList(part) {
     if (lidSets) args.push(lidSets);
     if (state.clips.length)
       args.push(`lid_clips=[${state.clips.map(k =>
-        `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${k.nx},${k.ny}]`).join(',')}]`);
+        `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${k.nx},${k.ny},${k.open === undefined ? -1 : k.open}]`).join(',')}]`);
     return args;
   }
   args.push('usb_cutout=false', 'standoffs=false');
@@ -2162,7 +2175,7 @@ function applyTemplateP4_7B() {
   // contournent le verre par l'extérieur et viennent prendre le dos de
   // la carte. Le cadre du couvercle le retient par l'avant.
   state.clips.push({ id: state.nextId++, cx: 0, cy: 0, w: 164.28, d: 99.17,
-                     catch: STACK, grab: 2, nx: 2, ny: 2 });
+                     catch: STACK, grab: 2, nx: 2, ny: 2, open: 0 });
   const cut = (o) => { state.cuts.push(Object.assign({ id: state.nextId++, fromTop: true }, o)); };
   cut({ face: 'lid', type: 'rect', label: 'Écran 7″ 1024×600',
         off: -1.8, z: 2.4, w: 151.6, h: 83.4, fromTop: false });
@@ -2467,7 +2480,7 @@ function buildStatic() {
   $('clipAdd').addEventListener('click', () => {
     pushHistory();
     const k = { id: state.nextId++, cx: 0, cy: 0, w: 164.28, d: 99.17,
-                catch: 8.6, grab: 2, nx: 2, ny: 2 };
+                catch: 8.6, grab: 2, nx: 2, ny: 2, open: 0 };
     state.clips.push(k);
     state.face = 'lid'; resetView();
     state.sel = { kind: 'clip', id: k.id };

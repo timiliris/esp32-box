@@ -137,14 +137,18 @@ dividers = [];
 // 3 = droite (encoche à câble en haut du mur choisi).
 compartments = [];
 // Crochets de maintien d'un module sur le couvercle (écran…) :
-// [cx, cy, largeur, profondeur, accroche, prise, nb_x, nb_y]
+// [cx, cy, largeur, profondeur, accroche, prise, nb_x, nb_y, côté_ouvert]
 //   largeur × profondeur : encombrement du module (le VERRE, pas le PCB)
 //   accroche : profondeur sous le couvercle où le crochet prend, càd
 //              l'épaisseur de l'écran (dos du PCB)
 //   prise    : longueur de la lèvre qui recouvre le dos du module
 //   nb_x / nb_y : nombre de crochets par bord (haut/bas, gauche/droite)
+//   côté_ouvert : -1 = aucun, 0 = avant, 1 = arrière, 2 = gauche,
+//              3 = droite — ce bord ne reçoit PAS de crochet, c'est par
+//              là qu'on glisse le module sous les autres. Sans ça il
+//              faudrait forcer une dalle de verre entre 8 crochets.
 // Les crochets contournent le verre par l'extérieur et viennent prendre
-// le dos de la carte : le module se clipse dans le couvercle.
+// le dos de la carte : le module se glisse dans le couvercle.
 lid_clips = [];
 
 /* [Passe-câble (face arrière)] */
@@ -700,21 +704,24 @@ module lid_clips_all() {
         grab  = len(c) > 5 ? c[5] : 2;
         nx    = len(c) > 6 ? c[6] : 2;
         ny    = len(c) > 7 ? c[7] : 2;
+        opn   = len(c) > 8 ? c[8] : -1;   // bord laissé libre
         clear = 0.3;
         L = 14;
         if (ny > 0)
             for (sx = [-1, 1], i = [0 : ny - 1]) {
                 y = ny == 1 ? c[1] : c[1] - D / 2 + D * (i + 0.5) / ny;
-                translate([c[0] + sx * (W / 2 + clear), y, 0])
-                    rotate([0, 0, sx > 0 ? 0 : 180])
-                        lid_clip_one(L, catch, grab);
+                if (!(opn == 2 && sx < 0) && !(opn == 3 && sx > 0))
+                    translate([c[0] + sx * (W / 2 + clear), y, 0])
+                        rotate([0, 0, sx > 0 ? 0 : 180])
+                            lid_clip_one(L, catch, grab);
             }
         if (nx > 0)
             for (sy = [-1, 1], i = [0 : nx - 1]) {
                 x = nx == 1 ? c[0] : c[0] - W / 2 + W * (i + 0.5) / nx;
-                translate([x, c[1] + sy * (D / 2 + clear), 0])
-                    rotate([0, 0, sy > 0 ? 90 : -90])
-                        lid_clip_one(L, catch, grab);
+                if (!(opn == 0 && sy < 0) && !(opn == 1 && sy > 0))
+                    translate([x, c[1] + sy * (D / 2 + clear), 0])
+                        rotate([0, 0, sy > 0 ? 90 : -90])
+                            lid_clip_one(L, catch, grab);
             }
     }
 }

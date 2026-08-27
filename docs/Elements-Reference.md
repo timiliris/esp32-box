@@ -81,6 +81,11 @@ to your module's glass-to-PCB-back distance, *Module width/depth* to
 its outline, and *Lip* to how far the hook overlaps the board (2 mm
 by default). Two clips per side is plenty for a 7″ panel.
 
+**Leave one side open.** A glass panel cannot be forced between eight
+rigid clips, so *Insertion side* removes the clips from one edge: you
+slide the module in underneath the others from that side, and the
+remaining clips hold it. The plan marks the open edge with an arrow.
+
 Board edge features, measured from the drawing (distance from the
 top edge, back view — mirror the X when seen from the front):
 
