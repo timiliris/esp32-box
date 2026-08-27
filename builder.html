@@ -638,6 +638,8 @@ Object.assign(EN, {
   'Crochets': 'Clips', 'Larg. module': 'Module width', 'Prof. module': 'Module depth',
   'Accroche': 'Catch depth', 'Prise': 'Lip', 'Crochets ↔': 'Clips ↔', 'Crochets ↕': 'Clips ↕',
   'Côté d\'insertion': 'Insertion side', 'aucun (à clipser)': 'none (snap in)',
+  'crochet(s) non placé(s) : pas de place entre les découpes': 'clip(s) not placed: no room between the cutouts',
+  'Largeur crochet': 'Clip width',
   'avant': 'front', 'arrière': 'back', 'gauche': 'left', 'droite': 'right',
   'Ajouter des crochets': 'Add retaining clips',
   'Larg./prof. = encombrement du module (le verre). Accroche = épaisseur de l\'écran : le crochet contourne le verre et vient prendre le dos de la carte.':
@@ -800,7 +802,7 @@ const PALETTE = [
   { label: 'PG7',          sub: 'Ø 12.5',   type: 'circle', d: 12.5,
     tip: 'Presse-étoupe PG7 : sortie de câble propre, avec serrage anti-arrachement' },
   { label: 'Carte microSD', sub: '15 × 2.5', type: 'rect', w: 15, h: 2.5,
-    tip: 'Fente pour un lecteur microSD / TF en bord de carte (la carte s\'insère à travers la paroi). Sur l\'ESP32-P4-7B le lecteur est sur le bord bas, centré à 126 mm depuis la gauche vu de l\'extérieur du couvercle.' },
+    tip: 'Fente pour un lecteur microSD / TF en bord de carte (la carte s\'insère à travers la paroi). Sur l\'ESP32-P4-7B le lecteur est au centre du bord bas (83.5 mm depuis la gauche en vue arrière).' },
   { label: 'Interrupteur à glissière', sub: '9 × 5', type: 'rect', w: 9, h: 5,
     tip: 'Fente d\'accès pour un petit interrupteur à glissière en bord de carte (ON/OFF de l\'ESP32-P4-7B).' },
   { label: 'Accès bouton', sub: 'Ø 4', type: 'circle', d: 4,
@@ -990,6 +992,43 @@ function resetView() { view.zoom = 1; view.panX = 0; view.panY = 0; }
 // coordonnées : x mm depuis le centre (+ = droite), y mm depuis le bas (faces)
 // ou depuis le centre (fond). SVG : y vers le bas.
 function toPx(xmm, ymmFromTop, fw) { return [view.ox + (xmm + fw / 2) * view.scale, view.oy + ymmFromTop * view.scale]; }
+
+// Positions des crochets sur un bord, en évitant les découpes de la
+// paroi correspondante (connecteurs, boutons…). side : 0 avant,
+// 1 arrière, 2 gauche, 3 droite. Renvoie [] si le bord est ouvert.
+function clipPositions(k, side) {
+  if (k.open === side) return [];
+  const CLIP_L = k.cw || 14;
+  const n = (side === 2 || side === 3) ? (k.ny || 0) : (k.nx || 0);
+  if (!n) return [];
+  const along = (side === 2 || side === 3) ? k.d : k.w;
+  const centre = (side === 2 || side === 3) ? k.cy : k.cx;
+  const face = ['front', 'back', 'left', 'right'][side];
+  const margin = 2.5, half = CLIP_L / 2;
+  const busy = [];
+  for (const c of state.cuts) {
+    if (c.face !== face) continue;
+    const hw = (c.type === 'circle' || isBtnType(c.type)) ? c.d / 2
+             : (c.type === 'usbc' ? c.w / 2 : c.w / 2);
+    const rel = c.off * FACE_SIGN[face] - centre;
+    busy.push([rel - hw - margin, rel + hw + margin]);
+  }
+  const libre = p => Math.abs(p) + half <= along / 2 + 0.01 &&
+    !busy.some(b => p + half > b[0] && p - half < b[1]);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const ideal = -along / 2 + along * (i + 0.5) / n;
+    let best = null;
+    for (let d = 0; d <= along; d += 0.5) {
+      for (const p of (d === 0 ? [ideal] : [ideal - d, ideal + d])) {
+        if (libre(p) && !out.some(q => Math.abs(q - p) < CLIP_L + 1)) { best = p; break; }
+      }
+      if (best !== null) break;
+    }
+    if (best !== null) out.push(r1(best));
+  }
+  return out.sort((a, b) => a - b);
+}
 
 // Groupe d'entretoises PCB (fond ou couvercle, même repère X/Y)
 function pcbGroupSvg(p, fw, fh) {
@@ -1191,20 +1230,18 @@ function render() {
       const [ox, oy] = toPx(k.cx - k.w / 2, fh / 2 - k.cy - k.d / 2, fw);
       g.push(`<g data-kind="clip" data-id="${k.id}" style="cursor:grab">`);
       g.push(`<rect x="${ox}" y="${oy}" width="${k.w * S2}" height="${k.d * S2}" rx="3" fill="${isSel ? 'rgba(79,140,255,.07)' : 'transparent'}" stroke="${col}" stroke-width="1.2" stroke-dasharray="6 3"/>`);
-      const L = 14;
-      for (let i = 0; i < k.ny; i++) {
-        const y = k.ny === 1 ? k.cy : k.cy - k.d / 2 + k.d * (i + 0.5) / k.ny;
-        for (const sx of [-1, 1]) {
-          if ((k.open === 2 && sx < 0) || (k.open === 3 && sx > 0)) continue;
-          const [px, py] = toPx(k.cx + sx * (k.w / 2 + 0.3) - (sx > 0 ? 0 : 2), fh / 2 - y - L / 2, fw);
+      const L = k.cw || 14;
+      for (const side of [2, 3]) {
+        const sx = side === 3 ? 1 : -1;
+        for (const pos of clipPositions(k, side)) {
+          const [px, py] = toPx(k.cx + sx * (k.w / 2 + 0.3) - (sx > 0 ? 0 : 2), fh / 2 - (k.cy + pos) - L / 2, fw);
           g.push(`<rect x="${px}" y="${py}" width="${2 * S2}" height="${L * S2}" fill="${col}"/>`);
         }
       }
-      for (let i = 0; i < k.nx; i++) {
-        const x = k.nx === 1 ? k.cx : k.cx - k.w / 2 + k.w * (i + 0.5) / k.nx;
-        for (const sy of [-1, 1]) {
-          if ((k.open === 0 && sy < 0) || (k.open === 1 && sy > 0)) continue;
-          const [px, py] = toPx(x - L / 2, fh / 2 - (k.cy + sy * (k.d / 2 + 0.3)) - (sy > 0 ? 2 : 0), fw);
+      for (const side of [0, 1]) {
+        const sy = side === 1 ? 1 : -1;
+        for (const pos of clipPositions(k, side)) {
+          const [px, py] = toPx(k.cx + pos - L / 2, fh / 2 - (k.cy + sy * (k.d / 2 + 0.3)) - (sy > 0 ? 2 : 0), fw);
           g.push(`<rect x="${px}" y="${py}" width="${L * S2}" height="${2 * S2}" fill="${col}"/>`);
         }
       }
@@ -1442,6 +1479,15 @@ function lidPostWarnings(p) {
   return [];
 }
 
+function clipWarnings(k) {
+  const voulu = (k.open === 2 ? 0 : k.ny) + (k.open === 3 ? 0 : k.ny) +
+                (k.open === 0 ? 0 : k.nx) + (k.open === 1 ? 0 : k.nx);
+  const posés = [0, 1, 2, 3].reduce((a, s) => a + clipPositions(k, s).length, 0);
+  return posés < voulu
+    ? [`${voulu - posés} ${t('crochet(s) non placé(s) : pas de place entre les découpes')}`]
+    : [];
+}
+
 function cellWarnings(c) {
   const out = [];
   const [foW, foH] = cellFoot(c);
@@ -1461,17 +1507,23 @@ function renderWarns() {
     for (const m of cellWarnings(c)) all.push({ m, kind: 'cell', id: c.id, face: 'floor' });
   for (const cp of state.comps)
     for (const m of compWarnings(cp)) all.push({ m, kind: 'comp', id: cp.id, face: 'floor' });
+
   const notes = [];
   for (const c of state.cuts)
     for (const m of cutNotes(c)) notes.push({ m, kind: 'cut', id: c.id, face: c.face });
+  for (const k of state.clips)
+    for (const m of clipWarnings(k)) notes.push({ m, kind: 'clip', id: k.id, face: 'lid', libre: true });
   let html = all.slice(0, 4).map(w =>
     `<button class="warnline" data-kind="${w.kind}" data-id="${w.id}" data-face="${w.face}" title="Cliquer pour voir l'élément">${esc(w.m)}</button>`
   ).join('');
-  if (notes.length) {
-    const n0 = notes[0];
-    const label = notes.length === 1
+  for (const nf of notes.filter(x => x.libre))
+    html += `<button class="noteline" data-kind="${nf.kind}" data-id="${nf.id}" data-face="${nf.face}">${esc(nf.m)}</button>`;
+  const grp = notes.filter(x => !x.libre);
+  if (grp.length) {
+    const n0 = grp[0];
+    const label = grp.length === 1
       ? t('1 découpe traverse la jupe — régénère le couvercle')
-      : `${notes.length} ${t('découpes traversent la jupe — régénère le couvercle')}`;
+      : `${grp.length} ${t('découpes traversent la jupe — régénère le couvercle')}`;
     html += `<button class="noteline" data-kind="${n0.kind}" data-id="${n0.id}" data-face="${n0.face}">${label}</button>`;
   }
   $('warns').innerHTML = html;
@@ -1988,6 +2040,7 @@ function renderInspector() {
     d.append(numField('Prof. module', o.d, v => o.d = Math.max(10, v)));
     d.append(numField('Accroche', o.catch, v => o.catch = Math.max(1, v)));
     d.append(numField('Prise', o.grab, v => o.grab = Math.max(0.8, Math.min(v, 5))));
+    d.append(numField('Largeur crochet', o.cw || 14, v => o.cw = Math.max(6, Math.min(v, 30))));
     d.append(numField('Crochets ↔', o.nx, v => o.nx = Math.max(0, Math.round(v))));
     d.append(numField('Crochets ↕', o.ny, v => o.ny = Math.max(0, Math.round(v))));
     d.append(selectRow('Côté d\'insertion',
@@ -2084,8 +2137,9 @@ function buildArgList(part) {
     const lidSets = lidSetsExpr();
     if (lidSets) args.push(lidSets);
     if (state.clips.length)
-      args.push(`lid_clips=[${state.clips.map(k =>
-        `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${k.nx},${k.ny},${k.open === undefined ? -1 : k.open}]`).join(',')}]`);
+      args.push(`lid_clips=[${state.clips.flatMap(k =>
+        [0, 1, 2, 3].flatMap(side => clipPositions(k, side).map(pos =>
+          `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${side},${pos},${k.cw || 14}]`))).join(',')}]`);
     return args;
   }
   args.push('usb_cutout=false', 'standoffs=false');
@@ -2176,7 +2230,7 @@ function applyTemplateP4_7B() {
   // contournent le verre par l'extérieur et viennent prendre le dos de
   // la carte. Le cadre du couvercle le retient par l'avant.
   state.clips.push({ id: state.nextId++, cx: 0, cy: 0, w: 164.28, d: 99.17,
-                     catch: STACK, grab: 2, nx: 2, ny: 2, open: 0 });
+                     catch: STACK, grab: 2, cw: 10, nx: 2, ny: 2, open: 0 });
   const cut = (o) => { state.cuts.push(Object.assign({ id: state.nextId++, fromTop: true }, o)); };
   cut({ face: 'lid', type: 'rect', label: 'Écran 7″ 1024×600',
         off: -1.8, z: 2.4, w: 151.6, h: 83.4, fromTop: false });
@@ -2189,7 +2243,9 @@ function applyTemplateP4_7B() {
   cut({ face: 'right', type: 'circle', label: 'RESET', off: 37.5, z: r1(pcb - 1.5), d: 4 });
   cut({ face: 'right', type: 'circle', label: 'BOOT',  off: 33,   z: r1(pcb - 1.5), d: 4 });
   // microSD en façade
-  cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: 44, z: r1(pcb - 1.1), w: 15, h: 3 });
+  // lecteur TF : centre à 83.5 du bord gauche en vue arrière, soit
+  // 80.5 en vue de face -> pratiquement centré sur la carte
+  cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: -1.5, z: r1(pcb - 1.1), w: 15, h: 3 });
   state.face = 'lid';
   state.panel = 'box';
   state.sel = null;
@@ -2481,7 +2537,7 @@ function buildStatic() {
   $('clipAdd').addEventListener('click', () => {
     pushHistory();
     const k = { id: state.nextId++, cx: 0, cy: 0, w: 164.28, d: 99.17,
-                catch: 8.6, grab: 2, nx: 2, ny: 2, open: 0 };
+                catch: 8.6, grab: 2, cw: 14, nx: 2, ny: 2, open: 0 };
     state.clips.push(k);
     state.face = 'lid'; resetView();
     state.sel = { kind: 'clip', id: k.id };

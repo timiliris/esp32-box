@@ -86,6 +86,14 @@ rigid clips, so *Insertion side* removes the clips from one edge: you
 slide the module in underneath the others from that side, and the
 remaining clips hold it. The plan marks the open edge with an arrow.
 
+**Clips avoid the connectors.** Positions are not evenly spaced: the
+builder looks at the wall cutouts on each edge (USB, buttons, card
+slot…) and drops each clip into the nearest free gap, so a clip never
+lands in front of a port. Narrow the *Clip width* (10 mm on the 7B
+template instead of 14) to fit more of them on a crowded edge; if one
+still has nowhere to go, a note says so and the others are placed
+anyway.
+
 Board edge features, measured from the drawing (distance from the
 top edge, back view — mirror the X when seen from the front):
 
@@ -96,7 +104,7 @@ top edge, back view — mirror the X when seen from the front):
 | USB-C (USB) | right | center 68.2 from top |
 | USB-C (to UART) | right | center 83.4 from top |
 | RESET / BOOT buttons | left | centers 11.0 and 15.5 from top |
-| microSD (TF) slot | bottom | center 38.0 from the left edge |
+| microSD (TF) slot | bottom | center **83.5** from the left edge (near the middle) |
 
 Minimum box for this display: about **176 × 109** inner, so the
 window clears the rounded corners. The module itself is 10–15 mm
