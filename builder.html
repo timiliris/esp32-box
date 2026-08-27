@@ -349,6 +349,11 @@
           Ajouter une cloison
         </button>
         <div class="empty" style="margin-top:6px">Muret simple, pleine hauteur ou partiel, option créneaux d'aération haut/bas. Fais-le dépasser dans les parois : il sera rogné et raccordé.</div>
+        <button class="btn primary" id="clipAdd" style="margin-top:8px">
+          <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+          Ajouter des crochets
+        </button>
+        <div class="empty" style="margin-top:6px">Crochets sur le couvercle qui contournent un module (écran) par l'extérieur et viennent prendre le dos de sa carte : le module se clipse dans le couvercle, sans vis.</div>
         <button class="btn primary" id="compAdd" style="margin-top:8px">
           <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
           Ajouter un compartiment
@@ -629,6 +634,12 @@ Object.assign(EN, {
   'Modèles': 'Templates', 'Waveshare ESP32-P4 7B — écran 7″': 'Waveshare ESP32-P4 7B — 7″ display',
   'Hauteur liée au couvercle': 'Height tied to the lid',
   'Pion centrage Ø': 'Locating pin Ø',
+  'Crochets de maintien': 'Retaining clips', 'crochets de maintien': 'retaining clips',
+  'Crochets': 'Clips', 'Larg. module': 'Module width', 'Prof. module': 'Module depth',
+  'Accroche': 'Catch depth', 'Prise': 'Lip', 'Crochets ↔': 'Clips ↔', 'Crochets ↕': 'Clips ↕',
+  'Ajouter des crochets': 'Add retaining clips',
+  'Larg./prof. = encombrement du module (le verre). Accroche = épaisseur de l\'écran : le crochet contourne le verre et vient prendre le dos de la carte.':
+    'Width/depth = the module outline (the glass). Catch depth = the screen thickness: the clip goes around the glass and grabs the back of the board.',
   'plots suspendus au-dessus du vide de la fenêtre': 'posts hang over the window opening',
   '1 découpe traverse la jupe — régénère le couvercle': '1 cutout crosses the skirt — regenerate the lid',
   'découpes traversent la jupe — régénère le couvercle': 'cutouts cross the skirt — regenerate the lid',
@@ -866,7 +877,7 @@ const DEFAULT_STATE = () => ({
   vents: false, tieSlots: false, lidFix: 'snap',
   holeComp: 0.3, teardrop: true,
   mountTabs: 'none', mountN: 2, panel: 'cut',
-  face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], nextId: 1, sel: null,
+  face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], clips: [], nextId: 1, sel: null,
 });
 let state = DEFAULT_STATE();
 try {
@@ -875,6 +886,7 @@ try {
   if (!state.cells) state.cells = [];
   if (!state.divs) state.divs = [];
   if (!state.comps) state.comps = [];
+  if (!state.clips) state.clips = [];
   // migration : les prises USB-C existantes reçoivent une longueur 12.6
   for (const c of state.cuts)
     if (c.type === 'usbc' && c.clen === undefined) c.clen = 12.6;
@@ -946,7 +958,8 @@ function selected() {
   const pool = state.sel.kind === 'cut' ? state.cuts
              : state.sel.kind === 'pcb' ? state.pcbs
              : state.sel.kind === 'div' ? state.divs
-             : state.sel.kind === 'comp' ? state.comps : state.cells;
+             : state.sel.kind === 'comp' ? state.comps
+             : state.sel.kind === 'clip' ? state.clips : state.cells;
   return pool.find(o => o.id === state.sel.id) || null;
 }
 // encombrement au sol d'un socle de cellule [w, h]
@@ -1167,6 +1180,33 @@ function render() {
     }
   }
   if (f === 'lid') {
+    // crochets de maintien d'un module
+    for (const k of state.clips) {
+      const isSel = state.sel && state.sel.kind === 'clip' && state.sel.id === k.id;
+      const col = isSel ? 'var(--accent)' : '#c58bff';
+      const S2 = view.scale;
+      const [ox, oy] = toPx(k.cx - k.w / 2, fh / 2 - k.cy - k.d / 2, fw);
+      g.push(`<g data-kind="clip" data-id="${k.id}" style="cursor:grab">`);
+      g.push(`<rect x="${ox}" y="${oy}" width="${k.w * S2}" height="${k.d * S2}" rx="3" fill="${isSel ? 'rgba(79,140,255,.07)' : 'transparent'}" stroke="${col}" stroke-width="1.2" stroke-dasharray="6 3"/>`);
+      const L = 14;
+      for (let i = 0; i < k.ny; i++) {
+        const y = k.ny === 1 ? k.cy : k.cy - k.d / 2 + k.d * (i + 0.5) / k.ny;
+        for (const sx of [-1, 1]) {
+          const [px, py] = toPx(k.cx + sx * (k.w / 2 + 0.3) - (sx > 0 ? 0 : 2), fh / 2 - y - L / 2, fw);
+          g.push(`<rect x="${px}" y="${py}" width="${2 * S2}" height="${L * S2}" fill="${col}"/>`);
+        }
+      }
+      for (let i = 0; i < k.nx; i++) {
+        const x = k.nx === 1 ? k.cx : k.cx - k.w / 2 + k.w * (i + 0.5) / k.nx;
+        for (const sy of [-1, 1]) {
+          const [px, py] = toPx(x - L / 2, fh / 2 - (k.cy + sy * (k.d / 2 + 0.3)) - (sy > 0 ? 2 : 0), fw);
+          g.push(`<rect x="${px}" y="${py}" width="${L * S2}" height="${2 * S2}" fill="${col}"/>`);
+        }
+      }
+      const [tx, ty] = toPx(k.cx, fh / 2 - k.cy - k.d / 2, fw);
+      g.push(`<text x="${tx}" y="${ty - 6}" fill="${col}" font-size="10" text-anchor="middle">${t('crochets de maintien')}</text>`);
+      g.push(`</g>`);
+    }
     // groupes PCB suspendus sous le couvercle (écran…)
     for (const p of state.pcbs) if (p.onLid) g.push(pcbGroupSvg(p, fw, fh));
     // aérations de compartiment découpées dans le couvercle
@@ -1475,6 +1515,7 @@ window.addEventListener('pointermove', e => {
     for (const c of state.cells) if (c.id !== o.id) { vTargets.push(c.cx); hTargets.push(c.cy); }
     for (const dv of state.divs) if (dv.id !== o.id) { vTargets.push(dv.cx); hTargets.push(dv.cy); }
     for (const cp of state.comps) if (cp.id !== o.id) { vTargets.push(cp.cx); hTargets.push(cp.cy); }
+    for (const k of state.clips) if (k.id !== o.id) { vTargets.push(k.cx); hTargets.push(k.cy); }
   }
   let snapped = false;
   for (const t of vTargets) if (Math.abs(nx - t) < tol) { nx = t; snapGuides.push({ axis: 'v', at: t }); snapped = true; break; }
@@ -1540,6 +1581,7 @@ function removeSelected() {
   else if (state.sel.kind === 'pcb') state.pcbs = state.pcbs.filter(p => p.id !== state.sel.id);
   else if (state.sel.kind === 'div') state.divs = state.divs.filter(d => d.id !== state.sel.id);
   else if (state.sel.kind === 'comp') state.comps = state.comps.filter(c => c.id !== state.sel.id);
+  else if (state.sel.kind === 'clip') state.clips = state.clips.filter(c => c.id !== state.sel.id);
   else state.cells = state.cells.filter(c => c.id !== state.sel.id);
   state.sel = null;
 }
@@ -1550,6 +1592,7 @@ function duplicateSelected() {
   else if (state.sel.kind === 'pcb') { copy.cy = r1(copy.cy - 10); state.pcbs.push(copy); }
   else if (state.sel.kind === 'div') { copy.cy = r1(copy.cy - 8); state.divs.push(copy); }
   else if (state.sel.kind === 'comp') { copy.cy = r1(copy.cy - copy.d - 8); state.comps.push(copy); }
+  else if (state.sel.kind === 'clip') { copy.cy = r1(copy.cy - 8); state.clips.push(copy); }
   else { copy.cy = r1(copy.cy - (copy.rot ? 10 : copy.dia + 7)); state.cells.push(copy); }
   state.sel = { kind: state.sel.kind, id: copy.id };
 }
@@ -1787,6 +1830,10 @@ function renderObjects() {
     kind: 'div', id: dv.id, face: 'floor', label: dv.vented ? 'Cloison aérée' : 'Cloison',
     info: `${dv.len}${dv.ht > 0 ? '×h' + dv.ht : ''}`, warn: false,
   });
+  for (const k of state.clips) rows.push({
+    kind: 'clip', id: k.id, face: 'lid', label: 'Crochets',
+    info: `${k.w}×${k.d}`, warn: false,
+  });
   for (const cp of state.comps) rows.push({
     kind: 'comp', id: cp.id, face: 'floor', label: 'Compartiment',
     info: `${cp.w}×${cp.d}`, warn: compWarnings(cp).length > 0,
@@ -1919,6 +1966,30 @@ function renderInspector() {
       actionBtn('Supprimer', removeSelected, 'danger'),
     );
     d.append(acts);
+  } else if (state.sel.kind === 'clip') {
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;margin-bottom:8px';
+    title.textContent = `${t('Crochets de maintien')} ${o.w} × ${o.d}`;
+    d.append(title);
+    d.append(numField('Centre X', o.cx, v => o.cx = v));
+    d.append(numField('Centre Y', o.cy, v => o.cy = v));
+    d.append(numField('Larg. module', o.w, v => o.w = Math.max(10, v)));
+    d.append(numField('Prof. module', o.d, v => o.d = Math.max(10, v)));
+    d.append(numField('Accroche', o.catch, v => o.catch = Math.max(1, v)));
+    d.append(numField('Prise', o.grab, v => o.grab = Math.max(0.8, Math.min(v, 5))));
+    d.append(numField('Crochets ↔', o.nx, v => o.nx = Math.max(0, Math.round(v))));
+    d.append(numField('Crochets ↕', o.ny, v => o.ny = Math.max(0, Math.round(v))));
+    const hint = document.createElement('div');
+    hint.className = 'empty';
+    hint.textContent = t('Larg./prof. = encombrement du module (le verre). Accroche = épaisseur de l\'écran : le crochet contourne le verre et vient prendre le dos de la carte.');
+    d.append(hint);
+    const acts = document.createElement('div'); acts.className = 'actions';
+    acts.append(
+      actionBtn('Centrer', () => { o.cx = 0; o.cy = 0; }),
+      actionBtn('Dupliquer', duplicateSelected),
+      actionBtn('Supprimer', removeSelected, 'danger'),
+    );
+    d.append(acts);
   } else if (state.sel.kind === 'comp') {
     const title = document.createElement('div');
     title.style.cssText = 'font-weight:600;margin-bottom:8px';
@@ -1998,6 +2069,9 @@ function buildArgList(part) {
     if (lidDivs) args.push(lidDivs);
     const lidSets = lidSetsExpr();
     if (lidSets) args.push(lidSets);
+    if (state.clips.length)
+      args.push(`lid_clips=[${state.clips.map(k =>
+        `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${k.nx},${k.ny}]`).join(',')}]`);
     return args;
   }
   args.push('usb_cutout=false', 'standoffs=false');
@@ -2079,16 +2153,16 @@ function applyTemplateP4_7B() {
   //     là que sont les connecteurs de bord
   // (14.5 - 8.6 = 5.9 : les entretoises déjà montées sur la carte)
   // H laisse ~30 mm sous la carte pour les fiches qui pointent vers le bas.
-  const H = 45, TOP_MAX = 14.5, STACK = 8.6;
+  const H = 45, STACK = 8.6;   // TOP_MAX 14.5 = point le plus haut de la carte
   const pcb = H - STACK;     // dos de la carte = niveau des connecteurs
   state.inner = { w: 176, d: 109, h: H };
-  state.cuts = []; state.pcbs = []; state.cells = []; state.divs = []; state.comps = [];
-  // La dalle couvre toute la carte : impossible de visser depuis le
-  // couvercle. La carte est prise en sandwich — le cadre du couvercle
-  // retient le verre, 4 plots montés du fond viennent buter sous les
-  // entretoises de la carte (avant-trou : une vis peut les y fixer).
-  state.pcbs.push({ id: state.nextId++, cx: 0, cy: 0, sh: r1(H - TOP_MAX), dx: 156, dy: 89,
-                    holes: 4, pd: 7, pp: 2.2, pin: 0, onLid: false });
+  state.cuts = []; state.pcbs = []; state.cells = []; state.divs = []; state.comps = []; state.clips = [];
+  // La dalle couvre toute la carte : impossible de visser à travers
+  // l'écran. Le module se CLIPSE dans le couvercle — 8 crochets
+  // contournent le verre par l'extérieur et viennent prendre le dos de
+  // la carte. Le cadre du couvercle le retient par l'avant.
+  state.clips.push({ id: state.nextId++, cx: 0, cy: 0, w: 164.28, d: 99.17,
+                     catch: STACK, grab: 2, nx: 2, ny: 2 });
   const cut = (o) => { state.cuts.push(Object.assign({ id: state.nextId++, fromTop: true }, o)); };
   cut({ face: 'lid', type: 'rect', label: 'Écran 7″ 1024×600',
         off: -1.8, z: 2.4, w: 151.6, h: 83.4, fromTop: false });
@@ -2388,6 +2462,15 @@ function buildStatic() {
     state.divs.push(dv);
     state.face = 'floor';
     state.sel = { kind: 'div', id: dv.id };
+    updateAll();
+  });
+  $('clipAdd').addEventListener('click', () => {
+    pushHistory();
+    const k = { id: state.nextId++, cx: 0, cy: 0, w: 164.28, d: 99.17,
+                catch: 8.6, grab: 2, nx: 2, ny: 2 };
+    state.clips.push(k);
+    state.face = 'lid'; resetView();
+    state.sel = { kind: 'clip', id: k.id };
     updateAll();
   });
   $('compAdd').addEventListener('click', () => {

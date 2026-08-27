@@ -136,6 +136,16 @@ dividers = [];
 // côté_passage : -1 = aucun, 0 = avant, 1 = arrière, 2 = gauche,
 // 3 = droite (encoche à câble en haut du mur choisi).
 compartments = [];
+// Crochets de maintien d'un module sur le couvercle (écran…) :
+// [cx, cy, largeur, profondeur, accroche, prise, nb_x, nb_y]
+//   largeur × profondeur : encombrement du module (le VERRE, pas le PCB)
+//   accroche : profondeur sous le couvercle où le crochet prend, càd
+//              l'épaisseur de l'écran (dos du PCB)
+//   prise    : longueur de la lèvre qui recouvre le dos du module
+//   nb_x / nb_y : nombre de crochets par bord (haut/bas, gauche/droite)
+// Les crochets contournent le verre par l'extérieur et viennent prendre
+// le dos de la carte : le module se clipse dans le couvercle.
+lid_clips = [];
 
 /* [Passe-câble (face arrière)] */
 cable_hole = false;
@@ -665,6 +675,50 @@ module lid_cuts() {
     lid_skirt_clearances();
 }
 
+// Un crochet : doigt vertical le long du module, lèvre rentrante au
+// bout. Orienté +X (le doigt est en x>0, la lèvre pointe vers -X).
+module lid_clip_one(len, catch, grab) {
+    ft = 2;      // épaisseur du doigt
+    lt = 1.2;    // épaisseur de la lèvre
+    translate([0, -len / 2, seam - catch - lt])
+        cube([ft, len, catch + lt]);
+    // lèvre : face plate qui retient le dos du module, chanfrein 45°
+    // dessous pour l'insertion (et pour imprimer sans support)
+    translate([0, -len / 2, 0])
+        rotate([90, 0, 0])
+            translate([0, 0, -len])
+                linear_extrude(height = len)
+                    polygon([[0, seam - catch],
+                             [-grab, seam - catch],
+                             [0, seam - catch - grab - lt]]);
+}
+
+module lid_clips_all() {
+    for (c = lid_clips) {
+        W = c[2]; D = c[3];
+        catch = len(c) > 4 ? c[4] : 8.6;
+        grab  = len(c) > 5 ? c[5] : 2;
+        nx    = len(c) > 6 ? c[6] : 2;
+        ny    = len(c) > 7 ? c[7] : 2;
+        clear = 0.3;
+        L = 14;
+        if (ny > 0)
+            for (sx = [-1, 1], i = [0 : ny - 1]) {
+                y = ny == 1 ? c[1] : c[1] - D / 2 + D * (i + 0.5) / ny;
+                translate([c[0] + sx * (W / 2 + clear), y, 0])
+                    rotate([0, 0, sx > 0 ? 0 : 180])
+                        lid_clip_one(L, catch, grab);
+            }
+        if (nx > 0)
+            for (sy = [-1, 1], i = [0 : nx - 1]) {
+                x = nx == 1 ? c[0] : c[0] - W / 2 + W * (i + 0.5) / nx;
+                translate([x, c[1] + sy * (D / 2 + clear), 0])
+                    rotate([0, 0, sy > 0 ? 90 : -90])
+                        lid_clip_one(L, catch, grab);
+            }
+    }
+}
+
 // ------------------------------------------------------------
 // Inserts de fenêtre : plaque affleurante dans la feuillure,
 // corps traversant, deux bossages qui clipsent derrière la paroi.
@@ -1108,6 +1162,7 @@ module lid_assembled() {
                                 xcapsule(snap_len, snap_r);
             }
             standoff_sets_lid();
+            lid_clips_all();
         }
         if (lid_fix == "screws")
             for (sx = [-1, 1], sy = [-1, 1])

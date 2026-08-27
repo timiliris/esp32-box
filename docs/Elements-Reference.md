@@ -56,10 +56,13 @@ the left) and is 1.5 mm smaller per edge so the bezel overlaps the
 panel border.
 
 **How it is held.** The cover glass (164.28 × 99.17) covers the whole
-PCB, so the 4 mounting holes are **not reachable from the front** — a
-boss coming down from the lid would crush the glass. The module is
-**sandwiched** instead: the lid frame retains the glass from the
-front, and 4 posts rising from the floor meet the board from behind.
+PCB, so the 4 mounting holes are **not reachable from the front** —
+you cannot screw through the screen, and a boss coming down from the
+lid would crush the glass. The module **clips into the lid** instead:
+**retaining clips** (Floor layout panel → *Add retaining clips*) rise
+from the lid's inner face, pass around the glass on the outside and
+hook over the **back of the PCB**. The lid frame holds the module
+from the front, the clips from behind — no screws at all.
 
 Two depths matter, both measured from the glass resting under the lid
 (values below measured on the real module):
@@ -69,13 +72,14 @@ Two depths matter, both measured from the glass resting under the lid
 | Screen assembly (glass + panel + PCB) | **8.6** — the edge connectors sit at this level |
 | Tallest point of the board (top of its own standoffs) | **14.5** — where our printed posts land |
 
-So the board carries ~6 mm standoffs of its own. The template uses a
-45 mm inner height: the module takes 14.5 from the lid, leaving about
-30 mm for the down-facing plugs and their cables. Posts are
-30.5 mm tall with a screw pilot, so a screw can secure them into the
-board's standoffs. For a board with bare holes instead, set
-“Locating pin Ø” (2.6 for Ø3 holes) and the pin locates it without
-screws.
+So the board carries ~6 mm standoffs of its own — which is why the
+inner height is 45 mm: the module takes 14.5 from the lid, leaving
+about 30 mm for the down-facing plugs and their cables.
+
+The clips catch at the **screen thickness** (8.6): set *Catch depth*
+to your module's glass-to-PCB-back distance, *Module width/depth* to
+its outline, and *Lip* to how far the hook overlaps the board (2 mm
+by default). Two clips per side is plenty for a 7″ panel.
 
 Board edge features, measured from the drawing (distance from the
 top edge, back view — mirror the X when seen from the front):
