@@ -663,13 +663,18 @@ module lid_cuts() {
                     rrect(c[4], c[5], min(3, min(c[4], c[5]) / 3));
         }
         if (c[1] == "cone") {
-            // dégagement d'angle de vision : s'élargit vers l'extérieur
-            // a = Ø au ras intérieur, b = angle de champ (degrés)
+            // dégagement d'angle de vision : s'élargit vers l'extérieur.
+            // a = Ø de l'objectif, b = angle de champ (degrés),
+            // extra = retrait du module sous la face intérieure — le
+            // cône part du plan de l'objectif, pas du couvercle, sinon
+            // un module en retrait est vignetté par sa propre poche.
             ang = c[5] > 0 ? c[5] : 72.9;
-            translate([c[2], c[3], seam - 0.01])
+            rec = len(c) > 6 && c[6] > 0 ? c[6] : 0;
+            hh  = rec + lid_t;
+            translate([c[2], c[3], seam - rec - 0.01])
                 cylinder(d1 = c[4] + hole_comp,
-                         d2 = c[4] + hole_comp + 2 * lid_t * tan(ang / 2),
-                         h = lid_t + 0.02);
+                         d2 = c[4] + hole_comp + 2 * hh * tan(ang / 2),
+                         h = hh + 0.02);
         }
         if (c[1] == "insert") {
             translate([c[2], c[3], seam - 1])
@@ -739,6 +744,16 @@ module lid_clips_all() {
         if (side == 0)
             translate([c[0] + pos, c[1] - D / 2 - clear, 0])
                 rotate([0, 0, -90]) lid_clip_one(L, catch, grab, rec);
+        // Module tenu en retrait : plafond plein au-dessus de lui, que
+        // la découpe (l'objectif) perce ensuite. Sans ce plafond il ne
+        // porterait que sur les trois épaulements des crochets — sur un
+        // petit module ça ne fait plus qu'un demi-millimètre d'appui,
+        // alors que les coins du plafond en donnent plusieurs.
+        if (rec > 0)
+            translate([c[0], c[1], seam - rec])
+                linear_extrude(height = rec + 0.6)
+                    square([W + 2 * (clear + 2), D + 2 * (clear + 2)],
+                           center = true);
     }
 }
 

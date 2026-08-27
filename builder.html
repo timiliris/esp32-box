@@ -259,7 +259,7 @@
           <h2>Modèles</h2>
           <div class="insp">
             <button class="btn primary" id="tplP4_7B" style="text-align:left">Waveshare ESP32-P4 7B — écran 7″</button>
-            <div class="empty" style="margin-top:6px">Projet complet : boîte 176 × 116 × 45, écran clipsé sous le couvercle avec sa fenêtre décalée, la caméra qui regarde au-dessus de l’écran, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.</div>
+            <div class="empty" style="margin-top:6px">Projet complet : boîte 176 × 117 × 45, écran clipsé sous le couvercle avec sa fenêtre décalée, la caméra qui regarde au-dessus de l’écran, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.</div>
           </div>
         </div>
         <div class="group">
@@ -282,6 +282,8 @@
               <input type="number" id="optComp" step="0.05" min="0" max="1"></div>
             <div class="rowline" title="Trous ronds des parois avec sommet à 45° : impression sans support ni affaissement"><label style="width:auto;flex:1">Goutte d'eau</label>
               <input type="checkbox" id="optTear"></div>
+            <div class="rowline" title="Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d'un écran ; en dessous de 2 mm il gondole."><label style="width:auto;flex:1">Épaisseur couvercle</label>
+              <input type="number" id="optLidT" step="0.2" min="1.6" max="6"></div>
           </div>
         </div>
         <div class="group">
@@ -484,6 +486,10 @@ const EN = {
   'Fixation': 'Lid fixing', 'couvercle clipsé': 'snap-fit lid',
   'couvercle vissé': 'screwed lid',
   'Jeu perçage': 'Hole clearance', 'Goutte d\'eau': 'Teardrop holes',
+  'Épaisseur couvercle': 'Lid thickness',
+  'Retrait objectif': 'Lens setback', 'Ouverture extérieure : Ø ': 'Outer opening: Ø ',
+  'Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d\'un écran ; en dessous de 2 mm il gondole.':
+    'Thickness of the lid\'s top plate. Thinner = slimmer border around a screen; below 2 mm it warps.',
   'Pattes': 'Tabs', 'aucune': 'none', 'sur les flancs': 'on the sides',
   'avant / arrière': 'front / back', 'Nombre': 'Count',
   'Tout effacer': 'Clear all',
@@ -658,8 +664,8 @@ Object.assign(EN, {
   '1 découpe traverse la jupe — régénère le couvercle': '1 cutout crosses the skirt — regenerate the lid',
   'découpes traversent la jupe — régénère le couvercle': 'cutouts cross the skirt — regenerate the lid',
   'Remplacer le projet actuel ?': 'Replace the current project?',
-  'Projet complet : boîte 176 × 116 × 45, écran clipsé sous le couvercle avec sa fenêtre décalée, la caméra qui regarde au-dessus de l’écran, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.':
-    'Complete project: 176 × 116 × 45 box, display clipped under the lid with its offset window, the camera looking out above the screen, and the 7 edge openings (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) at the right height.',
+  'Projet complet : boîte 176 × 117 × 45, écran clipsé sous le couvercle avec sa fenêtre décalée, la caméra qui regarde au-dessus de l’écran, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.':
+    'Complete project: 176 × 117 × 45 box, display clipped under the lid with its offset window, the camera looking out above the screen, and the 7 edge openings (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) at the right height.',
   'Accès bouton': 'Button access', '151.6 × 83.4 · couvercle': '151.6 × 83.4 · lid',
   '152 × 84 · couvercle': '152 × 84 · lid',
   'Monter sous le couvercle': 'Mount under the lid',
@@ -748,10 +754,10 @@ const isFlat = f => f === 'lid' || f === 'floor';
 const VENT_TYPES = ['vslots', 'hslots', 'grid', 'hex'];
 // boutons pour tact switch 6×6 (parois uniquement)
 const isBtnType = t => t === 'btnflex' || t === 'btnpiston';
-const LID_T = 3;   // epaisseur du couvercle, cf. lid_t dans le .scad
-// Ouverture exterieure d'un cone camera : le trou s'evase a l'angle de vision
+// Ouverture exterieure d'un cone camera : le trou s'evase a l'angle de
+// vision depuis le plan de l'objectif, donc sur le retrait + le couvercle
 const coneOuterR = c => (c.d + state.holeComp) / 2 +
-  LID_T * Math.tan((c.fov || 72.9) / 2 * Math.PI / 180);
+  ((c.recess || 0) + state.lidT) * Math.tan((c.fov || 72.9) / 2 * Math.PI / 180);
 
 // Cellules d'un motif d'aération, en mm autour du centre de la zone
 // (mêmes formules que vent_pattern2d dans esp32-box.scad)
@@ -896,7 +902,7 @@ const BOX_PRESETS = [
 const DEFAULT_STATE = () => ({
   inner: { w: 100, d: 70, h: 40 },
   vents: false, tieSlots: false, lidFix: 'snap',
-  holeComp: 0.3, teardrop: true,
+  holeComp: 0.3, teardrop: true, lidT: 3,
   mountTabs: 'none', mountN: 2, panel: 'cut',
   face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], clips: [], nextId: 1, sel: null,
 });
@@ -1994,6 +2000,11 @@ function renderInspector() {
     if (o.type === 'cone') {
       d.append(numField('Ø objectif', o.d, v => o.d = Math.max(1, v)));
       d.append(numField('Angle de champ', o.fov || 72.9, v => o.fov = Math.max(10, Math.min(v, 175))));
+      d.append(numField('Retrait objectif', o.recess || 0, v => o.recess = Math.max(0, v)));
+      const oc = document.createElement('div');
+      oc.className = 'empty';
+      oc.textContent = t('Ouverture extérieure : Ø ') + r1(2 * coneOuterR(o)) + ' mm';
+      d.append(oc);
     } else if (o.type === 'circle' || isBtnType(o.type))
       d.append(numField(isBtnType(o.type) ? 'Ø capuchon' : 'Ø', o.d, v => o.d = Math.max(1, v)));
     else {
@@ -2181,7 +2192,7 @@ function renderInspector() {
 function cutExpr(c) {
   const off = r1(c.off * FACE_SIGN[c.face]);
   if (c.type === 'cone')
-    return `["${c.face}","cone",${off},${c.z},${c.d},${c.fov || 72.9},0]`;
+    return `["${c.face}","cone",${off},${c.z},${c.d},${c.fov || 72.9},${c.recess || 0}]`;
   if (c.type === 'circle' || isBtnType(c.type))
     return `["${c.face}","${c.type}",${off},${c.z},${c.d},0,0]`;
   const extra = (c.type === 'window' || c.type === 'insert') ? c.skin
@@ -2194,6 +2205,7 @@ function buildArgList(part) {
   const args = [`size_preset="custom"`, `custom_inner=[${w},${d},${h}]`, `part="${part}"`];
   if (state.lidFix === 'screws') args.push(`lid_fix="screws"`);
   if (state.holeComp !== 0.3) args.push(`hole_comp=${state.holeComp}`);
+  if (state.lidT !== 3) args.push(`lid_t=${state.lidT}`);
   if (part === 'inserts') {
     const ins = state.cuts.filter(c => c.type === 'insert' || c.type === 'btnpiston').map(cutExpr);
     if (ins.length) args.push(`cuts=[${ins.join(',')}]`);
@@ -2290,18 +2302,26 @@ function applyTemplateP4_7B() {
   //   14.5 = point le plus haut de la carte (ses entretoises)
   const H = 45, STACK = 8.6;
   const GW = 164.28, GD = 99.17;   // encombrement du verre
-  // caméra FPC : corps carré 8.4, barillet rond Ø7.2 quasi centré,
-  // hauteur totale 5 = 3 de barillet (l'épaisseur du couvercle,
-  // objectif affleurant dehors) + 2 de corps dessous.
-  const CAM = 8.4, LENS_D = 7.2, LENS_H = 2;
+  // Caméra FPC : corps carré 8.4, barillet rond Ø7.2 quasi centré.
+  // Le module descend jusqu'au dos de la carte, donc il fait la
+  // hauteur de la pile écran (STACK) et ses crochets sont aussi longs
+  // que ceux de la dalle. L'objectif est plaqué sous le couvercle :
+  // c'est obligatoire, en le descendant de seulement 3.6 le VERRE de
+  // la dalle, à 5 mm de là, masquerait déjà tout au-delà de 19°.
+  const CAM = 8.4, LENS_D = 7.2, FOV = 72.9;
   const LENS_GAP = 5;              // centre de l'objectif au bord du verre
+  const LID_T = 2;                 // fin : la bordure autour de l'écran
   const W = 176;
+  // Ouverture extérieure : l'objectif est un peu en retrait dans son
+  // barillet, le trou s'évase donc sur l'épaisseur du couvercle.
+  const APER = (LENS_D + 0.3) / 2 + LID_T * Math.tan(FOV / 2 * Math.PI / 180);
   // Profondeur : la caméra tombe pile dans la bande de la jupe si on
   // garde la boîte de 109. On l'allonge du strict nécessaire pour
   // qu'elle passe devant, plutôt que d'entailler la jupe :
-  //   3 de marge avant + le verre + l'objectif + le demi-module
-  //   + le doigt du crochet + la jupe (1.8) et son jeu
-  const D = Math.ceil(3 + GD + LENS_GAP + CAM / 2 + 1.6 + 2.6);
+  //   3 de marge avant + le verre + l'objectif + le plus encombrant
+  //   du module (ouverture ou crochet) + son jeu + la jupe et son jeu
+  const ENC = Math.max(APER, CAM / 2 + 0.3 + 2);
+  const D = Math.ceil(3 + GD + LENS_GAP + ENC + 0.5 + 2.05);
   // la dalle est calée vers le bas (côté lecteur SD), la caméra au-dessus
   const bY = r1(-D / 2 + 3 + GD / 2);
   const pcb = H - STACK;           // dos de la carte = niveau des connecteurs
@@ -2309,6 +2329,7 @@ function applyTemplateP4_7B() {
   const AL = t2 => r1(bY + 48.5 - t2);
 
   state.inner = { w: W, d: D, h: H };
+  state.lidT = LID_T;
   state.cuts = []; state.pcbs = []; state.cells = []; state.divs = [];
   state.comps = []; state.clips = [];
 
@@ -2334,16 +2355,17 @@ function applyTemplateP4_7B() {
   cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: -2.5, z: r1(pcb - 1.1), w: 14, h: 3 });
 
   // Caméra : elle regarde à travers le COUVERCLE, au-dessus de l'écran.
-  // Le barillet traverse le couvercle (perçage droit Ø7.2, pas de cône :
-  // l'objectif ressort au ras de la face extérieure, rien ne le vignette)
-  // et le corps carré porte contre la face intérieure. Crochets sur trois
-  // côtés seulement : l'avant reste ouvert pour glisser le module et
-  // laisser sortir sa nappe vers la carte, et la dalle le bloque ensuite.
+  // Le module descend jusqu'au dos de la carte : ses crochets font la
+  // même longueur que ceux de la dalle (catch = STACK). Le trou
+  // s'évase sur l'épaisseur du couvercle pour dégager le champ de
+  // l'objectif, un peu en retrait dans son barillet. Crochets sur
+  // trois côtés : l'avant reste ouvert pour glisser le module et
+  // sortir sa nappe, la dalle referme ce côté ensuite.
   const camY = r1(bY + GD / 2 + LENS_GAP);
   state.clips.push({ id: state.nextId++, cx: 0, cy: camY, w: CAM, d: CAM,
-                     catch: LENS_H, grab: 1.5, cw: 5, nx: 1, ny: 1, open: 0 });
-  state.cuts.push({ id: state.nextId++, face: 'lid', type: 'circle',
-                    label: 'Caméra', off: 0, z: camY, d: LENS_D });
+                     catch: STACK, grab: 1.5, cw: 5, nx: 1, ny: 1, open: 0 });
+  state.cuts.push({ id: state.nextId++, face: 'lid', type: 'cone',
+                    label: 'Caméra', off: 0, z: camY, d: LENS_D, fov: FOV });
 
   state.face = 'lid';
   state.panel = 'box';
@@ -2695,6 +2717,10 @@ function buildStatic() {
     if (!isNaN(v)) { pushHistory('comp'); state.holeComp = v; updateAll(); }
   });
   $('optTear').addEventListener('change', () => { pushHistory(); state.teardrop = $('optTear').checked; updateAll(); });
+  $('optLidT').addEventListener('input', () => {
+    const v = parseFloat($('optLidT').value);
+    if (!isNaN(v) && v >= 1.6) { pushHistory('lidT'); state.lidT = v; updateAll(); }
+  });
   $('resetBtn').addEventListener('click', () => {
     if (confirm(t('Tout effacer ?'))) { pushHistory(); state = DEFAULT_STATE(); updateAll(); }
   });
@@ -2833,6 +2859,7 @@ function updateAll(withInspector = true) {
   $('optLid').value = state.lidFix;
   if (document.activeElement !== $('optComp')) $('optComp').value = state.holeComp;
   $('optTear').checked = state.teardrop;
+  if (document.activeElement !== $('optLidT')) $('optLidT').value = state.lidT;
   render();
   render3d();
   if (withInspector) renderInspector();

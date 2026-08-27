@@ -110,11 +110,11 @@ top edge, back view — mirror the X when seen from the front):
 Minimum box for this display: about **176 × 109** inner, so the
 window clears the rounded corners. The module itself is 10–15 mm
 thick but its bottom-facing plugs need room: allow **40 mm** of
-inner height. **With the camera, 176 × 116 × 45** — see below.
+inner height. **With the camera, 176 × 117 × 45** — see below.
 
 **One-click template** — the *Case* panel has a **Templates**
 section: “Waveshare ESP32-P4 7B — 7″ display” builds the whole
-project (176 × 116 × 45 box, offset screen window, retaining clips,
+project (176 × 117 × 45 box, offset screen window, retaining clips,
 the camera above the screen, and all seven edge openings at the
 right height). Wall
 openings created this way are **tied to the lid**: change the box
@@ -142,17 +142,21 @@ the real part:
 |---|---|
 | Square body | **8.4 × 8.4** |
 | Lens barrel | **Ø 7.2**, near-centred |
-| Total height | **5** (≈ 3 of barrel + 2 of body) |
+| Height | **8.6** — the module reaches down to the back of the board |
 | Lens centre to the glass edge | **5** |
 
-**Straight bore, not a cone.** The barrel is nearly as wide as the
-body, and 3 mm of it is exactly the lid's thickness: the barrel
-**passes through the lid** and the lens ends up flush with the outer
-face, so nothing can vignette it. The hole is therefore a plain
-Ø 7.2 circle on the lid, and the square body bears against the lid's
-inner face around it. Only the four corners of the body do the
-bearing — the flats leave barely half a millimetre — which is
-normal for this module.
+**The lens must sit against the lid.** This is not a style choice.
+Drop it even 3.6 mm — flush with the *front* of the board instead of
+its back — and the display's own cover glass, 5 mm away and now
+higher than the lens, cuts everything past **19°** off the picture.
+So the module's top presses on the lid's inner face and its clips run
+the full 8.6 mm down, exactly as long as the display's own clips.
+
+**The angle in the plastic.** The lens sits a little way inside its
+barrel, so the hole is a **cone**: Ø 7.2 at the lid's inner face,
+opening at the field-of-view angle through the lid's thickness. On a
+2 mm lid at 72.9° it reaches **Ø 10.5** outside — a clean webcam hole
+in the bezel, with nothing left to vignette the corners.
 
 **Clips on three sides, front open.** The front edge (facing the
 screen) has no clip: it is the insertion side, and it is also where
@@ -160,37 +164,40 @@ the flex cable leaves for the board. Once the display is clipped in,
 its glass closes that side and the camera cannot come back out.
 
 **Watch the clip length on a small module.** Two clips on adjacent
-sides meet in the corner as soon as their half-length reaches the
-lip setback, and the solid stops being manifold. The builder now
-refuses that combination with a warning giving the maximum length
-(5 mm on this 8.4 module). Bigger modules are unaffected.
+sides meet in the corner as soon as their half-length reaches the lip
+setback, and the solid stops being manifold. The builder refuses that
+combination with a warning giving the maximum length (5 mm on this
+8.4 module). Bigger modules are unaffected.
 
-- A **Recess** holds the module a few millimetres *below* the lid's
-  inner face, for a camera whose lens is short enough to stay inside
-  the lid. The clip finger then becomes a groove — a shoulder in
-  front of the module, the retaining lip behind it. Changing the
-  recess keeps the groove width: the catch depth follows it.
-- For a lens that does *not* reach the outer face, use a **cone**
-  cut instead of a circle: `Lens Ø` at the inner face, widening
-  through the lid at the `Field of view` angle. In the **3D
-  preview** the lid shows that hole at its real **outer** diameter
-  (that is the side you look at), the module outline dashed, and the
-  clips holding it.
+- A **Recess** holds the module below the lid's inner face, for a
+  camera you *want* set back behind something. The clip finger
+  becomes a groove — a shoulder in front, the lip behind — and a
+  ceiling closes the pocket over the module so it bears on more than
+  the three shoulders. Changing the recess keeps the groove width:
+  the catch depth follows it. Mind the angle: a recessed lens needs a
+  cone that widens over the recess *plus* the lid, which grows fast.
+- **Lens setback** on a cone cut is that same distance: the cone
+  starts at the lens plane, not at the lid, so a set-back module is
+  not vignetted by its own pocket. The inspector prints the resulting
+  outer opening as you type.
+- In the **3D preview** the lid shows the hole at its real **outer**
+  diameter (that is the side you look at), the module outline dashed,
+  and the clips holding it.
 
 Other Waveshare modules, if you use one: RPi Camera (B) 32 × 32 /
 43°, (E) 25 × 24 / 69.8°, (F) 25 × 24 / 50°, (G) and (H) 25 × 24 /
-160°, (M) 25 × 24 / 200°, OV5647-70 19 × 19 / 70°, RPi FPC Camera
-(B) 35 × 16 / 72.9°. Set *Module width/depth* and *Field of view*
+160°, (M) 25 × 24 / 200°, OV5647-70 19 × 19 / 70°, RPi FPC Camera (B)
+35 × 16 / 72.9°. Set *Module width/depth* and *Field of view*
 accordingly.
 
 **The camera looks through the lid, not through a wall** — like a
 laptop webcam, in the bezel above the screen. At its natural spot it
 lands right in the **lid-skirt band**, so the 7B template stretches
-the box to **176 × 116 × 45** — the strict minimum for the camera
-and its clips to clear the 1.8 mm skirt — rather than notching the
-skirt. The display is pushed down against the card-reader side and
-every wall opening is recomputed from its new position, so USB,
-buttons and card slot still line up.
+the box to **176 × 117 × 45** — the strict minimum for the camera and
+its clips to clear the 1.8 mm skirt — rather than notching the skirt.
+The display is pushed down against the card-reader side and every
+wall opening is recomputed from its new position, so USB, buttons and
+card slot still line up.
 
 ![Lid with the camera](../preview/p4-camera-detail.png)
 
@@ -244,6 +251,7 @@ Case panel.
 ## Case panel
 
 Inner dimensions, side-vent strip, zip-tie slots, lid fixing
-(snap-fit / screwed), FDM hole clearance, teardrop holes, and
-**wall-mounting tabs**: 2 or 4 Ø 4.2 eyelets at floor level, on the
+(snap-fit / screwed), FDM hole clearance, teardrop holes, **lid
+thickness** (3 mm default; drop it to 2 for a slimmer border around a
+screen — below 2 the plate warps), and **wall-mounting tabs**: 2 or 4 Ø 4.2 eyelets at floor level, on the
 sides or front/back, printed with the base.
