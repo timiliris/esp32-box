@@ -142,15 +142,17 @@ the real part:
 |---|---|
 | Square body | **8.4 × 8.4** |
 | Lens barrel | **Ø 7.2**, near-centred |
-| Height | **8.6** — the module reaches down to the back of the board |
+| Height | **6.6** — flex connector included, measured against a printed lid |
 | Lens centre to the glass edge | **5** |
 
 **The lens must sit against the lid.** This is not a style choice.
 Drop it even 3.6 mm — flush with the *front* of the board instead of
 its back — and the display's own cover glass, 5 mm away and now
 higher than the lens, cuts everything past **19°** off the picture.
-So the module's top presses on the lid's inner face and its clips run
-the full 8.6 mm down, exactly as long as the display's own clips.
+So the module's top presses on the lid's inner face, and the groove is
+cut to the module's own 6.6 mm — no more. A groove even 2 mm too deep
+lets the module float, and since its front edge carries no clip, it
+tips: the picture comes out at an angle.
 
 **The angle in the plastic.** The lens sits a little way inside its
 barrel, so the hole is a **cone**: Ø 7.2 at the lid's inner face,
