@@ -100,7 +100,11 @@ mount_tabs = "none"; // [none, x, y]  x = flancs, y = avant/arrière
 mount_n = 2;         // [2, 4]
 mount_hole = 4.2;    // Ø du trou de vis
 // Groupes d'entretoises PCB :
-// [cx, cy, entraxe_x, entraxe_y, h, dia, avant-trou, deux_trous, couvercle]
+// [cx, cy, entraxe_x, entraxe_y, h, dia, avant-trou, deux_trous,
+//  couvercle, pion]
+// pion : Ø d'un pion de centrage au sommet (0 = avant-trou de vis) —
+// pour une carte qu'on ne peut pas visser (écran dont la dalle couvre
+// les trous) : le pion la positionne, le couvercle la maintient
 // deux_trous : 0 = 4 plots en rectangle, 1 = 2 plots seulement, aux
 // positions (±x/2, ±y/2) liées — paire alignée ou diagonale
 // couvercle : 1 = plots suspendus sous le couvercle (écran, carte
@@ -744,10 +748,18 @@ module mount_ears() {
 }
 
 // Groupes d'entretoises PCB du builder
-module standoff_post(h, d, p) {
+// pin > 0 : pion de centrage au sommet (la carte se pose dessus et est
+// bloquée en X/Y) au lieu de l'avant-trou de vis
+module standoff_post(h, d, p, pin = 0) {
     difference() {
-        cylinder(d = d, h = h);
-        translate([0, 0, h - 4]) cylinder(d = p, h = 4.5);
+        union() {
+            cylinder(d = d, h = h);
+            if (pin > 0)
+                translate([0, 0, h - 0.01])
+                    cylinder(d1 = pin, d2 = pin - 0.4, h = 3);
+        }
+        if (pin <= 0)
+            translate([0, 0, h - 4]) cylinder(d = p, h = 4.5);
     }
 }
 
@@ -766,7 +778,8 @@ module standoff_sets_all() {
                 translate([q[0], q[1], floor_t])
                     standoff_post(len(s) > 4 ? s[4] : 5,
                                   len(s) > 5 ? s[5] : 6.5,
-                                  len(s) > 6 ? s[6] : 2.2);
+                                  len(s) > 6 ? s[6] : 2.2,
+                                  len(s) > 9 ? s[9] : 0);
 }
 
 // Entretoises suspendues sous le couvercle (9e champ = 1) : pour
@@ -779,7 +792,8 @@ module standoff_sets_lid() {
                     rotate([180, 0, 0])
                         standoff_post(len(s) > 4 ? s[4] : 5,
                                       len(s) > 5 ? s[5] : 6.5,
-                                      len(s) > 6 ? s[6] : 2.2);
+                                      len(s) > 6 ? s[6] : 2.2,
+                                      len(s) > 9 ? s[9] : 0);
 }
 
 // Ouverture USB-C (entrée du module de charge)

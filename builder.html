@@ -628,6 +628,8 @@ Object.assign(EN, {
   'Carte microSD': 'microSD card', 'Interrupteur à glissière': 'Slide switch',
   'Modèles': 'Templates', 'Waveshare ESP32-P4 7B — écran 7″': 'Waveshare ESP32-P4 7B — 7″ display',
   'Hauteur liée au couvercle': 'Height tied to the lid',
+  'Pion centrage Ø': 'Locating pin Ø',
+  'plots suspendus au-dessus du vide de la fenêtre': 'posts hang over the window opening',
   '1 découpe traverse la jupe — régénère le couvercle': '1 cutout crosses the skirt — regenerate the lid',
   'découpes traversent la jupe — régénère le couvercle': 'cutouts cross the skirt — regenerate the lid',
   'Remplacer le projet actuel ?': 'Replace the current project?',
@@ -987,7 +989,7 @@ function pcbGroupSvg(p, fw, fh) {
   for (const [sx, sy] of pos) {
     const [hx, hy] = toPx(p.cx + sx * p.dx / 2, fh / 2 - (p.cy + sy * p.dy / 2), fw);
     g.push(`<circle cx="${hx}" cy="${hy}" r="${p.pd / 2 * S}" fill="#10141b" stroke="${col}" stroke-width="1.5"/>`);
-    g.push(`<circle cx="${hx}" cy="${hy}" r="${p.pp / 2 * S}" fill="${col}"/>`);
+    g.push(`<circle cx="${hx}" cy="${hy}" r="${(p.pin > 0 ? p.pin : p.pp) / 2 * S}" fill="${col}"${p.pin > 0 ? ' stroke="#10141b" stroke-width=".8"' : ''}/>`);
   }
   const [tx, ty] = toPx(p.cx, fh / 2 - p.cy, fw);
   const plabel = p.holes === 2 ? (p.dy ? `2 tr diag ${p.dx} × ${p.dy}` : `2 tr · ${p.dx}`) : `${p.dx} × ${p.dy}`;
@@ -1374,6 +1376,21 @@ function pcbWarnings(p) {
   if (Math.abs(p.cy) + p.dy / 2 + 3.25 > state.inner.d / 2 - 1) out.push(`${t('Entretoises')} ${p.dx}×${p.dy} : ${t('débordent en profondeur')}`);
   return out;
 }
+// un plot suspendu sous le couvercle ne doit pas surplomber une fenêtre
+function lidPostWarnings(p) {
+  if (!p.onLid) return [];
+  const pos = p.holes === 2 ? [[-1, -1], [1, 1]] : [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+  for (const w of state.cuts) {
+    if (w.face !== 'lid' || w.type === 'circle' || isBtnType(w.type)) continue;
+    for (const [sx, sy] of pos) {
+      const px = p.cx + sx * p.dx / 2, py = p.cy + sy * p.dy / 2, r = p.pd / 2;
+      if (Math.abs(px - w.off) < w.w / 2 + r && Math.abs(py - w.z) < w.h / 2 + r)
+        return [t('plots suspendus au-dessus du vide de la fenêtre')];
+    }
+  }
+  return [];
+}
+
 function cellWarnings(c) {
   const out = [];
   const [foW, foH] = cellFoot(c);
@@ -1387,7 +1404,8 @@ function renderWarns() {
   for (const c of state.cuts)
     for (const m of cutWarnings(c)) all.push({ m, kind: 'cut', id: c.id, face: c.face });
   for (const p of state.pcbs)
-    for (const m of pcbWarnings(p)) all.push({ m, kind: 'pcb', id: p.id, face: p.onLid ? 'lid' : 'floor' });
+    for (const m of pcbWarnings(p).concat(lidPostWarnings(p)))
+      all.push({ m, kind: 'pcb', id: p.id, face: p.onLid ? 'lid' : 'floor' });
   for (const c of state.cells)
     for (const m of cellWarnings(c)) all.push({ m, kind: 'cell', id: c.id, face: 'floor' });
   for (const cp of state.comps)
@@ -1759,7 +1777,7 @@ function renderObjects() {
   for (const p of state.pcbs) rows.push({
     kind: 'pcb', id: p.id, face: p.onLid ? 'lid' : 'floor',
     label: p.holes === 2 ? 'Entretoises 2 tr' : 'Entretoises',
-    info: `${p.dx}×${p.dy}`, warn: pcbWarnings(p).length > 0,
+    info: `${p.dx}×${p.dy}`, warn: pcbWarnings(p).length + lidPostWarnings(p).length > 0,
   });
   for (const c of state.cells) rows.push({
     kind: 'cell', id: c.id, face: 'floor', label: 'Socle',
@@ -1862,6 +1880,7 @@ function renderInspector() {
     d.append(numField('Entraxe X', o.dx, v => o.dx = Math.max(5, v)));
     d.append(numField('Entraxe Y', o.dy, v => o.dy = Math.max(5, v)));
     d.append(numField('Hauteur', o.sh, v => o.sh = Math.max(2, v)));
+    d.append(numField('Pion centrage Ø', o.pin || 0, v => o.pin = Math.max(0, Math.min(v, 6))));
     d.append(checkRow('Monter sous le couvercle', !!o.onLid, v => {
       o.onLid = v;
       state.face = v ? 'lid' : 'floor';
@@ -2000,7 +2019,7 @@ function buildArgList(part) {
   return args;
 }
 function setExpr(p) {
-  return `[${p.cx},${p.cy},${p.dx},${p.dy},${p.sh},${p.pd},${p.pp},${p.holes === 2 ? 1 : 0},${p.onLid ? 1 : 0}]`;
+  return `[${p.cx},${p.cy},${p.dx},${p.dy},${p.sh},${p.pd},${p.pp},${p.holes === 2 ? 1 : 0},${p.onLid ? 1 : 0},${p.pin || 0}]`;
 }
 function lidSetsExpr() {
   const l = state.pcbs.filter(p => p.onLid);
@@ -2052,12 +2071,16 @@ function buildCommands() {
 // décalée (bordures 3.06 / 6.65 / 4.02 / 8.73). Vue de l'extérieur du
 // couvercle : USB à gauche, boutons à droite, microSD en façade.
 function applyTemplateP4_7B() {
-  const H = 40, SH = 5;              // hauteur intérieure, entretoise
-  const pcb = H - SH - 1.6;          // dessous de la carte
+  const H = 40, FRONT = 6;   // hauteur intérieure ; verre+dalle+PCB
+  const pcb = H - FRONT;     // dessous de la carte sous le couvercle
   state.inner = { w: 176, d: 109, h: H };
   state.cuts = []; state.pcbs = []; state.cells = []; state.divs = []; state.comps = [];
-  state.pcbs.push({ id: state.nextId++, cx: 0, cy: 0, sh: SH, dx: 156, dy: 89,
-                    holes: 4, pd: 7, pp: 2.7, onLid: true });
+  // La dalle couvre toute la carte : impossible de visser depuis le
+  // couvercle. La carte est prise en sandwich — le cadre du couvercle
+  // retient le verre, 4 plots montés du fond la poussent par l'arrière,
+  // leurs pions entrent dans les trous de fixation pour la caler.
+  state.pcbs.push({ id: state.nextId++, cx: 0, cy: 0, sh: r1(H - FRONT), dx: 156, dy: 89,
+                    holes: 4, pd: 7, pp: 2.2, pin: 2.6, onLid: false });
   const cut = (o) => { state.cuts.push(Object.assign({ id: state.nextId++, fromTop: true }, o)); };
   cut({ face: 'lid', type: 'rect', label: 'Écran 7″ 1024×600',
         off: -1.8, z: 2.4, w: 151.6, h: 83.4, fromTop: false });

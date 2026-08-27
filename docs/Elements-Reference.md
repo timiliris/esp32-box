@@ -53,8 +53,17 @@ The panel is **not centered**: its active area sits 1.79 mm left of
 and 2.36 mm above the board center. The palette window is placed with
 that offset already applied (viewed from outside the lid, USB side on
 the left) and is 1.5 mm smaller per edge so the bezel overlaps the
-panel border. Pair it with the **Waveshare ESP32-P4 7B** standoff
-preset, which mounts **under the lid**.
+panel border.
+
+**How it is held.** The cover glass (164.28 × 99.17) covers the whole
+PCB, so the 4 mounting holes are **not reachable from the front** — a
+boss coming down from the lid would crush the glass. The module is
+**sandwiched** instead: the lid frame retains the glass from the
+front, and 4 posts rising from the floor push the PCB from behind.
+Give those posts a **locating pin** (“Locating pin Ø”, 2.6 for Ø3
+holes) instead of a screw pilot: the pin drops into the mounting hole
+and locks the board in X/Y. Post height = inner height − the module's
+front stack (glass + panel + PCB, about 6 mm) — measure yours.
 
 Board edge features, measured from the drawing (distance from the
 top edge, back view — mirror the X when seen from the front):
@@ -117,7 +126,9 @@ Case panel.
 - **PCB standoffs** — groups of 4 (rectangle) or 2 (pair /
   diagonal) posts with self-tapping pilot holes. “Mount under the
   lid” hangs the posts from the lid's inner face instead of the
-  floor — that is how a display is fixed behind its window. Presets: dev
+  floor — for boards whose mounting holes stay reachable. “Locating
+  pin Ø” replaces the screw pilot with a pin that drops into the
+  board's hole, for a board that is pressed rather than screwed. Presets: dev
   boards, proto-board kits 2×8 → 9×15 cm (spacing = dimension − 4),
   common modules (GY-BME280 2-hole·10 verified, SSD1306 0.96″,
   GY-521, LM2596…, power bank charger module 65.5 × 27 →
