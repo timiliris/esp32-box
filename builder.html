@@ -802,7 +802,7 @@ const PALETTE = [
   { label: 'PG7',          sub: 'Ø 12.5',   type: 'circle', d: 12.5,
     tip: 'Presse-étoupe PG7 : sortie de câble propre, avec serrage anti-arrachement' },
   { label: 'Carte microSD', sub: '15 × 2.5', type: 'rect', w: 15, h: 2.5,
-    tip: 'Fente pour un lecteur microSD / TF en bord de carte (la carte s\'insère à travers la paroi). Sur l\'ESP32-P4-7B le lecteur est au centre du bord bas (83.5 mm depuis la gauche en vue arrière).' },
+    tip: 'Fente pour un lecteur microSD / TF en bord de carte (la carte s\'insère à travers la paroi). Sur l\'ESP32-P4-7B le lecteur va de 78 à 91 mm depuis le bord des boutons : quasi centré sur la carte.' },
   { label: 'Interrupteur à glissière', sub: '9 × 5', type: 'rect', w: 9, h: 5,
     tip: 'Fente d\'accès pour un petit interrupteur à glissière en bord de carte (ON/OFF de l\'ESP32-P4-7B).' },
   { label: 'Accès bouton', sub: 'Ø 4', type: 'circle', d: 4,
@@ -2243,9 +2243,11 @@ function applyTemplateP4_7B() {
   cut({ face: 'right', type: 'circle', label: 'RESET', off: 37.5, z: r1(pcb - 1.5), d: 4 });
   cut({ face: 'right', type: 'circle', label: 'BOOT',  off: 33,   z: r1(pcb - 1.5), d: 4 });
   // microSD en façade
-  // lecteur TF : centre à 83.5 du bord gauche en vue arrière, soit
-  // 80.5 en vue de face -> pratiquement centré sur la carte
-  cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: -1.5, z: r1(pcb - 1.1), w: 15, h: 3 });
+  // lecteur TF, mesuré sur la carte : 78 mm depuis le bord des boutons,
+  // 73 mm depuis celui des USB-C (78 + 13 + 73 = 164, la largeur de la
+  // carte) -> fente 78..91, centre 84.5 en vue arrière, soit 79.5 en
+  // vue de face, à 2.5 mm du centre du boîtier
+  cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: -2.5, z: r1(pcb - 1.1), w: 14, h: 3 });
   state.face = 'lid';
   state.panel = 'box';
   state.sel = null;
