@@ -1015,8 +1015,14 @@ function clipPositions(k, side) {
   const centre = (side === 2 || side === 3) ? k.cy : k.cx;
   const face = ['front', 'back', 'left', 'right'][side];
   const margin = 2.5, half = CLIP_L / 2;
+  // un connecteur de paroi ne peut gêner que si ce bord du module est
+  // vraiment contre la paroi ; sinon ils sont loin l'un de l'autre
+  const jeu = side === 2 ? (k.cx - k.w / 2) + state.inner.w / 2
+            : side === 3 ? state.inner.w / 2 - (k.cx + k.w / 2)
+            : side === 0 ? (k.cy - k.d / 2) + state.inner.d / 2
+            : state.inner.d / 2 - (k.cy + k.d / 2);
   const busy = [];
-  for (const c of state.cuts) {
+  if (jeu < 12) for (const c of state.cuts) {
     if (c.face !== face) continue;
     const hw = (c.type === 'circle' || isBtnType(c.type)) ? c.d / 2
              : (c.type === 'usbc' ? c.w / 2 : c.w / 2);
@@ -2236,47 +2242,55 @@ function buildCommands() {
 // décalée (bordures 3.06 / 6.65 / 4.02 / 8.73). Vue de l'extérieur du
 // couvercle : USB à gauche, boutons à droite, microSD en façade.
 function applyTemplateP4_7B() {
-  // Deux cotes différentes, mesurées depuis le verre plaqué sous le
-  // couvercle :
-  //   TOP_MAX 14.5 = point le plus haut de la carte (sommet des
-  //     entretoises déjà en place) -> c'est là que nos plots arrivent
-  //   STACK 8.6 = épaisseur de l'écran (verre + dalle + PCB) -> c'est
-  //     là que sont les connecteurs de bord
-  // (14.5 - 8.6 = 5.9 : les entretoises déjà montées sur la carte)
-  // H laisse ~30 mm sous la carte pour les fiches qui pointent vers le bas.
-  const H = 45, STACK = 8.6;   // TOP_MAX 14.5 = point le plus haut de la carte
-  const pcb = H - STACK;     // dos de la carte = niveau des connecteurs
-  state.inner = { w: 176, d: 109, h: H };
-  state.cuts = []; state.pcbs = []; state.cells = []; state.divs = []; state.comps = []; state.clips = [];
+  // Cotes mesurées, depuis le verre plaqué sous le couvercle :
+  //   STACK 8.6 = épaisseur de l'écran -> niveau des connecteurs
+  //   14.5 = point le plus haut de la carte (ses entretoises)
+  const H = 45, STACK = 8.6;
+  const GW = 164.28, GD = 99.17;   // encombrement du verre
+  const CAM_W = 35, CAM_D = 16;    // RPi FPC Camera (B)
+  const W = 176;
+  // profondeur : le verre + la caméra au-dessus + les jeux
+  const D = Math.ceil(GD + CAM_D + 12);
+  // la dalle est calée vers le bas (côté lecteur SD), la caméra au-dessus
+  const bY = r1(-D / 2 + 4 + GD / 2);
+  const pcb = H - STACK;           // dos de la carte = niveau des connecteurs
+  // position le long d'une paroi pour un élément à `t` du bord haut
+  const AL = t2 => r1(bY + 48.5 - t2);
+
+  state.inner = { w: W, d: D, h: H };
+  state.cuts = []; state.pcbs = []; state.cells = []; state.divs = [];
+  state.comps = []; state.clips = [];
+
   // La dalle couvre toute la carte : impossible de visser à travers
-  // l'écran. Le module se CLIPSE dans le couvercle — 8 crochets
-  // contournent le verre par l'extérieur et viennent prendre le dos de
-  // la carte. Le cadre du couvercle le retient par l'avant.
-  state.clips.push({ id: state.nextId++, cx: 0, cy: 0, w: 164.28, d: 99.17,
+  // l'écran. Le module se glisse sous des crochets du couvercle.
+  state.clips.push({ id: state.nextId++, cx: 0, cy: bY, w: GW, d: GD,
                      catch: STACK, grab: 2, cw: 10, nx: 2, ny: 2, open: 0 });
+
   const cut = (o) => { state.cuts.push(Object.assign({ id: state.nextId++, fromTop: true }, o)); };
+  // fenêtre : la dalle n'est pas centrée (-1.79 / +2.36 vs centre carte)
   cut({ face: 'lid', type: 'rect', label: 'Écran 7″ 1024×600',
-        off: -1.8, z: 2.4, w: 151.6, h: 83.4, fromTop: false });
+        off: -1.8, z: r1(bY + 2.4), w: 151.6, h: 83.4, fromTop: false });
+
   // bord USB (flanc gauche vu de l'extérieur du couvercle)
-  cut({ face: 'left', type: 'rect', label: 'USB-A', off: 0.9,  z: r1(pcb - 3.3), w: 14.5, h: 8 });
-  cut({ face: 'left', type: 'rect', label: 'USB-C', off: 19.7, z: r1(pcb - 1.7), w: 10, h: 4.6 });
-  cut({ face: 'left', type: 'rect', label: 'USB-C UART', off: 34.9, z: r1(pcb - 1.7), w: 10, h: 4.6 });
-  cut({ face: 'left', type: 'rect', label: 'Interrupteur à glissière', off: -36.4, z: r1(pcb - 2), w: 9, h: 5 });
-  // bord boutons (flanc droit)
-  // RESET et BOOT, mesurés du bord de la carte au centre du bouton :
-  // 10 et 19 -> 48.5 - 10 = 38.5 et 48.5 - 19 = 29.5 le long du bord
-  cut({ face: 'right', type: 'circle', label: 'RESET', off: 38.5, z: r1(pcb - 1.5), d: 4 });
-  cut({ face: 'right', type: 'circle', label: 'BOOT',  off: 29.5, z: r1(pcb - 1.5), d: 4 });
-  // microSD en façade
-  // lecteur TF, mesuré sur la carte : 78 mm depuis le bord des boutons,
-  // 73 mm depuis celui des USB-C (78 + 13 + 73 = 164, la largeur de la
-  // carte) -> fente 78..91, centre 84.5 en vue arrière, soit 79.5 en
-  // vue de face, à 2.5 mm du centre du boîtier
+  cut({ face: 'left', type: 'rect', label: 'USB-A', off: r1(-AL(49.4)), z: r1(pcb - 3.3), w: 14.5, h: 8 });
+  cut({ face: 'left', type: 'rect', label: 'USB-C', off: r1(-AL(68.2)), z: r1(pcb - 1.7), w: 10, h: 4.6 });
+  cut({ face: 'left', type: 'rect', label: 'USB-C UART', off: r1(-AL(83.4)), z: r1(pcb - 1.7), w: 10, h: 4.6 });
+  cut({ face: 'left', type: 'rect', label: 'Interrupteur à glissière', off: r1(-AL(12.1)), z: r1(pcb - 2), w: 9, h: 5 });
+  // bord boutons (flanc droit) — 10 et 19 du bord de la carte
+  cut({ face: 'right', type: 'circle', label: 'RESET', off: AL(10), z: r1(pcb - 1.5), d: 4 });
+  cut({ face: 'right', type: 'circle', label: 'BOOT',  off: AL(19), z: r1(pcb - 1.5), d: 4 });
+  // lecteur TF : fente 78..91 depuis le bord des boutons -> quasi centré
   cut({ face: 'front', type: 'rect', label: 'Carte microSD', off: -2.5, z: r1(pcb - 1.1), w: 14, h: 3 });
-  // caméra : bord opposé au lecteur, parfaitement centrée (78 mm de
-  // chaque côté sur une carte de 164) — hauteur à confirmer selon le
-  // module caméra utilisé
-  cut({ face: 'back', type: 'circle', label: 'Caméra', off: 0, z: r1(pcb - 4), d: 8 });
+
+  // caméra : elle regarde à travers le COUVERCLE, au-dessus de l'écran.
+  // Poche à rainure (le module est tenu en retrait, objectif affleurant)
+  // + cône qui dégage les 72.9° de champ.
+  const camY = r1(bY + GD / 2 + 4 + CAM_D / 2);
+  state.clips.push({ id: state.nextId++, cx: 0, cy: camY, w: CAM_W, d: CAM_D,
+                     catch: 6.6, recess: 5, grab: 2, cw: 10, nx: 2, ny: 1, open: 3 });
+  state.cuts.push({ id: state.nextId++, face: 'lid', type: 'cone',
+                    label: 'Caméra', off: 0, z: camY, d: 5, fov: 72.9 });
+
   state.face = 'lid';
   state.panel = 'box';
   state.sel = null;

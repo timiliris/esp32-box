@@ -153,8 +153,12 @@ Camera (B) 32 × 32 / 43°, (E) 25 × 24 / 69.8°, (F) 25 × 24 / 50°,
 (G) and (H) 25 × 24 / 160°, (M) 25 × 24 / 200°, OV5647-70 19 × 19 /
 70°. Set *Module width/depth* and *Field of view* accordingly.
 
-**Make room.** The camera needs its own space beside the screen: a
-35 × 16 module above a 7″ panel means roughly 20 mm more inner depth.
+**The camera looks through the lid, not through a wall** — like a
+laptop webcam, in the bezel above the screen. The **7B template**
+lays that out for you: box 176 × 128 × 45, the display module pushed
+towards the card-reader side, and the camera strip above it. Its
+wall openings are recomputed from the board's new position, so USB,
+buttons and card slot still line up.
 
 ## Windows & inserts (any face)
 
