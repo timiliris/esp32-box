@@ -715,7 +715,8 @@ function setLang(l) {
 // Constantes géométrie (doivent suivre esp32-box.scad)
 // ---------------------------------------------------------------
 const CORNER_R = 9;      // rayon des coins
-const LID_BAND = 9;      // zone haute occupée par jupe + clips (lip_h 7 + rainure)
+const LID_BAND = 9;      // zone haute affichée (jupe + rainure de clip)
+const SKIRT_H = 7;       // jupe réelle du couvercle (lip_h du .scad)
 const GRID = 0.5;        // pas de la grille (mm)
 const SNAP_TOL = 5;      // tolérance d'aimantation (px)
 
@@ -1416,7 +1417,7 @@ function cutNotes(c) {
   if (isFlat(c.face)) return [];
   const hh = c.type === 'circle' || isBtnType(c.type) ? c.d / 2
            : c.type === 'usbc' ? 5 : c.h / 2;
-  return (c.z + hh > state.inner.h - LID_BAND)
+  return (c.z + hh > state.inner.h - SKIRT_H)
     ? [t('traverse la jupe — régénère le couvercle')] : [];
 }
 
