@@ -746,6 +746,10 @@ const isFlat = f => f === 'lid' || f === 'floor';
 const VENT_TYPES = ['vslots', 'hslots', 'grid', 'hex'];
 // boutons pour tact switch 6×6 (parois uniquement)
 const isBtnType = t => t === 'btnflex' || t === 'btnpiston';
+const LID_T = 3;   // epaisseur du couvercle, cf. lid_t dans le .scad
+// Ouverture exterieure d'un cone camera : le trou s'evase a l'angle de vision
+const coneOuterR = c => (c.d + state.holeComp) / 2 +
+  LID_T * Math.tan((c.fov || 72.9) / 2 * Math.PI / 180);
 
 // Cellules d'un motif d'aération, en mm autour du centre de la zone
 // (mêmes formules que vent_pattern2d dans esp32-box.scad)
@@ -1337,7 +1341,7 @@ function render() {
       if (c.type === 'cone') {
         const [px, py] = toPx(c.off, flat ? fh / 2 - c.z : fh - c.z, fw);
         const rIn = (c.d + state.holeComp) / 2 * S;
-        const rOut = rIn + 3 * Math.tan((c.fov || 72.9) / 2 * Math.PI / 180) * S;
+        const rOut = coneOuterR(c) * S;
         g.push(`<circle cx="${px}" cy="${py}" r="${rOut}" fill="rgba(230,233,239,.05)" stroke="${stroke}" stroke-width="1" stroke-dasharray="3 2"/>`);
         g.push(`<circle cx="${px}" cy="${py}" r="${rIn}" fill="${isSel ? 'rgba(79,140,255,.14)' : 'rgba(230,233,239,.06)'}" stroke="${stroke}" stroke-width="1.6"/>`);
         g.push(`<text x="${px}" y="${py - rOut - 5}" fill="${stroke}" font-size="10" text-anchor="middle">${esc(t(c.label))}</text>`);
@@ -1728,6 +1732,11 @@ function faceHolesSvg(faceId, fw, fh) {
       s += `<circle cx="${cx}" cy="${cy}" r="${c.d / 2}" fill="#39435a" stroke="#0b0e13" stroke-width=".6"/>`;
       continue;
     }
+    if (c.type === 'cone') {
+      s += `<circle cx="${cx}" cy="${cy}" r="${coneOuterR(c)}" fill="#0b0e13"/>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="${(c.d + state.holeComp) / 2}" fill="none" stroke="#4a5670" stroke-width=".4"/>`;
+      continue;
+    }
     if (c.type === 'circle') {
       const rr = (c.d + state.holeComp) / 2;
       if (state.teardrop && c.d + state.holeComp >= 5) {
@@ -1785,7 +1794,11 @@ function flatHolesSvg(faceId, fw, fh) {
   for (const c of cutsOn(faceId)) {
     const cx = fw / 2 + c.off;
     const cy = faceId === 'floor' ? fh / 2 + c.z : fh / 2 - c.z;
-    if (c.type === 'circle') {
+    if (c.type === 'cone') {
+      // vu de l'exterieur : c'est la grande ouverture qu'on voit
+      s += `<circle cx="${cx}" cy="${cy}" r="${coneOuterR(c)}" fill="#0b0e13"/>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="${(c.d + state.holeComp) / 2}" fill="none" stroke="#4a5670" stroke-width=".4"/>`;
+    } else if (c.type === 'circle') {
       s += `<circle cx="${cx}" cy="${cy}" r="${(c.d + state.holeComp) / 2}" fill="#0b0e13"/>`;
     } else if (c.type === 'window') {
       s += `<rect x="${cx - c.w / 2}" y="${cy - c.h / 2}" width="${c.w}" height="${c.h}" rx="3" fill="rgba(197,139,255,.22)" stroke="rgba(197,139,255,.55)" stroke-width=".6" stroke-dasharray="2.5 1.5"/>`;
@@ -1823,6 +1836,21 @@ function render3d() {
   if (state.lidFix === 'screws')
     for (const sx of [-1, 1]) for (const sy of [-1, 1])
       lidExtra += `<circle cx="${w / 2 + sx * (w / 2 - 4.3)}" cy="${d / 2 + sy * (d / 2 - 4.3)}" r="1.7" fill="#0b0e13"/>`;
+  // modules tenus par des crochets : silhouette + crochets, vus au travers
+  for (const kk of state.clips) {
+    const mx = w / 2 + kk.cx, my = d / 2 - kk.cy;
+    lidExtra += `<rect x="${mx - kk.w / 2}" y="${my - kk.d / 2}" width="${kk.w}" height="${kk.d}" rx="2" fill="none" stroke="#7fc7ff" stroke-width=".6" stroke-dasharray="3 2" opacity=".75"/>`;
+    for (let side = 0; side < 4; side++)
+      for (const pp of clipPositions(kk, side)) {
+        const horiz = side === 2 || side === 3;
+        const cl = kk.cw || 14;
+        const bx = horiz ? mx + (side === 2 ? -kk.w / 2 - 1.6 : kk.w / 2 - 0.4)
+                         : mx + pp - cl / 2;
+        const by = horiz ? my - pp - cl / 2
+                         : my + (side === 0 ? kk.d / 2 - 0.4 : -kk.d / 2 - 1.6);
+        lidExtra += `<rect x="${bx}" y="${by}" width="${horiz ? 2 : cl}" height="${horiz ? cl : 2}" rx=".8" fill="rgba(127,199,255,.55)"/>`;
+      }
+  }
   lidExtra += flatHolesSvg('lid', w, d);
   let bottomExtra = flatHolesSvg('floor', w, d);
   for (const cp of state.comps)

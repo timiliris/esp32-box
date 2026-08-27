@@ -143,6 +143,9 @@ supports: **35 × 16 mm**, field of view **72.9°**.
   up flush with the lid, while the board itself sits back. The clip
   finger becomes a groove — a shoulder in front of the module, the
   retaining lip behind it.
+- In the **3D preview** the lid shows the lens hole at its real
+  **outer** diameter (that is the side you look at), the module
+  outline dashed, and the clips holding it.
 - The lens hole is a **cone** cut: `Lens Ø` at the inner face,
   widening through the lid at the `Field of view` angle so nothing
   vignettes the picture. With 5 mm and 72.9° it opens to about
