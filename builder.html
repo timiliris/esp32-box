@@ -292,6 +292,8 @@
               <input type="checkbox" id="optTear"></div>
             <div class="rowline" title="Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d'un écran. La jupe raidit le pourtour, mais sous 1.6 mm une grande plaque reste souple."><label style="width:auto;flex:1">Épaisseur couvercle</label>
               <input type="number" id="optLidT" step="0.2" min="1" max="6"></div>
+            <div class="rowline" title="Épaisseur du fond de la boîte. C'est lui qui porte tout : 2 mm suffisent, monte à 3 ou 4 pour un boîtier lourd ou vissé au mur."><label style="width:auto;flex:1">Épaisseur fond</label>
+              <input type="number" id="optFloorT" step="0.2" min="1" max="8"></div>
           </div>
         </div>
         <div class="group">
@@ -494,7 +496,12 @@ const EN = {
   'Fixation': 'Lid fixing', 'couvercle clipsé': 'snap-fit lid',
   'couvercle vissé': 'screwed lid',
   'Jeu perçage': 'Hole clearance', 'Goutte d\'eau': 'Teardrop holes',
-  'Épaisseur couvercle': 'Lid thickness', 'Régénérer': 'Rebuild',
+  'Épaisseur couvercle': 'Lid thickness', 'Épaisseur fond': 'Floor thickness',
+  'Épaisseur murs': 'Wall thickness', 'Régénérer': 'Rebuild',
+  'Épaisseur du fond de la boîte. C\'est lui qui porte tout : 2 mm suffisent, monte à 3 ou 4 pour un boîtier lourd ou vissé au mur.':
+    'Thickness of the box floor. It carries everything: 2 mm is enough; go to 3 or 4 for a heavy case or one screwed to a wall.',
+  'Cadre pleine hauteur. Cale-le contre une paroi : il se raccorde tout seul. Fond + couvercle aérés = l\'air extérieur traverse en cheminée.':
+    'Full-height frame. Snap it against an outer wall and it merges into it. Floor + lid vents = outside air flows through like a chimney.',
   'L\'accroche EST l\'épaisseur du module : le module est pincé entre la face intérieure du couvercle et la lèvre. Trop profonde, il flotte et bascule ; trop faible, le couvercle ne ferme pas. Pour une caméra, mesure le corps seul, barillet exclu — le barillet passe dans le trou.':
     'The catch depth IS the module\'s thickness: the module is pinched between the lid\'s inner face and the lip. Too deep and it floats and tips; too shallow and the lid will not close. For a camera, measure the body alone, barrel excluded — the barrel goes through the hole.',
   'Couvercle à': 'Lid at',
@@ -703,8 +710,6 @@ Object.assign(EN, {
     'Solder wires on the bare receptacle, slide its nose into the opening from the inside and lay it in the channel (retaining bridge at the rear). The wall blocks pull-out, the back stop takes plug-in force.',
   'Hauteur 0 = pleine (jusqu\'au couvercle). Passage câble 0 = aucun (encoche en haut sinon).':
     'Height 0 = full (up to the lid). Cable pass 0 = none (top notch otherwise).',
-  'Cadre pleine hauteur (murs 1.8). Cale-le contre une paroi : il se raccorde tout seul. Fond + couvercle aérés = l\'air extérieur traverse en cheminée.':
-    'Full-height frame (1.8 walls). Snap it against an outer wall: it joins automatically. Vented floor + lid = outside air flows through like a chimney.',
   'Perçage imprimé : Ø ': 'Printed hole: Ø ', ' · goutte d\'eau': ' · teardrop',
   'Découpe imprimée : ': 'Printed cutout: ',
 });
@@ -920,7 +925,7 @@ const BOX_PRESETS = [
 const DEFAULT_STATE = () => ({
   inner: { w: 100, d: 70, h: 40 },
   vents: false, tieSlots: false, lidFix: 'snap',
-  holeComp: 0.3, teardrop: true, lidT: 3,
+  holeComp: 0.3, teardrop: true, lidT: 3, floorT: 2,
   mountTabs: 'none', mountN: 2, panel: 'cut',
   face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], clips: [], nextId: 1, sel: null,
 });
@@ -1226,10 +1231,11 @@ function render() {
         }
       // passage câble
       if (cp.notchSide >= 0) {
-        const npos = cp.notchSide === 0 ? [cp.cx, cp.cy - cp.d / 2 - 0.9]
-                   : cp.notchSide === 1 ? [cp.cx, cp.cy + cp.d / 2 + 0.9]
-                   : cp.notchSide === 2 ? [cp.cx - cp.w / 2 - 0.9, cp.cy]
-                   : [cp.cx + cp.w / 2 + 0.9, cp.cy];
+        const ct = (cp.th || 1.8) / 2;
+        const npos = cp.notchSide === 0 ? [cp.cx, cp.cy - cp.d / 2 - ct]
+                   : cp.notchSide === 1 ? [cp.cx, cp.cy + cp.d / 2 + ct]
+                   : cp.notchSide === 2 ? [cp.cx - cp.w / 2 - ct, cp.cy]
+                   : [cp.cx + cp.w / 2 + ct, cp.cy];
         const horizN = cp.notchSide < 2;
         const [nx_, ny_] = toPx(npos[0] - (horizN ? cp.notchW / 2 : 1.4), fh / 2 - npos[1] - (horizN ? 1.4 : cp.notchW / 2), fw);
         g.push(`<rect x="${nx_}" y="${ny_}" width="${(horizN ? cp.notchW : 2.8) * S}" height="${(horizN ? 2.8 : cp.notchW) * S}" rx="${1.2 * S}" fill="#10141b" stroke="${col}" stroke-width=".8" stroke-opacity=".6"/>`);
@@ -1761,7 +1767,8 @@ function interiorSvg(w, d) {
     s += `<rect x="${w / 2 + dv.cx - dw / 2}" y="${Y(dv.cy) - dh / 2}" width="${dw}" height="${dh}" fill="rgba(224,113,155,.85)"/>`;
   }
   for (const cp of state.comps) {
-    s += `<rect x="${w / 2 + cp.cx - cp.w / 2 - 0.9}" y="${Y(cp.cy) - cp.d / 2 - 0.9}" width="${cp.w + 1.8}" height="${cp.d + 1.8}" fill="none" stroke="rgba(240,160,90,.9)" stroke-width="1.8"/>`;
+    const ct = cp.th || 1.8;
+    s += `<rect x="${w / 2 + cp.cx - cp.w / 2 - ct / 2}" y="${Y(cp.cy) - cp.d / 2 - ct / 2}" width="${cp.w + ct}" height="${cp.d + ct}" fill="none" stroke="rgba(240,160,90,.9)" stroke-width="${ct}"/>`;
     if (cp.ventFloor)
       for (const cell of ventCells('hex', cp.w - 3, cp.d - 3))
         s += `<polygon points="${hexPts(w / 2 + cp.cx + cell.x, Y(cp.cy + cell.y), cell.r)}" fill="#0b0e13"/>`;
@@ -2191,10 +2198,11 @@ function renderInspector() {
     d.append(checkRow('Aérer les parois en contact', !!o.ventWalls, v => o.ventWalls = v));
     d.append(selectRow('Passage', [[-1, 'aucun'], [0, 'mur avant'], [1, 'mur arrière'], [2, 'mur gauche'], [3, 'mur droit']],
       o.notchSide, v => o.notchSide = +v));
+    d.append(numField('Épaisseur murs', o.th || 1.8, v => o.th = Math.max(0.8, Math.min(v, 6))));
     if (o.notchSide >= 0) d.append(numField('Larg. passage', o.notchW, v => o.notchW = Math.max(4, v)));
     const hint = document.createElement('div');
     hint.className = 'empty';
-    hint.textContent = t('Cadre pleine hauteur (murs 1.8). Cale-le contre une paroi : il se raccorde tout seul. Fond + couvercle aérés = l\'air extérieur traverse en cheminée.');
+    hint.textContent = t('Cadre pleine hauteur. Cale-le contre une paroi : il se raccorde tout seul. Fond + couvercle aérés = l\'air extérieur traverse en cheminée.');
     d.append(hint);
     const acts = document.createElement('div'); acts.className = 'actions';
     acts.append(
@@ -2245,6 +2253,7 @@ function buildArgList(part) {
   if (state.lidFix === 'screws') args.push(`lid_fix="screws"`);
   if (state.holeComp !== 0.3) args.push(`hole_comp=${state.holeComp}`);
   if (state.lidT !== 3) args.push(`lid_t=${state.lidT}`);
+  if (state.floorT !== 2) args.push(`floor_t=${state.floorT}`);
   if (part === 'inserts') {
     const ins = state.cuts.filter(c => c.type === 'insert' || c.type === 'btnpiston').map(cutExpr);
     if (ins.length) args.push(`cuts=[${ins.join(',')}]`);
@@ -2298,7 +2307,7 @@ function divsExpr() {
 function compsExpr() {
   if (!state.comps.length) return null;
   return `compartments=[${state.comps.map(cp =>
-    `[${cp.cx},${cp.cy},${cp.w},${cp.d},${cp.ventFloor ? 1 : 0},${cp.ventLid ? 1 : 0},${cp.notchSide},${cp.notchW},${cp.ventWalls ? 1 : 0}]`).join(',')}]`;
+    `[${cp.cx},${cp.cy},${cp.w},${cp.d},${cp.ventFloor ? 1 : 0},${cp.ventLid ? 1 : 0},${cp.notchSide},${cp.notchW},${cp.ventWalls ? 1 : 0},${cp.th || 1.8}]`).join(',')}]`;
 }
 // parois de la boîte en contact avec un compartiment (mêmes seuils que
 // le .scad) : raccordé = le bord de la ZONE affleure la face intérieure,
@@ -2338,7 +2347,7 @@ function buildCommands() {
 // Version du modèle 7B. À incrémenter dès que la géométrie change :
 // un projet enregistré garde ses valeurs, il ne se met pas à jour tout
 // seul, et l'interface propose alors de le régénérer.
-const TPL_7B_V = 8;
+const TPL_7B_V = 9;
 
 function applyTemplateP4_7B() {
   // Cotes mesurées, depuis le verre plaqué sous le couvercle :
@@ -2398,8 +2407,10 @@ function applyTemplateP4_7B() {
 
   // bord USB (flanc gauche vu de l'extérieur du couvercle)
   cut({ face: 'left', type: 'rect', label: 'USB-A', off: r1(-AL(49.4)), z: r1(pcb - 3.3), w: 14.5, h: 8 });
-  cut({ face: 'left', type: 'rect', label: 'USB-C', off: r1(-AL(68.2)), z: r1(pcb - 1.7), w: 10, h: 4.6 });
-  cut({ face: 'left', type: 'rect', label: 'USB-C UART', off: r1(-AL(83.4)), z: r1(pcb - 1.7), w: 10, h: 4.6 });
+  // 12 × 6 et non la cote nominale de la prise : c'est la surmoulure du
+  // câble qui doit passer, et celle des câbles Apple ne rentrait pas
+  cut({ face: 'left', type: 'rect', label: 'USB-C', off: r1(-AL(68.2)), z: r1(pcb - 1.7), w: 12, h: 6 });
+  cut({ face: 'left', type: 'rect', label: 'USB-C UART', off: r1(-AL(83.4)), z: r1(pcb - 1.7), w: 12, h: 6 });
   cut({ face: 'left', type: 'rect', label: 'Interrupteur à glissière', off: r1(-AL(12.1)), z: r1(pcb - 2), w: 9, h: 5 });
   // bord boutons (flanc droit) — 10 et 19 du bord de la carte
   cut({ face: 'right', type: 'circle', label: 'RESET', off: AL(10), z: r1(pcb - 1.5), d: 4 });
@@ -2775,6 +2786,10 @@ function buildStatic() {
     const v = parseFloat($('optLidT').value);
     if (!isNaN(v) && v >= 1) { pushHistory('lidT'); state.lidT = v; updateAll(); }
   });
+  $('optFloorT').addEventListener('input', () => {
+    const v = parseFloat($('optFloorT').value);
+    if (!isNaN(v) && v >= 1) { pushHistory('floorT'); state.floorT = v; updateAll(); }
+  });
   $('resetBtn').addEventListener('click', () => {
     if (confirm(t('Tout effacer ?'))) { pushHistory(); state = DEFAULT_STATE(); updateAll(); }
   });
@@ -2917,6 +2932,7 @@ function updateAll(withInspector = true) {
   if (document.activeElement !== $('optComp')) $('optComp').value = state.holeComp;
   $('optTear').checked = state.teardrop;
   if (document.activeElement !== $('optLidT')) $('optLidT').value = state.lidT;
+  if (document.activeElement !== $('optFloorT')) $('optFloorT').value = state.floorT;
   const stale = state.tpl && state.tpl.id === 'p4_7b' && state.tpl.v < TPL_7B_V;
   $('tplStale').style.display = stale ? '' : 'none';
   if (stale) $('tplStaleTxt').textContent =

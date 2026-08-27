@@ -849,10 +849,13 @@ module mount_ears() {
 // Groupes d'entretoises PCB du builder
 // pin > 0 : pion de centrage au sommet (la carte se pose dessus et est
 // bloquée en X/Y) au lieu de l'avant-trou de vis
-module standoff_post(h, d, p, pin = 0) {
+// weld : le poteau s'enfonce de `weld` dans la pièce qui le porte. Posé
+// pile sur la face, il ne la touchait que par un plan d'épaisseur nulle
+// et CGAL le sortait en volume détaché. Le sommet, lui, ne bouge pas.
+module standoff_post(h, d, p, pin = 0, weld = 0) {
     difference() {
         union() {
-            cylinder(d = d, h = h);
+            translate([0, 0, -weld]) cylinder(d = d, h = h + weld);
             if (pin > 0)
                 translate([0, 0, h - 0.01])
                     cylinder(d1 = pin, d2 = pin - 0.4, h = 3);
@@ -878,7 +881,7 @@ module standoff_sets_all() {
                     standoff_post(len(s) > 4 ? s[4] : 5,
                                   len(s) > 5 ? s[5] : 6.5,
                                   len(s) > 6 ? s[6] : 2.2,
-                                  len(s) > 9 ? s[9] : 0);
+                                  len(s) > 9 ? s[9] : 0, 0.4);
 }
 
 // Entretoises suspendues sous le couvercle (9e champ = 1) : pour
@@ -892,7 +895,7 @@ module standoff_sets_lid() {
                         standoff_post(len(s) > 4 ? s[4] : 5,
                                       len(s) > 5 ? s[5] : 6.5,
                                       len(s) > 6 ? s[6] : 2.2,
-                                      len(s) > 9 ? s[9] : 0);
+                                      len(s) > 9 ? s[9] : 0, 0.4);
 }
 
 // Ouverture USB-C (entrée du module de charge)
@@ -954,11 +957,7 @@ module board_posts() {
     for (sx = [-1, 1], sy = [-1, 1])
         translate([board_off[0] + sx * hole_x / 2,
                    board_off[1] + sy * hole_y / 2, floor_t])
-            difference() {
-                cylinder(d = standoff_d, h = standoff_h);
-                translate([0, 0, standoff_h - 4])
-                    cylinder(d = standoff_pilot, h = 4.5);
-            }
+            standoff_post(standoff_h, standoff_d, standoff_pilot, 0, 0.4);
 }
 
 // Berceau imprimé pour cellule cylindrique : deux joues à encoche
@@ -972,14 +971,14 @@ module cell_cradle(L, D) {
         // joue
         translate([s * (L / 2 - 10) - 1.5, 0, 0])
             difference() {
-                translate([0, -(D / 2 + 2.5), 0])
-                    cube([3, D + 5, rib_h]);
+                translate([0, -(D / 2 + 2.5), -0.4])
+                    cube([3, D + 5, rib_h + 0.4]);
                 translate([-0.5, 0, axis_h])
                     rotate([0, 90, 0]) cylinder(r = R, h = 4);
             }
         // butée d'extrémité
-        translate([s * (L / 2 + 0.4) - (s < 0 ? 2.4 : 0), -(D / 2 + 2.5), 0])
-            cube([2.4, D + 5, D * 0.5]);
+        translate([s * (L / 2 + 0.4) - (s < 0 ? 2.4 : 0), -(D / 2 + 2.5), -0.4])
+            cube([2.4, D + 5, D * 0.5 + 0.4]);
     }
 }
 
@@ -1039,6 +1038,7 @@ module compartments_all() {
         w = cp[2]; d = cp[3];
         ns = len(cp) > 6 ? cp[6] : -1;
         nw2 = len(cp) > 7 && cp[7] > 0 ? cp[7] : 8;
+        th = len(cp) > 9 && cp[9] > 0 ? cp[9] : 1.8;   // épaisseur des murs
         h = ih - 0.4;
         intersection() {
             translate([0, 0, floor_t - 0.2])
@@ -1047,22 +1047,22 @@ module compartments_all() {
                 difference() {
                     linear_extrude(height = h + 0.2)
                         difference() {
-                            square([w + 3.6, d + 3.6], center = true);
+                            square([w + 2 * th, d + 2 * th], center = true);
                             square([w, d], center = true);
                         }
                     // passage câble en haut du mur choisi
                     if (ns == 0)
-                        translate([-nw2 / 2, -(d / 2 + 2.9), h + 0.2 - 8])
-                            cube([nw2, 4, 9]);
+                        translate([-nw2 / 2, -(d / 2 + th + 1.1), h + 0.2 - 8])
+                            cube([nw2, th + 2.2, 9]);
                     if (ns == 1)
                         translate([-nw2 / 2, d / 2 - 1.1, h + 0.2 - 8])
-                            cube([nw2, 4, 9]);
+                            cube([nw2, th + 2.2, 9]);
                     if (ns == 2)
-                        translate([-(w / 2 + 2.9), -nw2 / 2, h + 0.2 - 8])
-                            cube([4, nw2, 9]);
+                        translate([-(w / 2 + th + 1.1), -nw2 / 2, h + 0.2 - 8])
+                            cube([th + 2.2, nw2, 9]);
                     if (ns == 3)
                         translate([w / 2 - 1.1, -nw2 / 2, h + 0.2 - 8])
-                            cube([4, nw2, 9]);
+                            cube([th + 2.2, nw2, 9]);
                 }
         }
     }

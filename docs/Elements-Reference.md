@@ -251,6 +251,8 @@ Case panel.
   them into the outer walls: they're trimmed and joined.
 - **Compartments** — a closed frame to isolate a sensor, snapping
   magnetically against outer walls (fused sides shown hatched).
+  Wall thickness is adjustable per compartment (1.8 default) — thin
+  ones save room around a sensor, thick ones block heat better.
   Options: honeycomb vent **in the floor below**, **in the lid
   above** (chimney airflow — regenerate the lid!), and **in the
   touching outer walls**. Cable pass on any of the four frame walls
@@ -259,8 +261,9 @@ Case panel.
 ## Case panel
 
 Inner dimensions, side-vent strip, zip-tie slots, lid fixing
-(snap-fit / screwed), FDM hole clearance, teardrop holes, **lid
-thickness** (3 mm default, down to 1; thinner means a slimmer border
+(snap-fit / screwed), FDM hole clearance, teardrop holes, **floor
+thickness** (2 mm default — it carries everything, so go to 3 or 4 for
+a heavy case or one screwed to a wall), **lid thickness** (3 mm default, down to 1; thinner means a slimmer border
 around a screen, and the skirt stiffens the rim like an angle
 section — but below 1.6 a large plate stays floppy, and the builder
 says so. M3 countersinks are 1.4 deep and break through such a lid,
