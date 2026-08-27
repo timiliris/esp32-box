@@ -680,7 +680,15 @@ Object.assign(EN, {
   'Crochets trop longs pour ce module : max':
     'Clips too long for this module: max',
   'crochet(s) non placé(s) : pas de place entre les découpes': 'clip(s) not placed: no room between the cutouts',
-  'Largeur crochet': 'Clip width',
+  'Largeur crochet': 'Clip width', 'Un crochet': 'One clip', 'Bord': 'Edge',
+  'Position': 'Position', 'Passer en face': 'Move opposite',
+  'Placer à la main': 'Place by hand', 'Replacer automatiquement': 'Auto-place again',
+  'Glisse-le le long de son bord. Les bandes hachurées sont les zones interdites : un connecteur de paroi passe là. « Passer en face » l\'envoie sur le bord opposé.':
+    'Drag it along its edge. The hatched bands are the forbidden zones: a wall connector comes through there. “Move opposite” sends it to the far edge.',
+  'Placement manuel : clique un crochet pour le déplacer le long de son bord ou le passer en face. « Crochets ↔ / ↕ » et « Côté d\'insertion » ne s\'appliquent plus.':
+    'Manual placement: click a clip to slide it along its edge or send it opposite. “Clips ↔ / ↕” and “Insertion side” no longer apply.',
+  'Placement automatique : les crochets se répartissent en évitant les connecteurs. Passe à la main pour les déplacer un par un.':
+    'Automatic placement: clips spread out while avoiding the connectors. Switch to manual to move them one by one.',
   'avant': 'front', 'arrière': 'back', 'gauche': 'left', 'droite': 'right',
   'Ajouter des crochets': 'Add retaining clips',
   'Larg./prof. = encombrement du module (le verre). Accroche = épaisseur de l\'écran : le crochet contourne le verre et vient prendre le dos de la carte.':
@@ -1046,17 +1054,13 @@ function toPx(xmm, ymmFromTop, fw) { return [view.ox + (xmm + fw / 2) * view.sca
 // Positions des crochets sur un bord, en évitant les découpes de la
 // paroi correspondante (connecteurs, boutons…). side : 0 avant,
 // 1 arrière, 2 gauche, 3 droite. Renvoie [] si le bord est ouvert.
-function clipPositions(k, side) {
-  if (k.open === side) return [];
-  const CLIP_L = k.cw || 14;
-  const n = (side === 2 || side === 3) ? (k.ny || 0) : (k.nx || 0);
-  if (!n) return [];
-  const along = (side === 2 || side === 3) ? k.d : k.w;
+// Zones où un crochet ne peut pas tomber sur ce bord du module : en
+// face d'un connecteur de paroi. On ne regarde la paroi que si ce bord
+// du module en est vraiment proche — sinon un module au centre du
+// couvercle « verrait » des découpes situées à 10 cm de là.
+function clipBusy(k, side) {
   const centre = (side === 2 || side === 3) ? k.cy : k.cx;
   const face = ['front', 'back', 'left', 'right'][side];
-  const margin = 2.5, half = CLIP_L / 2;
-  // un connecteur de paroi ne peut gêner que si ce bord du module est
-  // vraiment contre la paroi ; sinon ils sont loin l'un de l'autre
   const jeu = side === 2 ? (k.cx - k.w / 2) + state.inner.w / 2
             : side === 3 ? state.inner.w / 2 - (k.cx + k.w / 2)
             : side === 0 ? (k.cy - k.d / 2) + state.inner.d / 2
@@ -1064,11 +1068,34 @@ function clipPositions(k, side) {
   const busy = [];
   if (jeu < 12) for (const c of state.cuts) {
     if (c.face !== face) continue;
-    const hw = (c.type === 'circle' || isBtnType(c.type)) ? c.d / 2
-             : (c.type === 'usbc' ? c.w / 2 : c.w / 2);
+    const hw = (c.type === 'circle' || isBtnType(c.type)) ? c.d / 2 : c.w / 2;
     const rel = c.off * FACE_SIGN[face] - centre;
-    busy.push([rel - hw - margin, rel + hw + margin]);
+    busy.push([rel - hw - 2.5, rel + hw + 2.5]);
   }
+  return busy;
+}
+
+// Liste effective des crochets d'un groupe : le placement manuel prend
+// le pas sur le solveur automatique dès qu'il existe.
+function clipList(k) {
+  if (k.man) return k.man;
+  const out = [];
+  for (const side of [0, 1, 2, 3])
+    for (const p of clipPositions(k, side)) out.push({ s: side, p });
+  return out;
+}
+// Longueur du bord d'un module le long duquel court un crochet
+function clipSpan(k, side) { return (side === 2 || side === 3) ? k.d : k.w; }
+
+function clipPositions(k, side) {
+  if (k.open === side) return [];
+  const CLIP_L = k.cw || 14;
+  const n = (side === 2 || side === 3) ? (k.ny || 0) : (k.nx || 0);
+  if (!n) return [];
+  const along = (side === 2 || side === 3) ? k.d : k.w;
+  const centre = (side === 2 || side === 3) ? k.cy : k.cx;
+  const half = CLIP_L / 2;
+  const busy = clipBusy(k, side);
   const libre = p => Math.abs(p) + half <= along / 2 + 0.01 &&
     !busy.some(b => p + half > b[0] && p - half < b[1]);
   const out = [];
@@ -1288,19 +1315,31 @@ function render() {
       g.push(`<g data-kind="clip" data-id="${k.id}" style="cursor:grab">`);
       g.push(`<rect x="${ox}" y="${oy}" width="${k.w * S2}" height="${k.d * S2}" rx="3" fill="${isSel ? 'rgba(79,140,255,.07)' : 'transparent'}" stroke="${col}" stroke-width="1.2" stroke-dasharray="6 3"/>`);
       const L = k.cw || 14;
-      for (const side of [2, 3]) {
-        const sx = side === 3 ? 1 : -1;
-        for (const pos of clipPositions(k, side)) {
-          const [px, py] = toPx(k.cx + sx * (k.w / 2 + 0.3) - (sx > 0 ? 0 : 2), fh / 2 - (k.cy + pos) - L / 2, fw);
-          g.push(`<rect x="${px}" y="${py}" width="${2 * S2}" height="${L * S2}" fill="${col}"/>`);
+      // zones interdites : en face d'un connecteur de paroi
+      for (const side of [0, 1, 2, 3]) {
+        const horiz = side === 2 || side === 3;
+        const centre = horiz ? k.cy : k.cx;
+        const span = clipSpan(k, side);
+        for (const b of clipBusy(k, side)) {
+          const a0 = Math.max(b[0], -span / 2), a1 = Math.min(b[1], span / 2);
+          if (a1 <= a0) continue;
+          const [bx, by] = horiz
+            ? toPx(k.cx + (side === 3 ? 1 : -1) * (k.w / 2 + 0.3) - (side === 3 ? 0 : 2.4), fh / 2 - (centre + a1), fw)
+            : toPx(k.cx + a0 - 0, fh / 2 - (k.cy + (side === 1 ? 1 : -1) * (k.d / 2 + 0.3)) - (side === 1 ? 0 : 2.4), fw);
+          g.push(`<rect x="${bx}" y="${by}" width="${(horiz ? 2.4 : a1 - a0) * S2}" height="${(horiz ? a1 - a0 : 2.4) * S2}" fill="url(#interdit)" stroke="rgba(240,90,90,.5)" stroke-width=".8"/>`);
         }
       }
-      for (const side of [0, 1]) {
-        const sy = side === 1 ? 1 : -1;
-        for (const pos of clipPositions(k, side)) {
-          const [px, py] = toPx(k.cx + pos - L / 2, fh / 2 - (k.cy + sy * (k.d / 2 + 0.3)) - (sy > 0 ? 2 : 0), fw);
-          g.push(`<rect x="${px}" y="${py}" width="${L * S2}" height="${2 * S2}" fill="${col}"/>`);
-        }
+      const liste = clipList(k);
+      for (let i = 0; i < liste.length; i++) {
+        const { s: side, p: pos } = liste[i];
+        const selOne = state.sel && state.sel.kind === 'clipone' &&
+                       state.sel.id === k.id && state.sel.i === i;
+        const c1 = selOne ? 'var(--accent)' : col;
+        const horiz = side === 2 || side === 3;
+        const [px, py] = horiz
+          ? toPx(k.cx + (side === 3 ? 1 : -1) * (k.w / 2 + 0.3) - (side === 3 ? 0 : 2), fh / 2 - (k.cy + pos) - L / 2, fw)
+          : toPx(k.cx + pos - L / 2, fh / 2 - (k.cy + (side === 1 ? 1 : -1) * (k.d / 2 + 0.3)) - (side === 1 ? 2 : 0), fw);
+        g.push(`<rect data-kind="clipone" data-id="${k.id}" data-i="${i}" style="cursor:grab" x="${px - (selOne ? 1 : 0)}" y="${py - (selOne ? 1 : 0)}" width="${(horiz ? 2 : L) * S2 + (selOne ? 2 : 0)}" height="${(horiz ? L : 2) * S2 + (selOne ? 2 : 0)}" rx="1" fill="${c1}"/>`);
       }
       if (k.open >= 0) {
         const a = { 0: [k.cx, k.cy - k.d / 2 - 6, 0, -1], 1: [k.cx, k.cy + k.d / 2 + 6, 0, 1],
@@ -1467,7 +1506,13 @@ function render() {
     }
   }
 
-  $('canvas').innerHTML = g.join('');
+  // le motif des zones interdites vit dans le rendu : innerHTML remplace
+  // tout le contenu du SVG, un <defs> statique serait effacé au 1er rendu
+  $('canvas').innerHTML =
+    '<defs><pattern id="interdit" width="5" height="5" patternUnits="userSpaceOnUse" ' +
+    'patternTransform="rotate(45)"><rect width="5" height="5" fill="rgba(240,90,90,.14)"/>' +
+    '<line x1="0" y1="0" x2="0" y2="5" stroke="rgba(240,90,90,.75)" stroke-width="1.6"/>' +
+    '</pattern></defs>' + g.join('');
   renderWarns();
 }
 
@@ -1544,9 +1589,10 @@ function lidPostWarnings(p) {
 }
 
 function clipWarnings(k) {
-  const voulu = (k.open === 2 ? 0 : k.ny) + (k.open === 3 ? 0 : k.ny) +
-                (k.open === 0 ? 0 : k.nx) + (k.open === 1 ? 0 : k.nx);
-  const posés = [0, 1, 2, 3].reduce((a, s) => a + clipPositions(k, s).length, 0);
+  const voulu = k.man ? k.man.length
+    : (k.open === 2 ? 0 : k.ny) + (k.open === 3 ? 0 : k.ny) +
+      (k.open === 0 ? 0 : k.nx) + (k.open === 1 ? 0 : k.nx);
+  const posés = clipList(k).length;
   const out = posés < voulu
     ? [`${voulu - posés} ${t('crochet(s) non placé(s) : pas de place entre les découpes')}`]
     : [];
@@ -1621,7 +1667,20 @@ $('canvas').addEventListener('pointerdown', e => {
   const t = e.target.closest('[data-kind]');
   if (!t) { state.sel = null; snapGuides = []; updateAll(); return; }
   const kind = t.dataset.kind, id = +t.dataset.id;
-  state.sel = { kind, id };
+  state.sel = kind === 'clipone'
+    ? { kind, id, i: +t.dataset.i }
+    : { kind, id };
+  if (kind === 'clipone') {
+    const k = state.clips.find(c => c.id === id);
+    if (k) {
+      if (!k.man) k.man = clipList(k).map(c => ({ s: c.s, p: c.p }));
+      drag = { kind, id, i: state.sel.i, sx: e.clientX, sy: e.clientY,
+               op: k.man[state.sel.i] ? k.man[state.sel.i].p : 0,
+               snap0: snapshot(), pushed: false };
+    }
+    updateAll();
+    return;
+  }
   // les objets du fond vus depuis une paroi/couvercle : sélection sans drag
   if (kind !== 'cut' && state.face !== 'floor' && state.face !== 'lid') {
     updateAll();
@@ -1638,6 +1697,7 @@ $('canvas').addEventListener('pointerdown', e => {
 });
 window.addEventListener('pointermove', e => {
   if (!drag) return;
+  if (drag.kind === 'clipone') { dragClipOne(e); return; }
   const o = selected(); if (!o) return;
   if (!drag.pushed) {
     history.push(drag.snap0);
@@ -1691,6 +1751,49 @@ window.addEventListener('pointermove', e => {
   tip.textContent = `${nx} ; ${nz}`;
   updateAll(false);
 });
+// Un crochet glisse le long de son bord, sans jamais entrer dans une
+// zone interdite ni chevaucher un voisin du même bord.
+function dragClipOne(e) {
+  const k = state.clips.find(c => c.id === drag.id);
+  if (!k || !k.man || !k.man[drag.i]) return;
+  if (!drag.pushed) {
+    history.push(drag.snap0);
+    if (history.length > 100) history.shift();
+    future.length = 0; lastTag = null;
+    drag.pushed = true;
+  }
+  const c = k.man[drag.i];
+  const horiz = c.s === 2 || c.s === 3;
+  const d = horiz ? -(e.clientY - drag.sy) / view.scale
+                  : (e.clientX - drag.sx) / view.scale;
+  const L = k.cw || 14, half = L / 2, span = clipSpan(k, c.s);
+  let p = r1(Math.round((drag.op + d) / GRID) * GRID);
+  p = Math.max(-span / 2 + half, Math.min(span / 2 - half, p));
+  const busy = clipBusy(k, c.s);
+  const bloque = q => busy.some(b => q + half > b[0] && q - half < b[1]) ||
+    k.man.some((o2, j) => j !== drag.i && o2.s === c.s && Math.abs(o2.p - q) < L + 1);
+  if (bloque(p)) {
+    // on glisse vers la place libre la plus proche plutôt que de bloquer net
+    let best = null;
+    for (let step = 0.5; step <= span && best === null; step += 0.5) {
+      for (const q of [p - step, p + step]) {
+        if (Math.abs(q) + half > span / 2 + 0.01) continue;
+        if (!bloque(q)) { best = r1(q); break; }
+      }
+    }
+    if (best === null) return;
+    p = best;
+  }
+  c.p = p;
+  const tip = $('dragTip');
+  const wr = $('canvasWrap').getBoundingClientRect();
+  tip.style.display = 'block';
+  tip.style.left = (e.clientX - wr.left + 14) + 'px';
+  tip.style.top = (e.clientY - wr.top - 26) + 'px';
+  tip.textContent = `${p} mm`;
+  updateAll(false);
+}
+
 window.addEventListener('pointerup', () => {
   if (drag) { drag = null; snapGuides = []; $('dragTip').style.display = 'none'; updateAll(); }
 });
@@ -1898,16 +2001,16 @@ function render3d() {
   for (const kk of state.clips) {
     const mx = w / 2 + kk.cx, my = d / 2 - kk.cy;
     lidExtra += `<rect x="${mx - kk.w / 2}" y="${my - kk.d / 2}" width="${kk.w}" height="${kk.d}" rx="2" fill="none" stroke="#7fc7ff" stroke-width=".6" stroke-dasharray="3 2" opacity=".75"/>`;
-    for (let side = 0; side < 4; side++)
-      for (const pp of clipPositions(kk, side)) {
-        const horiz = side === 2 || side === 3;
-        const cl = kk.cw || 14;
-        const bx = horiz ? mx + (side === 2 ? -kk.w / 2 - 1.6 : kk.w / 2 - 0.4)
-                         : mx + pp - cl / 2;
-        const by = horiz ? my - pp - cl / 2
-                         : my + (side === 0 ? kk.d / 2 - 0.4 : -kk.d / 2 - 1.6);
-        lidExtra += `<rect x="${bx}" y="${by}" width="${horiz ? 2 : cl}" height="${horiz ? cl : 2}" rx=".8" fill="rgba(127,199,255,.55)"/>`;
-      }
+    for (const cc of clipList(kk)) {
+      const side = cc.s, pp = cc.p;
+      const horiz = side === 2 || side === 3;
+      const cl = kk.cw || 14;
+      const bx = horiz ? mx + (side === 2 ? -kk.w / 2 - 1.6 : kk.w / 2 - 0.4)
+                       : mx + pp - cl / 2;
+      const by = horiz ? my - pp - cl / 2
+                       : my + (side === 0 ? kk.d / 2 - 0.4 : -kk.d / 2 - 1.6);
+      lidExtra += `<rect x="${bx}" y="${by}" width="${horiz ? 2 : cl}" height="${horiz ? cl : 2}" rx=".8" fill="rgba(127,199,255,.55)"/>`;
+    }
   }
   lidExtra += flatHolesSvg('lid', w, d);
   let bottomExtra = flatHolesSvg('floor', w, d);
@@ -2146,6 +2249,39 @@ function renderInspector() {
       actionBtn('Supprimer', removeSelected, 'danger'),
     );
     d.append(acts);
+  } else if (state.sel.kind === 'clipone') {
+    const k = state.clips.find(c => c.id === state.sel.id);
+    const c = k && k.man && k.man[state.sel.i];
+    if (!c) { box.innerHTML = '<div class="empty">—</div>'; return; }
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;margin-bottom:8px';
+    title.textContent = t('Un crochet');
+    d.append(title);
+    d.append(selectRow('Bord', [[0, 'avant'], [1, 'arrière'], [2, 'gauche'], [3, 'droite']],
+      c.s, v => { c.s = +v; c.p = 0; }));
+    d.append(numField('Position', c.p, v => {
+      const half = (k.cw || 14) / 2, span = clipSpan(k, c.s);
+      c.p = r1(Math.max(-span / 2 + half, Math.min(span / 2 - half, v)));
+    }));
+    const acts = document.createElement('div'); acts.className = 'actions';
+    acts.append(
+      actionBtn('Passer en face', () => { c.s = c.s ^ 1; c.p = -c.p; }),
+      actionBtn('Dupliquer', () => {
+        k.man.splice(state.sel.i + 1, 0, { s: c.s, p: r1(c.p + (k.cw || 14) + 2) });
+        state.sel = { kind: 'clipone', id: k.id, i: state.sel.i + 1 };
+      }),
+      actionBtn('Supprimer', () => {
+        k.man.splice(state.sel.i, 1);
+        state.sel = { kind: 'clip', id: k.id };
+      }, 'danger'),
+    );
+    d.append(acts);
+    const h2 = document.createElement('div');
+    h2.className = 'empty';
+    h2.textContent = t('Glisse-le le long de son bord. Les bandes hachurées sont les zones interdites : un connecteur de paroi passe là. « Passer en face » l\'envoie sur le bord opposé.');
+    d.append(h2);
+    box.append(d);
+    return;
   } else if (state.sel.kind === 'clip') {
     const title = document.createElement('div');
     title.style.cssText = 'font-weight:600;margin-bottom:8px';
@@ -2173,6 +2309,19 @@ function renderInspector() {
     d.append(selectRow('Côté d\'insertion',
       [[-1, 'aucun (à clipser)'], [0, 'avant'], [1, 'arrière'], [2, 'gauche'], [3, 'droite']],
       o.open === undefined ? -1 : o.open, v => o.open = +v));
+    const modeRow = document.createElement('div'); modeRow.className = 'actions';
+    modeRow.append(o.man
+      ? actionBtn('Replacer automatiquement', () => { delete o.man; })
+      : actionBtn('Placer à la main', () => {
+          o.man = clipList(o).map(c => ({ s: c.s, p: c.p }));
+        }));
+    d.append(modeRow);
+    const m2 = document.createElement('div');
+    m2.className = 'empty';
+    m2.textContent = o.man
+      ? t('Placement manuel : clique un crochet pour le déplacer le long de son bord ou le passer en face. « Crochets ↔ / ↕ » et « Côté d\'insertion » ne s\'appliquent plus.')
+      : t('Placement automatique : les crochets se répartissent en évitant les connecteurs. Passe à la main pour les déplacer un par un.');
+    d.append(m2);
     const hint = document.createElement('div');
     hint.className = 'empty';
     hint.textContent = t('Larg./prof. = encombrement du module (le verre). Accroche = épaisseur de l\'écran : le crochet contourne le verre et vient prendre le dos de la carte.');
@@ -2270,8 +2419,8 @@ function buildArgList(part) {
     if (lidSets) args.push(lidSets);
     if (state.clips.length)
       args.push(`lid_clips=[${state.clips.flatMap(k =>
-        [0, 1, 2, 3].flatMap(side => clipPositions(k, side).map(pos =>
-          `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${side},${pos},${k.cw || 14},${k.recess || 0}]`))).join(',')}]`);
+        clipList(k).map(c =>
+          `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${c.s},${c.p},${k.cw || 14},${k.recess || 0}]`)).join(',')}]`);
     return args;
   }
   args.push('usb_cutout=false', 'standoffs=false');
