@@ -85,10 +85,11 @@ the “Height tied to the lid” checkbox.
 ## Side openings and the lid skirt
 
 Wall cutouts near the top of the box (typical when a board hangs
-under the lid) now also **notch the lid skirt**, so connectors,
-card slots and buttons pass through. The builder flags them with
-“crosses the skirt — regenerate the lid”: it is not an error, just a
-reminder that the **lid must be regenerated** along with the base.
+under the lid) also **notch the lid skirt**, so connectors, card
+slots and buttons pass all the way through. The builder shows a blue
+note — “N cutouts cross the skirt — regenerate the lid” — which is
+not a problem: the openings do go through, it is only a reminder
+that the **lid must be regenerated** along with the base.
 
 ## Windows & inserts (any face)
 

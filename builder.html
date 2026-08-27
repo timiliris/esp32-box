@@ -137,7 +137,7 @@
     border-radius: 0 10px 10px 10px; position: relative; min-height: 0; }
   #canvas { width: 100%; height: 100%; touch-action: none; }
   #hint {
-    position: absolute; right: 10px; top: 8px; color: var(--muted); font-size: 11px;
+    position: absolute; left: 10px; bottom: 8px; max-width: 52%; color: var(--muted); font-size: 11px;
     background: color-mix(in srgb, var(--panel) 82%, transparent); padding: 3px 8px; border-radius: 6px;
     pointer-events: none;
   }
@@ -147,6 +147,10 @@
     border: 1px solid rgba(240,179,80,.35); padding: 2px 8px; border-radius: 6px;
     pointer-events: auto; cursor: pointer; text-align: left; }
   .warnline:hover { border-color: var(--warn); background: rgba(240,179,80,.16); }
+  .noteline { color: var(--accent2); font-size: 11.5px; background: rgba(79,140,255,.08);
+    border: 1px solid rgba(79,140,255,.3); padding: 2px 8px; border-radius: 6px;
+    pointer-events: auto; cursor: pointer; text-align: left; }
+  .noteline:hover { border-color: var(--accent); background: rgba(79,140,255,.16); }
 
   #objects { display: flex; flex-direction: column; gap: 4px; }
   .objrow { display: flex; align-items: center; gap: 7px; width: 100%;
@@ -624,6 +628,8 @@ Object.assign(EN, {
   'Carte microSD': 'microSD card', 'Interrupteur à glissière': 'Slide switch',
   'Modèles': 'Templates', 'Waveshare ESP32-P4 7B — écran 7″': 'Waveshare ESP32-P4 7B — 7″ display',
   'Hauteur liée au couvercle': 'Height tied to the lid',
+  '1 découpe traverse la jupe — régénère le couvercle': '1 cutout crosses the skirt — regenerate the lid',
+  'découpes traversent la jupe — régénère le couvercle': 'cutouts cross the skirt — regenerate the lid',
   'Remplacer le projet actuel ?': 'Replace the current project?',
   'Projet complet : boîte 176 × 109 × 40, écran suspendu sous le couvercle avec sa fenêtre décalée, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.':
     'Complete project: 176 × 109 × 40 box, display hanging under the lid with its offset window, and the 7 edge openings (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) at the right height.',
@@ -1328,7 +1334,6 @@ function cutWarnings(c) {
   if (c.type === 'usbc') {
     const fw2 = faceW(f);
     if (Math.abs(c.off) + 8 > fw2 / 2 - CORNER_R + 2) out.push(`${who} : ${t('trop près du coin (support)')}`);
-    if (c.z + 5 > state.inner.h - LID_BAND) out.push(`${who} : ${t('traverse la jupe — régénère le couvercle')}`);
     if (c.z - 5 < 0) out.push(`${who} : ${t('trop bas (support sous le fond)')}`);
     return out;
   }
@@ -1336,7 +1341,6 @@ function cutWarnings(c) {
     const bw = c.type === 'btnflex' ? 13.5 : 9;
     const fw2 = faceW(f);
     if (Math.abs(c.off) + bw > fw2 / 2 - CORNER_R + 2) out.push(`${who} : ${t('trop près du coin (berceau)')}`);
-    if (c.z + 9 > state.inner.h - LID_BAND) out.push(`${who} : ${t('traverse la jupe — régénère le couvercle')}`);
     if (c.z - 9 < 0) out.push(`${who} : ${t('trop bas (berceau sous le fond)')}`);
     return out;
   }
@@ -1352,10 +1356,18 @@ function cutWarnings(c) {
   const fw = faceW(f);
   if (Math.abs(c.off) + hw > fw / 2 - 1) out.push(`${who} : ${t('déborde de la paroi')}`);
   else if (Math.abs(c.off) + hw > fw / 2 - CORNER_R) out.push(`${who} : ${t('empiète sur le coin arrondi')}`);
-  if (c.z + hh > state.inner.h - LID_BAND) out.push(`${who} : ${t('traverse la jupe — régénère le couvercle')}`);
   if (c.z - hh < 0) out.push(`${who} : ${t('sous le fond intérieur')}`);
   return out;
 }
+// Notes : informatif, pas un problème (la découpe passe bien)
+function cutNotes(c) {
+  if (isFlat(c.face)) return [];
+  const hh = c.type === 'circle' || isBtnType(c.type) ? c.d / 2
+           : c.type === 'usbc' ? 5 : c.h / 2;
+  return (c.z + hh > state.inner.h - LID_BAND)
+    ? [t('traverse la jupe — régénère le couvercle')] : [];
+}
+
 function pcbWarnings(p) {
   const out = [];
   if (Math.abs(p.cx) + p.dx / 2 + 3.25 > state.inner.w / 2 - 1) out.push(`${t('Entretoises')} ${p.dx}×${p.dy} : ${t('débordent en largeur')}`);
@@ -1380,9 +1392,20 @@ function renderWarns() {
     for (const m of cellWarnings(c)) all.push({ m, kind: 'cell', id: c.id, face: 'floor' });
   for (const cp of state.comps)
     for (const m of compWarnings(cp)) all.push({ m, kind: 'comp', id: cp.id, face: 'floor' });
-  $('warns').innerHTML = all.slice(0, 4).map(w =>
+  const notes = [];
+  for (const c of state.cuts)
+    for (const m of cutNotes(c)) notes.push({ m, kind: 'cut', id: c.id, face: c.face });
+  let html = all.slice(0, 4).map(w =>
     `<button class="warnline" data-kind="${w.kind}" data-id="${w.id}" data-face="${w.face}" title="Cliquer pour voir l'élément">${esc(w.m)}</button>`
   ).join('');
+  if (notes.length) {
+    const n0 = notes[0];
+    const label = notes.length === 1
+      ? t('1 découpe traverse la jupe — régénère le couvercle')
+      : `${notes.length} ${t('découpes traversent la jupe — régénère le couvercle')}`;
+    html += `<button class="noteline" data-kind="${n0.kind}" data-id="${n0.id}" data-face="${n0.face}">${label}</button>`;
+  }
+  $('warns').innerHTML = html;
 }
 
 // ---------------------------------------------------------------
@@ -2400,7 +2423,7 @@ function buildStatic() {
   $('dimsSummary').addEventListener('click', () => { state.panel = 'box'; updateAll(); });
   // clic sur un avertissement -> va sur la face et sélectionne l'élément
   $('warns').addEventListener('click', e => {
-    const b = e.target.closest('.warnline'); if (!b) return;
+    const b = e.target.closest('.warnline, .noteline'); if (!b) return;
     state.face = b.dataset.face;
     state.sel = { kind: b.dataset.kind, id: +b.dataset.id };
     resetView();
