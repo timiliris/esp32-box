@@ -79,7 +79,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             req = json.loads(self.rfile.read(n))
             part = req.get('part')
             args = req.get('args', [])
-            if part not in ('base', 'lid', 'inserts'):
+            if part not in ('base', 'lid', 'inserts', 'stand'):
                 raise ValueError('part invalide')
             if not isinstance(args, list) or not all(
                     isinstance(a, str) and ARG_RE.match(a) for a in args):
