@@ -99,11 +99,14 @@ still has nowhere to go, a note says so and the others are placed
 anyway.
 
 **Adding more.** In automatic mode, raise *Clips ↔* / *Clips ↕* — the
-solver spreads that many per edge. Either mode also has **Add a
-clip** in the group's inspector: it drops one on whichever closed
-edge has the fewest, at the first spot clear of the connectors and of
-its neighbours. It never uses the insertion side, so sliding the
-module in stays possible.
+solver spreads that many per edge. Either mode also has four **Add a
+clip on edge** buttons in the group's inspector, one per edge: the
+new clip lands at the first spot clear of the connectors and of its
+neighbours, and the group switches to manual placement. The
+insertion-side button still works — hover it and the tooltip reminds
+you why that edge was left free. If the module is snapped in flat
+rather than slid, set *Insertion side* to **none** and use all four
+edges.
 
 **Placing them by hand.** Click any single clip on the lid view and
 the group switches to manual placement: drag that clip along its
