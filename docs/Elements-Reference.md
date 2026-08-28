@@ -309,9 +309,18 @@ generate them.
 | Front stop | the ridge the box leans against so it cannot slide down |
 | Back stop | 0 = open wedge; above 0 the box is closed in on the far side too |
 
+**A side profile is drawn as you type** — the wedge, the box resting
+on it, the screen face picked out on top — with the wedge height, the
+overall height and the footprint underneath. That drawing is how you
+pick a tilt; the 3D preview also leans the box to the chosen angle,
+but a rotating box tells you little about degrees.
+
 Length and tilt together set the height: shorter at the same angle
-means taller. The panel prints the resulting back height as you type,
-which is worth watching — 85 mm at 25° is already 40 mm of wedge.
+means taller. 85 mm at 25° is already 40 mm of wedge.
+
+The **back stop only holds the box if the wedge reaches its far
+edge**. On a shorter wedge it lands *under* the box instead, and the
+panel says so in red with the length you would need.
 
 They print flat on the plate with the slope facing up: no supports,
 no overhang. Two per plate, side by side. Place them under the box's
