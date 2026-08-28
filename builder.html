@@ -306,6 +306,14 @@
               <div class="rowline"><label>Largeur</label><input type="number" id="standW" min="15" max="120" step="1"><span class="unit">mm</span></div>
               <div class="rowline" title="Sur quelle hauteur la boîte s'enfonce dans la rainure. Plus c'est profond, plus c'est stable."><label>Encastrement</label><input type="number" id="standDepth" min="6" max="60" step="1"><span class="unit">mm</span></div>
               <div class="rowline"><label>Matière autour</label><input type="number" id="standWall" min="2" max="12" step="0.5"><span class="unit">mm</span></div>
+              <div class="rowline" title="Languette plate à l'arrière du socle. Penchée, la boîte a son centre de gravité en arrière : sans elle, l'ensemble bascule."><label>Queue arrière</label><input type="number" id="standTail" min="0" max="120" step="1"><span class="unit">mm</span></div>
+              <div class="rowline" title="Fenêtre au centre de la joue : une bande LED ou un connecteur sur la tranche de la boîte n'est plus aveuglé. 0 = aucune."><label>Encoche</label><input type="number" id="standNotchW" min="0" max="200" step="1"><span class="unit">mm</span></div>
+              <div id="standNotchRows" style="display:none">
+                <div class="rowline" title="0 = toute la profondeur d'encastrement"><label>Haut. encoche</label><input type="number" id="standNotchH" min="0" max="60" step="1"><span class="unit">mm</span></div>
+                <div class="rowline"><label>Joue</label>
+                  <select id="standNotchSide" style="flex:1"><option value="front">côté écran</option><option value="back">côté dos</option><option value="both">les deux</option></select>
+                </div>
+              </div>
               <div class="empty" id="standNote"></div>
             </div>
           </div>
@@ -526,6 +534,16 @@ const EN = {
   'Pieds': 'Feet', 'inclinaison': 'tilt',
   'Socle haut de': 'Socket', 'emprise': 'footprint', 'écran à': 'screen top at',
   'Encastrement': 'Seat depth', 'Matière autour': 'Wall around',
+  'Encoche': 'Notch', 'Haut. encoche': 'Notch height', 'Joue': 'Jaw',
+  'Queue arrière': 'Rear tail', 'au moins.': 'at least.',
+  'Le centre de gravité passe derrière l\'assise : ça bascule. Queue arrière de':
+    'The centre of gravity falls behind the base: it tips. Rear tail of',
+  'Languette plate à l\'arrière du socle. Penchée, la boîte a son centre de gravité en arrière : sans elle, l\'ensemble bascule.':
+    'Flat tongue behind the socket. Leaning back, the box has its centre of gravity behind it: without this, the whole thing tips.',
+  'côté écran': 'screen side', 'côté dos': 'back side', 'les deux': 'both',
+  'Fenêtre au centre de la joue : une bande LED ou un connecteur sur la tranche de la boîte n\'est plus aveuglé. 0 = aucune.':
+    'Window in the middle of the jaw: an LED strip or a connector on the box edge is no longer blinded. 0 = none.',
+  '0 = toute la profondeur d\'encastrement': '0 = the whole seat depth',
   'Recul de l\'écran par rapport à la verticale. 0 = boîte debout.':
     'How far the screen leans back from vertical. 0 = box upright.',
   'Sur quelle hauteur la boîte s\'enfonce dans la rainure. Plus c\'est profond, plus c\'est stable.':
@@ -979,6 +997,7 @@ const DEFAULT_STATE = () => ({
   vents: false, tieSlots: false, lidFix: 'snap',
   holeComp: 0.3, teardrop: true, lidT: 3, floorT: 2,
   stand: false, standAngle: 15, standW: 45, standDepth: 18, standWall: 4,
+  standNotchW: 0, standNotchH: 0, standNotchSide: 'front', standTail: 0,
   mountTabs: 'none', mountN: 2, panel: 'cut',
   face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], clips: [], nextId: 1, sel: null,
 });
@@ -2136,6 +2155,7 @@ function standProfileSvg() {
   const rainure = [P(-hs, 0), P(hs, 0), P(hs, depth), P(-hs, depth)];
   const bloc0 = [P(-hs - wall, -wall), P(hs + wall, -wall),
                  P(hs + wall, depth + wall), P(-hs - wall, depth + wall)];
+  const tail = state.standTail;
   const xs = bloc0.map(q => q[0]);
   // enveloppe convexe du bloc et de son assise, puis rasée à la table
   const pts = bloc0.concat([[Math.min(...xs), 0], [Math.max(...xs), 0]]);
@@ -2165,11 +2185,18 @@ function standProfileSvg() {
     return out;
   };
   bloc = clip(bloc);
+  const xArr = Math.max(...bloc.map(q => q[0]));
+  // la queue prolonge le contour par l'arrière, au ras de la table
+  if (tail > 0) bloc = bloc.concat([[xArr + tail, 0], [xArr + tail, wall], [xArr, wall]]);
   // la boîte, encastrée jusqu'au fond de la rainure
   const B0 = P(-T / 2, 0), B1 = P(T / 2, 0);
   const B2 = [B1[0] + od * ux, B1[1] + od * uy];
   const B3 = [B0[0] + od * ux, B0[1] + od * uy];
   const boite = [B0, B1, B2, B3];
+  // centre de gravité approché : celui de la boîte, bien plus lourde
+  const cg = [(B0[0] + B1[0]) / 2 + (od / 2) * ux,
+              (B0[1] + B1[1]) / 2 + (od / 2) * uy];
+  const arriere = tail > 0 ? xArr + tail : xArr;
   const tous = bloc.concat(boite);
   const maxX = Math.max(...tous.map(p => p[0])) + 4;
   const minX = Math.min(...tous.map(p => p[0])) - 4;
@@ -2184,9 +2211,23 @@ function standProfileSvg() {
   g += `<line x1="${r1(X(B0[0]))}" y1="${r1(Y(B0[1]))}" x2="${r1(X(B3[0]))}" y2="${r1(Y(B3[1]))}" stroke="#e6e9ef" stroke-width="2.4"/>`;
   g += `<polygon points="${poly2(bloc)}" fill="rgba(240,179,80,.30)" stroke="#f0b350" stroke-width="1.2"/>`;
   g += `<polygon points="${poly2(rainure)}" fill="#10141b" stroke="#f0b350" stroke-width=".8"/>`;
+  if (state.standNotchW > 0) {
+    const hn = state.standNotchH > 0 ? state.standNotchH : depth;
+    for (const sg of (state.standNotchSide === 'both' ? [-1, 1]
+                    : state.standNotchSide === 'back' ? [1] : [-1]))
+      g += `<polygon points="${poly2([P(sg * (hs + wall), 0), P(sg * hs, 0),
+                                      P(sg * hs, hn), P(sg * (hs + wall), hn)])}" ` +
+           `fill="rgba(16,20,27,.85)" stroke="#f0b350" stroke-width=".8" stroke-dasharray="3 2"/>`;
+  }
+  // aplomb du centre de gravité, et bord arrière de l'assise
+  g += `<line x1="${r1(X(cg[0]))}" y1="${r1(Y(cg[1]))}" x2="${r1(X(cg[0]))}" y2="${r1(Y(0))}" stroke="#6f7a90" stroke-width="1" stroke-dasharray="3 3"/>`;
+  g += `<circle cx="${r1(X(cg[0]))}" cy="${r1(Y(cg[1]))}" r="3" fill="none" stroke="#e6e9ef" stroke-width="1.2"/>`;
+  const ok = cg[0] < arriere - 8;
+  g += `<line x1="${r1(X(arriere))}" y1="${r1(Y(0)) - 5}" x2="${r1(X(arriere))}" y2="${r1(Y(0)) + 5}" stroke="${ok ? '#69d2a0' : 'var(--danger)'}" stroke-width="2"/>`;
   g += `</svg>`;
   const hb = Math.max(...bloc.map(p => p[1]));
-  return { svg: g, h: r1(hb),
+  const besoin = Math.max(0, r1(cg[0] + 12 - xArr));
+  return { svg: g, h: r1(hb), stable: ok, besoin,
            hors: r1(Math.max(...boite.map(p => p[1]))),
            emprise: r1(Math.max(...bloc.map(p => p[0])) - Math.min(...bloc.map(p => p[0]))) };
 }
@@ -2628,6 +2669,11 @@ function buildArgList(part) {
   if (part === 'stand') {
     args.push(`stand_angle=${state.standAngle}`, `stand_w=${state.standW}`,
               `stand_depth=${state.standDepth}`, `stand_wall=${state.standWall}`);
+    if (state.standTail > 0) args.push(`stand_tail=${state.standTail}`);
+    if (state.standNotchW > 0)
+      args.push(`stand_notch_w=${state.standNotchW}`,
+                `stand_notch_h=${state.standNotchH}`,
+                `stand_notch_side="${state.standNotchSide}"`);
     return args;
   }
   if (part === 'inserts') {
@@ -3166,8 +3212,13 @@ function buildStatic() {
   $('optStand').addEventListener('change', () => {
     pushHistory(); state.stand = $('optStand').checked; updateAll();
   });
+  $('standNotchSide').addEventListener('change', () => {
+    pushHistory(); state.standNotchSide = $('standNotchSide').value; updateAll();
+  });
   for (const [id, cle, mini] of [['standAngle', 'standAngle', 0], ['standW', 'standW', 15],
-                                 ['standDepth', 'standDepth', 6], ['standWall', 'standWall', 2]])
+                                 ['standDepth', 'standDepth', 6], ['standWall', 'standWall', 2],
+                                 ['standNotchW', 'standNotchW', 0], ['standNotchH', 'standNotchH', 0],
+                                 ['standTail', 'standTail', 0]])
     $(id).addEventListener('input', () => {
       const v = parseFloat($(id).value);
       if (!isNaN(v) && v >= mini) { pushHistory(cle); state[cle] = v; updateAll(); }
@@ -3322,13 +3373,20 @@ function updateAll(withInspector = true) {
   if (document.activeElement !== $('optFloorT')) $('optFloorT').value = state.floorT;
   $('optStand').checked = state.stand;
   $('standRows').style.display = state.stand ? '' : 'none';
-  for (const cle of ['standAngle', 'standW', 'standDepth', 'standWall'])
+  for (const cle of ['standAngle', 'standW', 'standDepth', 'standWall',
+                     'standNotchW', 'standNotchH', 'standTail'])
     if (document.activeElement !== $(cle)) $(cle).value = state[cle];
+  $('standNotchSide').value = state.standNotchSide;
+  $('standNotchRows').style.display = state.standNotchW > 0 ? '' : 'none';
   if (state.stand) {
     const pr = standProfileSvg();
     $('standNote').innerHTML = pr.svg +
       `<div style="margin-top:4px">${t('Socle haut de')} ${pr.h} mm · ` +
-      `${t('emprise')} ${pr.emprise} mm · ${t('écran à')} ${pr.hors} mm</div>`;
+      `${t('emprise')} ${pr.emprise} mm · ${t('écran à')} ${pr.hors} mm</div>` +
+      (pr.stable ? '' :
+        `<div style="margin-top:5px;color:var(--danger)">` +
+        `${t('Le centre de gravité passe derrière l\'assise : ça bascule. Queue arrière de')} ` +
+        `${pr.besoin} mm ${t('au moins.')}</div>`);
   }
   const stale = state.tpl && state.tpl.id === 'p4_7b' && state.tpl.v < TPL_7B_V;
   $('tplStale').style.display = stale ? '' : 'none';

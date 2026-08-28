@@ -322,8 +322,21 @@ footprint and how high the screen reaches. That drawing is how you
 pick a tilt; the 3D preview also leans the box to the chosen angle,
 but a rotating box tells you little about degrees.
 
+**Rear tail.** Leaning back, the box carries its centre of gravity
+*behind* the socket — past roughly 35° the whole thing tips over
+backwards. *Rear tail* adds a flat tongue along the desk to catch it.
+The profile draws the centre of gravity, its plumb line and the back
+edge of the base, and turns that edge red with the length you need
+when it is short.
+
+**Notch.** Some builds have an LED strip or a connector on the edge
+that goes into the groove. *Notch* cuts a window through the middle
+of a jaw — screen side, back side or both — so nothing is blinded.
+Its height defaults to the whole seat depth.
+
 They print with the groove opening upward: no supports. Two per
-plate, side by side. Place them under the box's left and right edges —
+plate, one behind the other — the tail runs the other way, so side by
+side they would merge. Place them under the box's left and right edges —
 the middle stays clear, so a card slot on the front wall is still
 reachable.
 

@@ -38,6 +38,10 @@ stand_w = 45;        // largeur d'un socle
 stand_depth = 18;    // profondeur d'encastrement de la boîte
 stand_wall = 4;      // matière autour de la rainure
 stand_slot = 0;      // largeur de rainure ; 0 = épaisseur de la boîte + jeu
+stand_notch_w = 0;   // encoche centrale dans la joue ; 0 = aucune
+stand_notch_h = 0;   // sa hauteur ; 0 = toute la profondeur d'encastrement
+stand_notch_side = "front";  // "front" (côté écran), "back", ou "both"
+stand_tail = 0;      // languette arrière contre le basculement ; 0 = aucune
 lip_t = 1.8;         // épaisseur de la jupe (fine = elle flexe pour clipser)
 
 /* [Aérations] */
@@ -1254,7 +1258,8 @@ module lid() {
 // redresse, la boîte n'a plus qu'une arête en appui et bascule. Ici
 // les deux joues de la rainure la tiennent des deux côtés.
 // Le bloc épouse la rainure : il ne pèse que ce qu'il faut.
-module stand_foot(w, slot, depth, ang, wall) {
+module stand_foot(w, slot, depth, ang, wall, nw = 0, nh = 0, nside = "front",
+                  tail = 0) {
     ux = sin(ang);  uy = cos(ang);      // le long de la rainure
     nx = cos(ang);  ny = -sin(ang);     // en travers
     hs = slot / 2;
@@ -1269,27 +1274,51 @@ module stand_foot(w, slot, depth, ang, wall) {
     xs = [for (q = p) q[0]];
     x0 = min(xs) - wall - 0.5;
     x1 = max(xs) + wall + 0.5;
-    rotate([90, 0, 0])
-        linear_extrude(height = w)
-            difference() {
-                intersection() {
-                    // le bloc épouse la rainure et descend jusqu'à la table
-                    hull() {
-                        offset(r = wall) polygon(p);
-                        translate([x0, 0]) square([x1 - x0, 0.01]);
+    hn = nh > 0 ? nh : depth;
+    // fenêtre dans une joue : une bande LED ou un connecteur sur la
+    // tranche de la boîte n'est plus aveuglé par le socle
+    fen = function (sgn) [coin(sgn * (hs + wall + 3), 0),
+                          coin(sgn * (hs - 0.2), 0),
+                          coin(sgn * (hs - 0.2), hn),
+                          coin(sgn * (hs + wall + 3), hn)];
+    difference() {
+        rotate([90, 0, 0])
+            linear_extrude(height = w)
+                difference() {
+                    union() {
+                        intersection() {
+                            // le bloc épouse la rainure et descend jusqu'à la table
+                            hull() {
+                                offset(r = wall) polygon(p);
+                                translate([x0, 0]) square([x1 - x0, 0.01]);
+                            }
+                            translate([-400, 0]) square([800, 800]);
+                        }
+                        // languette arrière : la boîte penchée a son centre
+                        // de gravité en arrière du socle, elle basculerait
+                        if (tail > 0)
+                            translate([x1 - 0.5, 0]) square([tail + 0.5, wall]);
                     }
-                    translate([-400, 0]) square([800, 800]);
+                    polygon(pe);
                 }
-                polygon(pe);
-            }
+        if (nw > 0)
+            rotate([90, 0, 0])
+                translate([0, 0, (w - nw) / 2])   // centrée sur la largeur
+                    linear_extrude(height = nw) {
+                        if (nside != "back")  polygon(fen(-1));
+                        if (nside != "front") polygon(fen(1));
+                    }
+    }
 }
 
 module stand() {
     slot = stand_slot > 0 ? stand_slot : H + 0.6;
-    // les deux socles côte à côte, espacés pour l'impression
-    for (sx = [0, 1])
-        translate([sx * (slot + 2 * stand_wall + 8), 0, 0])
-            stand_foot(stand_w, slot, stand_depth, stand_angle, stand_wall);
+    // les deux socles côte à côte, espacés SELON LEUR LARGEUR : la
+    // languette arrière s'étend dans l'autre sens, ils se rejoindraient
+    for (sy = [0, 1])
+        translate([0, -sy * (stand_w + 8), 0])
+            stand_foot(stand_w, slot, stand_depth, stand_angle, stand_wall,
+                       stand_notch_w, stand_notch_h, stand_notch_side, stand_tail);
 }
 
 // ------------------------------------------------------------
