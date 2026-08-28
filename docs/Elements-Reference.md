@@ -107,7 +107,10 @@ module in stays possible.
 
 **Placing them by hand.** Click any single clip on the lid view and
 the group switches to manual placement: drag that clip along its
-edge, or send it to the opposite edge with *Move opposite*. The
+edge, nudge it with the arrow keys, or send it to the opposite edge
+with *Move opposite*. *Remove* — or the Del key — takes just that one
+clip out; Ctrl+D duplicates it. Deleting the group's dashed frame
+still removes the whole set. The
 **hatched red bands** drawn along each edge are the forbidden zones —
 a wall connector comes through there — and a dragged clip slides to
 the nearest free spot rather than entering one. Neighbours on the

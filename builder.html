@@ -1029,8 +1029,15 @@ function selected() {
              : state.sel.kind === 'pcb' ? state.pcbs
              : state.sel.kind === 'div' ? state.divs
              : state.sel.kind === 'comp' ? state.comps
-             : state.sel.kind === 'clip' ? state.clips : state.cells;
+             : (state.sel.kind === 'clip' || state.sel.kind === 'clipone') ? state.clips
+             : state.cells;
   return pool.find(o => o.id === state.sel.id) || null;
+}
+// Le crochet isolé sélectionné, dans la liste manuelle de son groupe
+function selectedClip() {
+  if (!state.sel || state.sel.kind !== 'clipone') return null;
+  const k = state.clips.find(c => c.id === state.sel.id);
+  return k && k.man ? k.man[state.sel.i] || null : null;
 }
 // encombrement au sol d'un socle de cellule [w, h]
 function cellFoot(c) {
@@ -1829,6 +1836,24 @@ window.addEventListener('keydown', e => {
   const o = selected(); if (!o) return;
   const step = e.shiftKey ? 0.1 : 1;
   let used = true;
+  if (state.sel.kind === 'clipone') {
+    const c = selectedClip();
+    if (!c) return;
+    const horiz = c.s === 2 || c.s === 3;
+    const dd = e.key === (horiz ? 'ArrowUp' : 'ArrowRight') ? step
+             : e.key === (horiz ? 'ArrowDown' : 'ArrowLeft') ? -step : 0;
+    if (dd) {
+      pushHistory('nudge:clipone' + state.sel.id + state.sel.i);
+      const half = (o.cw || 14) / 2, span = clipSpan(o, c.s);
+      c.p = r1(Math.max(-span / 2 + half, Math.min(span / 2 - half, c.p + dd)));
+    } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      pushHistory(); removeSelected();
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+      pushHistory(); duplicateSelected();
+    } else used = false;
+    if (used) { e.preventDefault(); updateAll(); }
+    return;
+  }
   const kx = state.sel.kind === 'cut' ? 'off' : 'cx';
   const kz = state.sel.kind === 'cut' ? 'z' : 'cy';
   const nudge = () => pushHistory('nudge:' + state.sel.kind + state.sel.id);
@@ -1848,12 +1873,24 @@ function removeSelected() {
   else if (state.sel.kind === 'pcb') state.pcbs = state.pcbs.filter(p => p.id !== state.sel.id);
   else if (state.sel.kind === 'div') state.divs = state.divs.filter(d => d.id !== state.sel.id);
   else if (state.sel.kind === 'comp') state.comps = state.comps.filter(c => c.id !== state.sel.id);
+  else if (state.sel.kind === 'clipone') {
+    const k = state.clips.find(c => c.id === state.sel.id);
+    if (k && k.man) k.man.splice(state.sel.i, 1);
+    state.sel = k ? { kind: 'clip', id: k.id } : null;
+    return;
+  }
   else if (state.sel.kind === 'clip') state.clips = state.clips.filter(c => c.id !== state.sel.id);
   else state.cells = state.cells.filter(c => c.id !== state.sel.id);
   state.sel = null;
 }
 function duplicateSelected() {
   const o = selected(); if (!o) return;
+  if (state.sel.kind === 'clipone') {
+    const c = selectedClip(); if (!c) return;
+    o.man.splice(state.sel.i + 1, 0, { s: c.s, p: r1(c.p + (o.cw || 14) + 2) });
+    state.sel = { kind: 'clipone', id: o.id, i: state.sel.i + 1 };
+    return;
+  }
   const copy = Object.assign({}, o, { id: state.nextId++ });
   if (state.sel.kind === 'cut') { copy.off = r1(copy.off + 8); state.cuts.push(copy); }
   else if (state.sel.kind === 'pcb') { copy.cy = r1(copy.cy - 10); state.pcbs.push(copy); }
@@ -2267,8 +2304,8 @@ function renderInspector() {
     );
     d.append(acts);
   } else if (state.sel.kind === 'clipone') {
-    const k = state.clips.find(c => c.id === state.sel.id);
-    const c = k && k.man && k.man[state.sel.i];
+    const k = o;
+    const c = selectedClip();
     if (!c) { box.innerHTML = '<div class="empty">—</div>'; return; }
     const title = document.createElement('div');
     title.style.cssText = 'font-weight:600;margin-bottom:8px';
