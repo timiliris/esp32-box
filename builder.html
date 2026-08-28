@@ -2186,8 +2186,11 @@ function standProfileSvg() {
   };
   bloc = clip(bloc);
   const xArr = Math.max(...bloc.map(q => q[0]));
-  // la queue prolonge le contour par l'arrière, au ras de la table
-  if (tail > 0) bloc = bloc.concat([[xArr + tail, 0], [xArr + tail, wall], [xArr, wall]]);
+  // la queue est un polygone à part : l'insérer dans le contour du bloc
+  // en cassait l'enroulement et la figure se croisait
+  const queue = tail > 0
+    ? [[xArr - 0.5, 0], [xArr + tail, 0], [xArr + tail, wall], [xArr - 0.5, wall]]
+    : null;
   // la boîte, encastrée jusqu'au fond de la rainure
   const B0 = P(-T / 2, 0), B1 = P(T / 2, 0);
   const B2 = [B1[0] + od * ux, B1[1] + od * uy];
@@ -2197,7 +2200,7 @@ function standProfileSvg() {
   const cg = [(B0[0] + B1[0]) / 2 + (od / 2) * ux,
               (B0[1] + B1[1]) / 2 + (od / 2) * uy];
   const arriere = tail > 0 ? xArr + tail : xArr;
-  const tous = bloc.concat(boite);
+  const tous = bloc.concat(boite, queue || []);
   const maxX = Math.max(...tous.map(p => p[0])) + 4;
   const minX = Math.min(...tous.map(p => p[0])) - 4;
   const maxY = Math.max(...tous.map(p => p[1])) + 4;
@@ -2210,6 +2213,8 @@ function standProfileSvg() {
   g += `<polygon points="${poly2(boite)}" fill="rgba(197,139,255,.14)" stroke="#c58bff" stroke-width="1.3"/>`;
   g += `<line x1="${r1(X(B0[0]))}" y1="${r1(Y(B0[1]))}" x2="${r1(X(B3[0]))}" y2="${r1(Y(B3[1]))}" stroke="#e6e9ef" stroke-width="2.4"/>`;
   g += `<polygon points="${poly2(bloc)}" fill="rgba(240,179,80,.30)" stroke="#f0b350" stroke-width="1.2"/>`;
+  if (queue)
+    g += `<polygon points="${poly2(queue)}" fill="rgba(240,179,80,.30)" stroke="#f0b350" stroke-width="1.2"/>`;
   g += `<polygon points="${poly2(rainure)}" fill="#10141b" stroke="#f0b350" stroke-width=".8"/>`;
   if (state.standNotchW > 0) {
     const hn = state.standNotchH > 0 ? state.standNotchH : depth;
@@ -2227,9 +2232,10 @@ function standProfileSvg() {
   g += `</svg>`;
   const hb = Math.max(...bloc.map(p => p[1]));
   const besoin = Math.max(0, r1(cg[0] + 12 - xArr));
+  const xs2 = bloc.concat(queue || []).map(p => p[0]);
   return { svg: g, h: r1(hb), stable: ok, besoin,
            hors: r1(Math.max(...boite.map(p => p[1]))),
-           emprise: r1(Math.max(...bloc.map(p => p[0])) - Math.min(...bloc.map(p => p[0]))) };
+           emprise: r1(Math.max(...xs2) - Math.min(...xs2)) };
 }
 
 function render3d() {
