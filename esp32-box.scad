@@ -593,8 +593,8 @@ module cuts_all() {
                         rrect((horiz ? c[4] : c[5]) + hole_comp,
                               (horiz ? c[5] : c[4]) + hole_comp,
                               min(2, min(c[4], c[5]) / 4));
-                on_wall(f, c[2], c[3], -(wall / 2 - 0.65))
-                    linear_extrude(height = 1.31, center = true)
+                on_wall(f, c[2], c[3], -(wall / 2 - rab_d(wall) / 2))
+                    linear_extrude(height = rab_d(wall) + 0.01, center = true)
                         rrect((horiz ? c[4] : c[5]) + 3 + hole_comp,
                               (horiz ? c[5] : c[4]) + 3 + hole_comp, 2.5);
             }
@@ -620,7 +620,7 @@ module cuts_all() {
                         rrect(c[4] + hole_comp, c[5] + hole_comp,
                               min(2, min(c[4], c[5]) / 4));
                 translate([c[2], c[3], -1])
-                    linear_extrude(height = 2.3)
+                    linear_extrude(height = rab_d(floor_t) + 1)
                         rrect(c[4] + 3 + hole_comp, c[5] + 3 + hole_comp, 2.5);
             }
             if (is_vent(c[1]))
@@ -681,8 +681,8 @@ module lid_cuts() {
                 linear_extrude(height = lid_t + 2)
                     rrect(c[4] + hole_comp, c[5] + hole_comp,
                           min(2, min(c[4], c[5]) / 4));
-            translate([c[2], c[3], H - 1.3])
-                linear_extrude(height = 2.3)
+            translate([c[2], c[3], H - rab_d(lid_t)])
+                linear_extrude(height = rab_d(lid_t) + 1)
                     rrect(c[4] + 3 + hole_comp, c[5] + 3 + hole_comp, 2.5);
         }
         if (is_vent(c[1]))
@@ -693,6 +693,12 @@ module lid_cuts() {
     compartment_vents_lid();
     lid_skirt_clearances();
 }
+
+// Profondeur de feuillure d'un insert : 1.3 sur une paroi normale, mais
+// jamais plus de 45 % de l'épaisseur — sur un couvercle de 1 mm une
+// feuillure de 1.3 mangeait toute la matière et il ne restait aucun
+// épaulement pour que l'insert se clipse.
+function rab_d(t) = min(1.3, t * 0.45);
 
 // Un crochet : doigt vertical le long du module, lèvre rentrante au
 // bout. Orienté +X (le doigt est en x>0, la lèvre pointe vers -X).
@@ -731,7 +737,9 @@ module lid_clips_all() {
         pos   = len(c) > 7 ? c[7] : 0;
         L     = len(c) > 8 ? c[8] : 14;
         rec   = len(c) > 9 ? c[9] : 0;
-        clear = 0.3;
+        // jeu latéral autour du module : les poches imprimées se
+        // referment, un petit module en demande proportionnellement plus
+        clear = len(c) > 10 && c[10] > 0 ? c[10] : 0.3;
         if (side == 3)
             translate([c[0] + W / 2 + clear, c[1] + pos, 0])
                 lid_clip_one(L, catch, grab, rec);
@@ -778,11 +786,11 @@ module window_insert(a, b, t, skin) {
     difference() {
         union() {
             // plaque de façade (0.4 de jeu total dans la feuillure)
-            linear_extrude(height = 1.3)
+            linear_extrude(height = rab_d(t))
                 rrect(a + 2.6, b + 2.6, 2.3);
             // corps traversant (0.3 de jeu total dans le trou)
-            translate([0, 0, 1.2])
-                linear_extrude(height = t - 1.2)
+            translate([0, 0, rab_d(t) - 0.1])
+                linear_extrude(height = t - rab_d(t) + 0.1)
                     rrect(a - 0.3, b - 0.3, r);
             // bossages de clip sur les grands côtés
             for (s = [-1, 1])

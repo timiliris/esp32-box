@@ -76,6 +76,10 @@ So the board carries ~6 mm standoffs of its own — which is why the
 inner height is 45 mm: the module takes 14.5 from the lid, leaving
 about 30 mm for the down-facing plugs and their cables.
 
+*Side clearance* (0.3 default) is the gap left around the module.
+Printed pockets close up on themselves, and a small module needs
+proportionally more — the 7B camera uses 0.5.
+
 The clips catch at the **screen thickness** (8.6): set *Catch depth*
 to your module's glass-to-PCB-back distance, *Module width/depth* to
 its outline, and *Lip* to how far the hook overlaps the board (2 mm
@@ -221,6 +225,13 @@ card slot still line up.
 ![Lid with the camera](../preview/p4-camera-detail.png)
 
 ## Windows & inserts (any face)
+
+The **rabbet depth follows the face**: 1.3 mm normally, but never
+more than 45 % of the thickness. On a 1 mm lid it drops to 0.45, so
+there is still a shoulder for the insert to bear on — at 1.3 it ate
+the whole thickness and the insert simply fell through. Below 2 mm
+the builder says so: what is left holds poorly, so glue it or
+thicken that face.
 
 - **LED window** (74 × 12), **Radar window** (35 × 14 — the length
   of an LD2410B), **Custom insert**: create a **rabbeted**

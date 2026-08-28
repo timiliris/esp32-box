@@ -681,6 +681,10 @@ Object.assign(EN, {
     'Clips too long for this module: max',
   'crochet(s) non placé(s) : pas de place entre les découpes': 'clip(s) not placed: no room between the cutouts',
   'Largeur crochet': 'Clip width', 'Un crochet': 'One clip', 'Bord': 'Edge',
+  'Jeu latéral': 'Side clearance', 'insert sur une face de': 'insert on a face of',
+  'la feuillure se réduit à': 'the rabbet shrinks to',
+  'il tiendra mal : colle-le, ou épaissis la face':
+    'it will hold poorly — glue it, or thicken the face',
   'Position': 'Position', 'Passer en face': 'Move opposite',
   'Placer à la main': 'Place by hand', 'Replacer automatiquement': 'Auto-place again',
   'Glisse-le le long de son bord. Les bandes hachurées sont les zones interdites : un connecteur de paroi passe là. « Passer en face » l\'envoie sur le bord opposé.':
@@ -1633,6 +1637,16 @@ function renderWarns() {
     for (const m of clipWarnings(k)) notes.push({ m, kind: 'clip', id: k.id, face: 'lid', libre: true });
   // un couvercle mince gondole d'autant plus qu'il est grand, et la
   // fraisure d'une vis M3 fait déjà 1.4 de profondeur
+  // un insert a besoin d'un épaulement pour se clipser : sur une face
+  // fine il n'en reste presque rien
+  for (const c of state.cuts) if (c.type === 'insert') {
+    const ep = c.face === 'lid' ? state.lidT : c.face === 'floor' ? state.floorT : 2.4;
+    if (ep < 2)
+      notes.push({ m: `${t(c.label)} : ${t('insert sur une face de')} ${ep} mm — ` +
+        t('la feuillure se réduit à') + ' ' + r1(Math.min(1.3, ep * 0.45)) +
+        ' mm, ' + t('il tiendra mal : colle-le, ou épaissis la face'),
+        kind: 'cut', id: c.id, face: c.face, libre: true });
+  }
   if (state.lidT < 1.6) {
     const grand = Math.max(state.inner.w, state.inner.d) > 120;
     notes.push({ m: `${t('Couvercle à')} ${state.lidT} mm : ` +
@@ -2303,6 +2317,8 @@ function renderInspector() {
       o.catch = r1(o.recess + ep);
     }));
     d.append(numField('Prise', o.grab, v => o.grab = Math.max(0.8, Math.min(v, 5))));
+    d.append(numField('Jeu latéral', o.clear === undefined ? 0.3 : o.clear,
+      v => o.clear = Math.max(0, Math.min(v, 2))));
     d.append(numField('Largeur crochet', o.cw || 14, v => o.cw = Math.max(6, Math.min(v, 30))));
     d.append(numField('Crochets ↔', o.nx, v => o.nx = Math.max(0, Math.round(v))));
     d.append(numField('Crochets ↕', o.ny, v => o.ny = Math.max(0, Math.round(v))));
@@ -2420,7 +2436,7 @@ function buildArgList(part) {
     if (state.clips.length)
       args.push(`lid_clips=[${state.clips.flatMap(k =>
         clipList(k).map(c =>
-          `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${c.s},${c.p},${k.cw || 14},${k.recess || 0}]`)).join(',')}]`);
+          `[${k.cx},${k.cy},${k.w},${k.d},${k.catch},${k.grab},${c.s},${c.p},${k.cw || 14},${k.recess || 0},${k.clear === undefined ? 0.3 : k.clear}]`)).join(',')}]`);
     return args;
   }
   args.push('usb_cutout=false', 'standoffs=false');
@@ -2496,7 +2512,7 @@ function buildCommands() {
 // Version du modèle 7B. À incrémenter dès que la géométrie change :
 // un projet enregistré garde ses valeurs, il ne se met pas à jour tout
 // seul, et l'interface propose alors de le régénérer.
-const TPL_7B_V = 9;
+const TPL_7B_V = 10;
 
 function applyTemplateP4_7B() {
   // Cotes mesurées, depuis le verre plaqué sous le couvercle :
@@ -2575,7 +2591,7 @@ function applyTemplateP4_7B() {
   const camY = r1(bY + GD / 2 + LENS_GAP);
   state.clips.push({ id: state.nextId++, cx: 0, cy: camY, w: CAM, d: CAM,
                      catch: STACK, recess: CAM_REC, grab: 1.5, cw: 5,
-                     nx: 1, ny: 1, open: 0 });
+                     clear: 0.5, nx: 1, ny: 1, open: 0 });
   state.cuts.push({ id: state.nextId++, face: 'lid', type: 'cone',
                     label: 'Caméra', off: 0, z: camY, d: LENS_D,
                     fov: FOV, recess: CAM_REC });
