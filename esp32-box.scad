@@ -31,13 +31,13 @@ bottom_ch = 0.8;     // chanfrein du bas
 lid_clearance = 0.25; // jeu du couvercle (à ajuster selon l'imprimante)
 lip_h = 7;           // hauteur de la jupe du couvercle
 
-// --- Pieds inclinés (part = "stand") : deux cales dans lesquelles la
-// boîte vient se poser, écran relevé vers l'utilisateur ---
-stand_angle = 20;    // inclinaison, en degrés depuis l'horizontale
-stand_w = 45;        // largeur d'un pied
-stand_len = 0;       // longueur ; 0 = 70 % de la profondeur extérieure
-stand_lip = 9;       // hauteur de la butée avant
-stand_back = 0;      // butée arrière ; 0 = aucune
+// --- Pieds inclinés (part = "stand") : deux socles à rainure dans
+// lesquels la boîte s'encastre, écran relevé vers l'utilisateur ---
+stand_angle = 15;    // inclinaison, en degrés DEPUIS LA VERTICALE
+stand_w = 45;        // largeur d'un socle
+stand_depth = 18;    // profondeur d'encastrement de la boîte
+stand_wall = 4;      // matière autour de la rainure
+stand_slot = 0;      // largeur de rainure ; 0 = épaisseur de la boîte + jeu
 lip_t = 1.8;         // épaisseur de la jupe (fine = elle flexe pour clipser)
 
 /* [Aérations] */
@@ -1249,31 +1249,47 @@ module lid() {
 // ------------------------------------------------------------
 // Pieds inclinés
 // ------------------------------------------------------------
-// Une cale : plateau plat sur la table, face supérieure inclinée, et
-// une butée à l'avant contre laquelle la boîte s'appuie. Imprimée telle
-// quelle, sans support : tout est en pente ou vertical.
-module stand_foot(len, w, ang, lip, back) {
-    h = len * tan(ang);
-    union() {
-        // le coin lui-même
-        hull() {
-            cube([w, 0.01, 0.01]);
-            translate([0, len - 0.01, 0]) cube([w, 0.01, h]);
-        }
-        // butée avant : la boîte s'y appuie et ne glisse pas sur la pente
-        cube([w, 2.4, lip]);
-        // butée arrière optionnelle, pour l'enfermer complètement
-        if (back > 0)
-            translate([0, len - 2.4, 0]) cube([w, 2.4, h + back]);
-    }
+// Un socle : une rainure inclinée creusée dans un bloc, la boîte s'y
+// encastre. Une simple cale ne tient qu'à plat — dès que l'écran se
+// redresse, la boîte n'a plus qu'une arête en appui et bascule. Ici
+// les deux joues de la rainure la tiennent des deux côtés.
+// Le bloc épouse la rainure : il ne pèse que ce qu'il faut.
+module stand_foot(w, slot, depth, ang, wall) {
+    ux = sin(ang);  uy = cos(ang);      // le long de la rainure
+    nx = cos(ang);  ny = -sin(ang);     // en travers
+    hs = slot / 2;
+    // le fond de la rainure est incliné lui aussi : on le remonte assez
+    // pour que son coin bas garde `wall` de matière sous lui
+    bx = 0; by = wall + hs * sin(ang);
+    coin = function (t, u)
+        [bx + t * nx + u * ux, by + t * ny + u * uy];
+    p  = [coin(-hs, 0), coin(hs, 0), coin(hs, depth), coin(-hs, depth)];
+    // rainure prolongée vers le haut pour qu'elle débouche
+    pe = [coin(-hs, 0), coin(hs, 0), coin(hs, depth + 200), coin(-hs, depth + 200)];
+    xs = [for (q = p) q[0]];
+    x0 = min(xs) - wall - 0.5;
+    x1 = max(xs) + wall + 0.5;
+    rotate([90, 0, 0])
+        linear_extrude(height = w)
+            difference() {
+                intersection() {
+                    // le bloc épouse la rainure et descend jusqu'à la table
+                    hull() {
+                        offset(r = wall) polygon(p);
+                        translate([x0, 0]) square([x1 - x0, 0.01]);
+                    }
+                    translate([-400, 0]) square([800, 800]);
+                }
+                polygon(pe);
+            }
 }
 
 module stand() {
-    len = stand_len > 0 ? stand_len : od * 0.7;
-    // les deux pieds côte à côte, espacés pour l'impression
+    slot = stand_slot > 0 ? stand_slot : H + 0.6;
+    // les deux socles côte à côte, espacés pour l'impression
     for (sx = [0, 1])
-        translate([sx * (stand_w + 6), 0, 0])
-            stand_foot(len, stand_w, stand_angle, stand_lip, stand_back);
+        translate([sx * (slot + 2 * stand_wall + 8), 0, 0])
+            stand_foot(stand_w, slot, stand_depth, stand_angle, stand_wall);
 }
 
 // ------------------------------------------------------------

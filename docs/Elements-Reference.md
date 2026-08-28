@@ -297,35 +297,35 @@ Case panel.
 
 ## Tilt feet (separate part)
 
-*Case* panel → **Tilt feet**. Two wedges the box sits on, screen
-raised towards you — a fourth **Feet** button appears in the footer to
-generate them.
+*Case* panel → **Tilt feet**. Two **grooved sockets** the box slots
+into, screen raised towards you — a fourth **Feet** button appears in
+the footer to generate them.
 
 | | |
 |---|---|
-| Tilt | angle from the desk, 20° default |
-| Width | one wedge, 45 mm default |
-| Length | how much desk it takes; defaults to 70 % of the box depth |
-| Front stop | the ridge the box leans against so it cannot slide down |
-| Back stop | 0 = open wedge; above 0 the box is closed in on the far side too |
+| Tilt | how far the screen leans back **from vertical**, 15° default |
+| Width | one socket, 45 mm default |
+| Seat depth | how far the box sinks into the groove, 18 mm — deeper is steadier |
+| Wall around | material around the groove, 4 mm |
 
-**A side profile is drawn as you type** — the wedge, the box resting
-on it, the screen face picked out on top — with the wedge height, the
-overall height and the footprint underneath. That drawing is how you
+The groove width is taken from the box itself (floor + inner height +
+lid, plus 0.6 of clearance), so it always matches.
+
+**Why a socket and not a wedge.** A wedge only works lying back. Stand
+the screen up and the box has a single edge in contact: it pivots on
+its own front lip and topples. Here both jaws of the groove hold it,
+and the box is seated, not balanced.
+
+**A side profile is drawn as you type** — the socket, the box seated
+in it, the screen face picked out — with the socket height, the
+footprint and how high the screen reaches. That drawing is how you
 pick a tilt; the 3D preview also leans the box to the chosen angle,
 but a rotating box tells you little about degrees.
 
-Length and tilt together set the height: shorter at the same angle
-means taller. 85 mm at 25° is already 40 mm of wedge.
-
-The **back stop only holds the box if the wedge reaches its far
-edge**. On a shorter wedge it lands *under* the box instead, and the
-panel says so in red with the length you would need.
-
-They print flat on the plate with the slope facing up: no supports,
-no overhang. Two per plate, side by side. Place them under the box's
-left and right edges — the middle stays clear, so a card slot or a
-connector on the front wall is still reachable.
+They print with the groove opening upward: no supports. Two per
+plate, side by side. Place them under the box's left and right edges —
+the middle stays clear, so a card slot on the front wall is still
+reachable.
 
 ## Case panel
 

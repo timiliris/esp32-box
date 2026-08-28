@@ -302,11 +302,10 @@
             <div class="rowline"><label style="width:auto;flex:1">Générer des pieds</label>
               <input type="checkbox" id="optStand"></div>
             <div id="standRows" style="display:none">
-              <div class="rowline"><label>Inclinaison</label><input type="number" id="standAngle" min="5" max="60" step="1"><span class="unit">°</span></div>
+              <div class="rowline" title="Recul de l'écran par rapport à la verticale. 0 = boîte debout."><label>Inclinaison</label><input type="number" id="standAngle" min="0" max="60" step="1"><span class="unit">°</span></div>
               <div class="rowline"><label>Largeur</label><input type="number" id="standW" min="15" max="120" step="1"><span class="unit">mm</span></div>
-              <div class="rowline" title="Ce que la cale prend sur le bureau. Plus elle est courte, plus elle est haute à angle égal."><label>Longueur</label><input type="number" id="standLen" min="20" max="250" step="1"><span class="unit">mm</span></div>
-              <div class="rowline"><label>Butée avant</label><input type="number" id="standLip" min="2" max="30" step="0.5"><span class="unit">mm</span></div>
-              <div class="rowline"><label>Butée arrière</label><input type="number" id="standBack" min="0" max="40" step="0.5"><span class="unit">mm</span></div>
+              <div class="rowline" title="Sur quelle hauteur la boîte s'enfonce dans la rainure. Plus c'est profond, plus c'est stable."><label>Encastrement</label><input type="number" id="standDepth" min="6" max="60" step="1"><span class="unit">mm</span></div>
+              <div class="rowline"><label>Matière autour</label><input type="number" id="standWall" min="2" max="12" step="0.5"><span class="unit">mm</span></div>
               <div class="empty" id="standNote"></div>
             </div>
           </div>
@@ -525,9 +524,12 @@ const EN = {
   'Ce que la cale prend sur le bureau. Plus elle est courte, plus elle est haute à angle égal.':
     'How much desk the wedge takes. The shorter it is, the taller it gets at the same angle.',
   'Pieds': 'Feet', 'inclinaison': 'tilt',
-  'Cale': 'Wedge', 'hauteur totale': 'overall height', 'emprise': 'footprint',
-  'La butée arrière tombe sous la boîte : allonge la cale à': 'The back stop lands under the box: make the wedge at least',
-  'au moins, ou remets-la à 0.': 'long, or set it back to 0.',
+  'Socle haut de': 'Socket', 'emprise': 'footprint', 'écran à': 'screen top at',
+  'Encastrement': 'Seat depth', 'Matière autour': 'Wall around',
+  'Recul de l\'écran par rapport à la verticale. 0 = boîte debout.':
+    'How far the screen leans back from vertical. 0 = box upright.',
+  'Sur quelle hauteur la boîte s\'enfonce dans la rainure. Plus c\'est profond, plus c\'est stable.':
+    'How far the box sinks into the groove. Deeper is steadier.',
   'Épaisseur couvercle': 'Lid thickness', 'Épaisseur fond': 'Floor thickness',
   'Épaisseur murs': 'Wall thickness', 'Régénérer': 'Rebuild',
   'Épaisseur du fond de la boîte. C\'est lui qui porte tout : 2 mm suffisent, monte à 3 ou 4 pour un boîtier lourd ou vissé au mur.':
@@ -976,7 +978,7 @@ const DEFAULT_STATE = () => ({
   inner: { w: 100, d: 70, h: 40 },
   vents: false, tieSlots: false, lidFix: 'snap',
   holeComp: 0.3, teardrop: true, lidT: 3, floorT: 2,
-  stand: false, standAngle: 20, standW: 45, standLen: 0, standLip: 9, standBack: 0,
+  stand: false, standAngle: 15, standW: 45, standDepth: 18, standWall: 4,
   mountTabs: 'none', mountN: 2, panel: 'cut',
   face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], clips: [], nextId: 1, sel: null,
 });
@@ -2124,43 +2126,69 @@ function facePanel(faceId, fw, fh, transform, k, extra) {
 // cube qui tourne ne dit rien d'un angle.
 function standProfileSvg() {
   const a = state.standAngle * Math.PI / 180;
-  const L = state.standLen, h = L * Math.tan(a);
-  const lip = state.standLip, back = state.standBack;
-  const od = state.inner.d + 4.8;
-  const oh = state.floorT + state.inner.h + state.lidT;
-  const ca = Math.cos(a), sa = Math.sin(a);
-  // la boîte repose sur la pente, coin avant calé contre la butée
-  const P0 = [2.4, 2.4 * Math.tan(a)];
-  const P1 = [P0[0] + od * ca, P0[1] + od * sa];
-  const P2 = [P1[0] - oh * sa, P1[1] + oh * ca];
-  const P3 = [P0[0] - oh * sa, P0[1] + oh * ca];
-  const pts = [P0, P1, P2, P3];
-  const maxX = Math.max(L, ...pts.map(p => p[0])) + 4;
-  const minX = Math.min(0, ...pts.map(p => p[0])) - 4;
-  const maxY = Math.max(h + back, ...pts.map(p => p[1])) + 4;
-  const W = 186, S = Math.min(W / (maxX - minX), 130 / maxY);
-  const H = maxY * S + 16;
-  const X = x => (x - minX) * S;
-  const Y = y => H - 10 - y * S;
-  const poly = ps => ps.map(p => `${r1(X(p[0]))},${r1(Y(p[1]))}`).join(' ');
-  let g = `<svg viewBox="0 0 ${r1(W)} ${r1(H)}" style="width:100%;height:auto;margin-top:6px">`;
+  const wall = state.standWall, depth = state.standDepth;
+  const T = state.floorT + state.inner.h + state.lidT + 0.6;   // la rainure
+  const od = state.inner.d + 4.8;                              // la boîte
+  const hs = T / 2, by = wall + hs * Math.sin(a);
+  const ux = Math.sin(a), uy = Math.cos(a);
+  const nx = Math.cos(a), ny = -Math.sin(a);
+  const P = (t, u) => [t * nx + u * ux, by + t * ny + u * uy];
+  const rainure = [P(-hs, 0), P(hs, 0), P(hs, depth), P(-hs, depth)];
+  const bloc0 = [P(-hs - wall, -wall), P(hs + wall, -wall),
+                 P(hs + wall, depth + wall), P(-hs - wall, depth + wall)];
+  const xs = bloc0.map(q => q[0]);
+  // enveloppe convexe du bloc et de son assise, puis rasée à la table
+  const pts = bloc0.concat([[Math.min(...xs), 0], [Math.max(...xs), 0]]);
+  const cr = (o, p, q) => (p[0]-o[0])*(q[1]-o[1]) - (p[1]-o[1])*(q[0]-o[0]);
+  const tri = pts.slice().sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  const moitie = liste => {
+    const h = [];
+    for (const q of liste) {
+      while (h.length >= 2 && cr(h[h.length-2], h[h.length-1], q) <= 0) h.pop();
+      h.push(q);
+    }
+    h.pop(); return h;
+  };
+  let bloc = moitie(tri).concat(moitie(tri.slice().reverse()));
+  // découpe au ras de la table (Sutherland-Hodgman sur y >= 0)
+  const clip = poly => {
+    const out = [];
+    for (let k = 0; k < poly.length; k++) {
+      const A = poly[k], B = poly[(k + 1) % poly.length];
+      const dA = A[1], dB = B[1];
+      if (dA >= 0) out.push(A);
+      if ((dA >= 0) !== (dB >= 0)) {
+        const t2 = dA / (dA - dB);
+        out.push([A[0] + t2 * (B[0] - A[0]), 0]);
+      }
+    }
+    return out;
+  };
+  bloc = clip(bloc);
+  // la boîte, encastrée jusqu'au fond de la rainure
+  const B0 = P(-T / 2, 0), B1 = P(T / 2, 0);
+  const B2 = [B1[0] + od * ux, B1[1] + od * uy];
+  const B3 = [B0[0] + od * ux, B0[1] + od * uy];
+  const boite = [B0, B1, B2, B3];
+  const tous = bloc.concat(boite);
+  const maxX = Math.max(...tous.map(p => p[0])) + 4;
+  const minX = Math.min(...tous.map(p => p[0])) - 4;
+  const maxY = Math.max(...tous.map(p => p[1])) + 4;
+  const W = 186, S = Math.min(W / (maxX - minX), 132 / maxY);
+  const H2 = maxY * S + 16;
+  const X = x => (x - minX) * S, Y = y => H2 - 10 - y * S;
+  const poly2 = ps => ps.map(p => `${r1(X(p[0]))},${r1(Y(p[1]))}`).join(' ');
+  let g = `<svg viewBox="0 0 ${r1(W)} ${r1(H2)}" style="width:100%;height:auto;margin-top:6px">`;
   g += `<line x1="0" y1="${r1(Y(0))}" x2="${W}" y2="${r1(Y(0))}" stroke="#3d475c" stroke-width="1.2"/>`;
-  g += `<polygon points="${poly([[0, 0], [L, 0], [L, h]])}" fill="rgba(240,179,80,.22)" stroke="#f0b350" stroke-width="1"/>`;
-  g += `<polygon points="${poly([[0, 0], [2.4, 0], [2.4, lip], [0, lip]])}" fill="rgba(240,179,80,.35)" stroke="#f0b350" stroke-width="1"/>`;
-  if (back > 0)
-    g += `<polygon points="${poly([[L - 2.4, 0], [L, 0], [L, h + back], [L - 2.4, h + back]])}" fill="rgba(240,179,80,.35)" stroke="#f0b350" stroke-width="1"/>`;
-  g += `<polygon points="${poly(pts)}" fill="rgba(197,139,255,.14)" stroke="#c58bff" stroke-width="1.3"/>`;
-  g += `<line x1="${r1(X(P3[0]))}" y1="${r1(Y(P3[1]))}" x2="${r1(X(P2[0]))}" y2="${r1(Y(P2[1]))}" stroke="#e6e9ef" stroke-width="2.4"/>`;
+  g += `<polygon points="${poly2(boite)}" fill="rgba(197,139,255,.14)" stroke="#c58bff" stroke-width="1.3"/>`;
+  g += `<line x1="${r1(X(B0[0]))}" y1="${r1(Y(B0[1]))}" x2="${r1(X(B3[0]))}" y2="${r1(Y(B3[1]))}" stroke="#e6e9ef" stroke-width="2.4"/>`;
+  g += `<polygon points="${poly2(bloc)}" fill="rgba(240,179,80,.30)" stroke="#f0b350" stroke-width="1.2"/>`;
+  g += `<polygon points="${poly2(rainure)}" fill="#10141b" stroke="#f0b350" stroke-width=".8"/>`;
   g += `</svg>`;
-  // la butée arrière ne retient la boîte que si la cale va jusqu'à son
-  // bord ; plus courte, elle vient buter sous elle
-  const alerte = back > 0 && L < od * ca
-    ? t('La butée arrière tombe sous la boîte : allonge la cale à') + ' ' +
-      r1(od * ca + 2.4) + ' mm ' + t('au moins, ou remets-la à 0.')
-    : null;
-  return { svg: g, h: r1(h), alerte,
-           hors: r1(Math.max(...pts.map(p => p[1]))),
-           emprise: r1(Math.max(L, ...pts.map(p => p[0]))) };
+  const hb = Math.max(...bloc.map(p => p[1]));
+  return { svg: g, h: r1(hb),
+           hors: r1(Math.max(...boite.map(p => p[1]))),
+           emprise: r1(Math.max(...bloc.map(p => p[0])) - Math.min(...bloc.map(p => p[0]))) };
 }
 
 function render3d() {
@@ -2210,7 +2238,8 @@ function render3d() {
 function applyP3() {
   // sur pieds, la boîte est montrée dans son attitude réelle : on
   // bascule le modèle avant d'y appliquer la rotation de l'utilisateur
-  const inc = state.stand ? ` rotateX(${-state.standAngle}deg)` : '';
+  // l'angle est compté depuis la verticale : debout = -90 de basculement
+  const inc = state.stand ? ` rotateX(${state.standAngle - 90}deg)` : '';
   $('p3cube').style.transform = `rotateX(${p3.rx}deg) rotateY(${p3.ry}deg)${inc}`;
 }
 
@@ -2598,8 +2627,7 @@ function buildArgList(part) {
   if (state.floorT !== 2) args.push(`floor_t=${state.floorT}`);
   if (part === 'stand') {
     args.push(`stand_angle=${state.standAngle}`, `stand_w=${state.standW}`,
-              `stand_len=${state.standLen}`,
-              `stand_lip=${state.standLip}`, `stand_back=${state.standBack}`);
+              `stand_depth=${state.standDepth}`, `stand_wall=${state.standWall}`);
     return args;
   }
   if (part === 'inserts') {
@@ -3138,9 +3166,8 @@ function buildStatic() {
   $('optStand').addEventListener('change', () => {
     pushHistory(); state.stand = $('optStand').checked; updateAll();
   });
-  for (const [id, cle, mini] of [['standAngle', 'standAngle', 5], ['standW', 'standW', 15],
-                                 ['standLen', 'standLen', 20],
-                                 ['standLip', 'standLip', 2], ['standBack', 'standBack', 0]])
+  for (const [id, cle, mini] of [['standAngle', 'standAngle', 0], ['standW', 'standW', 15],
+                                 ['standDepth', 'standDepth', 6], ['standWall', 'standWall', 2]])
     $(id).addEventListener('input', () => {
       const v = parseFloat($(id).value);
       if (!isNaN(v) && v >= mini) { pushHistory(cle); state[cle] = v; updateAll(); }
@@ -3295,17 +3322,13 @@ function updateAll(withInspector = true) {
   if (document.activeElement !== $('optFloorT')) $('optFloorT').value = state.floorT;
   $('optStand').checked = state.stand;
   $('standRows').style.display = state.stand ? '' : 'none';
-  if (!state.standLen) state.standLen = r1((state.inner.d + 4.8) * 0.7);
-  for (const [id, cle] of [['standAngle', 'standAngle'], ['standW', 'standW'],
-                           ['standLen', 'standLen'],
-                           ['standLip', 'standLip'], ['standBack', 'standBack']])
-    if (document.activeElement !== $(id)) $(id).value = state[cle];
+  for (const cle of ['standAngle', 'standW', 'standDepth', 'standWall'])
+    if (document.activeElement !== $(cle)) $(cle).value = state[cle];
   if (state.stand) {
     const pr = standProfileSvg();
     $('standNote').innerHTML = pr.svg +
-      `<div style="margin-top:4px">${t('Cale')} ${state.standLen} × ${pr.h} mm · ` +
-      `${t('hauteur totale')} ${pr.hors} mm · ${t('emprise')} ${pr.emprise} mm</div>` +
-      (pr.alerte ? `<div style="margin-top:5px;color:var(--danger)">${esc(pr.alerte)}</div>` : '');
+      `<div style="margin-top:4px">${t('Socle haut de')} ${pr.h} mm · ` +
+      `${t('emprise')} ${pr.emprise} mm · ${t('écran à')} ${pr.hors} mm</div>`;
   }
   const stale = state.tpl && state.tpl.id === 'p4_7b' && state.tpl.v < TPL_7B_V;
   $('tplStale').style.display = stale ? '' : 'none';
