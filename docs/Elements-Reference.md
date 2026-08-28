@@ -98,6 +98,13 @@ template instead of 14) to fit more of them on a crowded edge; if one
 still has nowhere to go, a note says so and the others are placed
 anyway.
 
+**Adding more.** In automatic mode, raise *Clips ↔* / *Clips ↕* — the
+solver spreads that many per edge. Either mode also has **Add a
+clip** in the group's inspector: it drops one on whichever closed
+edge has the fewest, at the first spot clear of the connectors and of
+its neighbours. It never uses the insertion side, so sliding the
+module in stays possible.
+
 **Placing them by hand.** Click any single clip on the lid view and
 the group switches to manual placement: drag that clip along its
 edge, or send it to the opposite edge with *Move opposite*. The
@@ -107,7 +114,8 @@ the nearest free spot rather than entering one. Neighbours on the
 same edge repel each other too. Use it to clear a bezel for something
 else, a radar window for instance. *Auto-place again* in the group's
 inspector hands the placement back to the solver; while manual is on,
-*Clips ↔ / ↕* and *Insertion side* no longer apply.
+*Clips ↔ / ↕* no longer applies, but the insertion side is still
+respected.
 
 Board edge features, measured from the drawing (distance from the
 top edge, back view — mirror the X when seen from the front):

@@ -682,6 +682,9 @@ Object.assign(EN, {
   'crochet(s) non placé(s) : pas de place entre les découpes': 'clip(s) not placed: no room between the cutouts',
   'Largeur crochet': 'Clip width', 'Un crochet': 'One clip', 'Bord': 'Edge',
   'Jeu latéral': 'Side clearance', 'insert sur une face de': 'insert on a face of',
+  'Ajouter un crochet': 'Add a clip',
+  'Plus aucune place libre sur les trois bords fermés : réduis la largeur des crochets, ou change le côté d\'insertion.':
+    'No free spot left on the three closed edges: narrow the clip width, or change the insertion side.',
   'la feuillure se réduit à': 'the rabbet shrinks to',
   'il tiendra mal : colle-le, ou épaissis la face':
     'it will hold poorly — glue it, or thicken the face',
@@ -689,8 +692,8 @@ Object.assign(EN, {
   'Placer à la main': 'Place by hand', 'Replacer automatiquement': 'Auto-place again',
   'Glisse-le le long de son bord. Les bandes hachurées sont les zones interdites : un connecteur de paroi passe là. « Passer en face » l\'envoie sur le bord opposé.':
     'Drag it along its edge. The hatched bands are the forbidden zones: a wall connector comes through there. “Move opposite” sends it to the far edge.',
-  'Placement manuel : clique un crochet pour le déplacer le long de son bord ou le passer en face. « Crochets ↔ / ↕ » et « Côté d\'insertion » ne s\'appliquent plus.':
-    'Manual placement: click a clip to slide it along its edge or send it opposite. “Clips ↔ / ↕” and “Insertion side” no longer apply.',
+  'Placement manuel : clique un crochet pour le déplacer le long de son bord ou le passer en face. « Crochets ↔ / ↕ » ne s\'appliquent plus, mais le côté d\'insertion reste respecté.':
+    'Manual placement: click a clip to slide it along its edge or send it opposite. “Clips ↔ / ↕” no longer applies, but the insertion side is still respected.',
   'Placement automatique : les crochets se répartissent en évitant les connecteurs. Passe à la main pour les déplacer un par un.':
     'Automatic placement: clips spread out while avoiding the connectors. Switch to manual to move them one by one.',
   'avant': 'front', 'arrière': 'back', 'gauche': 'left', 'droite': 'right',
@@ -2331,11 +2334,33 @@ function renderInspector() {
       : actionBtn('Placer à la main', () => {
           o.man = clipList(o).map(c => ({ s: c.s, p: c.p }));
         }));
+    modeRow.append(actionBtn('Ajouter un crochet', () => {
+      if (!o.man) o.man = clipList(o).map(c => ({ s: c.s, p: c.p }));
+      const L = o.cw || 14, half = L / 2;
+      // on garnit d'abord le bord qui en a le moins, mais jamais le côté
+      // d'insertion : un crochet là empêcherait de glisser le module
+      const bords = [0, 1, 2, 3].filter(x => x !== o.open).sort((a, b) =>
+        o.man.filter(c => c.s === a).length - o.man.filter(c => c.s === b).length);
+      for (const side of bords) {
+        const span = clipSpan(o, side), busy = clipBusy(o, side);
+        const libre = q => Math.abs(q) + half <= span / 2 + 0.01 &&
+          !busy.some(b => q + half > b[0] && q - half < b[1]) &&
+          !o.man.some(c => c.s === side && Math.abs(c.p - q) < L + 1);
+        for (let step = 0; step <= span / 2; step += 0.5)
+          for (const q of (step === 0 ? [0] : [-step, step]))
+            if (libre(q)) {
+              o.man.push({ s: side, p: r1(q) });
+              state.sel = { kind: 'clipone', id: o.id, i: o.man.length - 1 };
+              return;
+            }
+      }
+      alert(t('Plus aucune place libre sur les trois bords fermés : réduis la largeur des crochets, ou change le côté d\'insertion.'));
+    }));
     d.append(modeRow);
     const m2 = document.createElement('div');
     m2.className = 'empty';
     m2.textContent = o.man
-      ? t('Placement manuel : clique un crochet pour le déplacer le long de son bord ou le passer en face. « Crochets ↔ / ↕ » et « Côté d\'insertion » ne s\'appliquent plus.')
+      ? t('Placement manuel : clique un crochet pour le déplacer le long de son bord ou le passer en face. « Crochets ↔ / ↕ » ne s\'appliquent plus, mais le côté d\'insertion reste respecté.')
       : t('Placement automatique : les crochets se répartissent en évitant les connecteurs. Passe à la main pour les déplacer un par un.');
     d.append(m2);
     const hint = document.createElement('div');
