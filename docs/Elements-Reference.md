@@ -112,7 +112,8 @@ with *Move opposite*. *Remove* — or the Del key — takes just that one
 clip out; Ctrl+D duplicates it. Deleting the group's dashed frame
 still removes the whole set. The
 **hatched red bands** drawn along each edge are the forbidden zones —
-a wall connector comes through there — and a dragged clip slides to
+a wall connector comes through there, plus a *Cutout margin* of
+1.5 mm on each side for the connector body, adjustable per group — and a dragged clip slides to
 the nearest free spot rather than entering one. Neighbours on the
 same edge repel each other too. Use it to clear a bezel for something
 else, a radar window for instance. *Auto-place again* in the group's
