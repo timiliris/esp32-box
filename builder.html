@@ -297,6 +297,21 @@
           </div>
         </div>
         <div class="group">
+          <h2>Pieds inclinés</h2>
+          <div class="insp">
+            <div class="rowline"><label style="width:auto;flex:1">Générer des pieds</label>
+              <input type="checkbox" id="optStand"></div>
+            <div id="standRows" style="display:none">
+              <div class="rowline"><label>Inclinaison</label><input type="number" id="standAngle" min="5" max="60" step="1"><span class="unit">°</span></div>
+              <div class="rowline"><label>Largeur</label><input type="number" id="standW" min="15" max="120" step="1"><span class="unit">mm</span></div>
+              <div class="rowline" title="Ce que la cale prend sur le bureau. Plus elle est courte, plus elle est haute à angle égal."><label>Longueur</label><input type="number" id="standLen" min="20" max="250" step="1"><span class="unit">mm</span></div>
+              <div class="rowline"><label>Butée avant</label><input type="number" id="standLip" min="2" max="30" step="0.5"><span class="unit">mm</span></div>
+              <div class="rowline"><label>Butée arrière</label><input type="number" id="standBack" min="0" max="40" step="0.5"><span class="unit">mm</span></div>
+              <div class="empty" id="standNote"></div>
+            </div>
+          </div>
+        </div>
+        <div class="group">
           <h2>Fixation murale</h2>
           <div class="insp">
             <div class="rowline"><label>Pattes</label>
@@ -439,6 +454,15 @@
     </div>
     <div class="cmd" id="cmdIns"></div>
   </div>
+  <div class="cmdbox" style="max-width:26%" id="standBox">
+    <div class="cap"><b>Pieds</b><span title="Deux cales, la boîte se pose dessus">inclinaison</span>
+      <button class="btn primary" id="genStand" style="margin-left:auto;display:none">Générer le STL</button>
+      <button class="btn" id="copyStand" style="margin-left:auto">
+        <svg class="ico" viewBox="0 0 16 16"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg>
+        Copier</button>
+    </div>
+    <div class="cmd" id="cmdStand"></div>
+  </div>
 </footer>
 
 <script>
@@ -496,6 +520,14 @@ const EN = {
   'Fixation': 'Lid fixing', 'couvercle clipsé': 'snap-fit lid',
   'couvercle vissé': 'screwed lid',
   'Jeu perçage': 'Hole clearance', 'Goutte d\'eau': 'Teardrop holes',
+  'Pieds inclinés': 'Tilt feet', 'Générer des pieds': 'Generate feet',
+  'Inclinaison': 'Tilt', 'Butée avant': 'Front stop', 'Butée arrière': 'Back stop',
+  'Ce que la cale prend sur le bureau. Plus elle est courte, plus elle est haute à angle égal.':
+    'How much desk the wedge takes. The shorter it is, the taller it gets at the same angle.',
+  'Pieds': 'Feet', 'inclinaison': 'tilt', 'Deux cales de': 'Two wedges',
+  'de long': 'long', 'épaisses de': 'and', 'à l\'arrière': 'thick at the back',
+  'La boîte se pose dessus, écran relevé ; la butée avant l\'empêche de glisser.':
+    'The box sits on them, screen raised; the front stop keeps it from sliding.',
   'Épaisseur couvercle': 'Lid thickness', 'Épaisseur fond': 'Floor thickness',
   'Épaisseur murs': 'Wall thickness', 'Régénérer': 'Rebuild',
   'Épaisseur du fond de la boîte. C\'est lui qui porte tout : 2 mm suffisent, monte à 3 ou 4 pour un boîtier lourd ou vissé au mur.':
@@ -944,6 +976,7 @@ const DEFAULT_STATE = () => ({
   inner: { w: 100, d: 70, h: 40 },
   vents: false, tieSlots: false, lidFix: 'snap',
   holeComp: 0.3, teardrop: true, lidT: 3, floorT: 2,
+  stand: false, standAngle: 20, standW: 45, standLen: 0, standLip: 9, standBack: 0,
   mountTabs: 'none', mountN: 2, panel: 'cut',
   face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], clips: [], nextId: 1, sel: null,
 });
@@ -2516,6 +2549,12 @@ function buildArgList(part) {
   if (state.holeComp !== 0.3) args.push(`hole_comp=${state.holeComp}`);
   if (state.lidT !== 3) args.push(`lid_t=${state.lidT}`);
   if (state.floorT !== 2) args.push(`floor_t=${state.floorT}`);
+  if (part === 'stand') {
+    args.push(`stand_angle=${state.standAngle}`, `stand_w=${state.standW}`,
+              `stand_len=${state.standLen}`,
+              `stand_lip=${state.standLip}`, `stand_back=${state.standBack}`);
+    return args;
+  }
   if (part === 'inserts') {
     const ins = state.cuts.filter(c => c.type === 'insert' || c.type === 'btnpiston').map(cutExpr);
     if (ins.length) args.push(`cuts=[${ins.join(',')}]`);
@@ -2600,6 +2639,7 @@ function buildCommands() {
     base: cmd('base', 'ma-boite-base.stl'),
     lid: cmd('lid', 'ma-boite-couvercle.stl'),
     inserts: cmd('inserts', 'ma-boite-inserts.stl'),
+    stand: cmd('stand', 'ma-boite-pieds.stl'),
   };
 }
 // Modèle « Waveshare ESP32-P4-WIFI6-Touch-LCD-7B »
@@ -2752,7 +2792,7 @@ async function pingServer() {
 }
 function updateGenUI() {
   const wasmMode = !gen.on && WASM_OK;
-  for (const id of ['genBase', 'genLid', 'genIns']) {
+  for (const id of ['genBase', 'genLid', 'genIns', 'genStand']) {
     const b = $(id);
     b.style.display = (gen.on || wasmMode) ? '' : 'none';
     if (!gen.busy) b.textContent = wasmMode ? t('Générer (navigateur)') : t('Générer le STL');
@@ -3048,6 +3088,16 @@ function buildStatic() {
     const v = parseFloat($('optLidT').value);
     if (!isNaN(v) && v >= 1) { pushHistory('lidT'); state.lidT = v; updateAll(); }
   });
+  $('optStand').addEventListener('change', () => {
+    pushHistory(); state.stand = $('optStand').checked; updateAll();
+  });
+  for (const [id, cle, mini] of [['standAngle', 'standAngle', 5], ['standW', 'standW', 15],
+                                 ['standLen', 'standLen', 20],
+                                 ['standLip', 'standLip', 2], ['standBack', 'standBack', 0]])
+    $(id).addEventListener('input', () => {
+      const v = parseFloat($(id).value);
+      if (!isNaN(v) && v >= mini) { pushHistory(cle); state[cle] = v; updateAll(); }
+    });
   $('optFloorT').addEventListener('input', () => {
     const v = parseFloat($('optFloorT').value);
     if (!isNaN(v) && v >= 1) { pushHistory('floorT'); state.floorT = v; updateAll(); }
@@ -3157,6 +3207,7 @@ function buildStatic() {
   $('genBase').addEventListener('click', () => generate('base', $('genBase')));
   $('genLid').addEventListener('click', () => generate('lid', $('genLid')));
   $('genIns').addEventListener('click', () => generate('inserts', $('genIns')));
+  $('genStand').addEventListener('click', () => generate('stand', $('genStand')));
   pingServer();
   setInterval(pingServer, 4000);
   window.addEventListener('resize', () => render());
@@ -3195,6 +3246,20 @@ function updateAll(withInspector = true) {
   $('optTear').checked = state.teardrop;
   if (document.activeElement !== $('optLidT')) $('optLidT').value = state.lidT;
   if (document.activeElement !== $('optFloorT')) $('optFloorT').value = state.floorT;
+  $('optStand').checked = state.stand;
+  $('standRows').style.display = state.stand ? '' : 'none';
+  if (!state.standLen) state.standLen = r1((state.inner.d + 4.8) * 0.7);
+  for (const [id, cle] of [['standAngle', 'standAngle'], ['standW', 'standW'],
+                           ['standLen', 'standLen'],
+                           ['standLip', 'standLip'], ['standBack', 'standBack']])
+    if (document.activeElement !== $(id)) $(id).value = state[cle];
+  if (state.stand) {
+    const len = state.standLen;
+    const haut = r1(len * Math.tan(state.standAngle * Math.PI / 180));
+    $('standNote').textContent = `${t('Deux cales de')} ${len} mm ${t('de long')}, ` +
+      `${t('épaisses de')} ${haut} mm ${t('à l\'arrière')}. ` +
+      t('La boîte se pose dessus, écran relevé ; la butée avant l\'empêche de glisser.');
+  }
   const stale = state.tpl && state.tpl.id === 'p4_7b' && state.tpl.v < TPL_7B_V;
   $('tplStale').style.display = stale ? '' : 'none';
   if (stale) $('tplStaleTxt').textContent =
@@ -3207,7 +3272,9 @@ function updateAll(withInspector = true) {
   $('cmdBase').textContent = cmds.base;
   $('cmdLid').textContent = cmds.lid;
   $('cmdIns').textContent = cmds.inserts;
+  $('cmdStand').textContent = cmds.stand;
   $('insBox').style.display = hasInserts() ? '' : 'none';
+  $('standBox').style.display = state.stand ? '' : 'none';
   save();
 }
 

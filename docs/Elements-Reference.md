@@ -295,6 +295,29 @@ Case panel.
   touching outer walls**. Cable pass on any of the four frame walls
   (not on a fused one — the builder warns).
 
+## Tilt feet (separate part)
+
+*Case* panel → **Tilt feet**. Two wedges the box sits on, screen
+raised towards you — a fourth **Feet** button appears in the footer to
+generate them.
+
+| | |
+|---|---|
+| Tilt | angle from the desk, 20° default |
+| Width | one wedge, 45 mm default |
+| Length | how much desk it takes; defaults to 70 % of the box depth |
+| Front stop | the ridge the box leans against so it cannot slide down |
+| Back stop | 0 = open wedge; above 0 the box is closed in on the far side too |
+
+Length and tilt together set the height: shorter at the same angle
+means taller. The panel prints the resulting back height as you type,
+which is worth watching — 85 mm at 25° is already 40 mm of wedge.
+
+They print flat on the plate with the slope facing up: no supports,
+no overhang. Two per plate, side by side. Place them under the box's
+left and right edges — the middle stays clear, so a card slot or a
+connector on the front wall is still reachable.
+
 ## Case panel
 
 Inner dimensions, side-vent strip, zip-tie slots, lid fixing

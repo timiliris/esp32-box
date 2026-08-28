@@ -30,6 +30,14 @@ edge_r = 2.5;        // congé des arêtes supérieures
 bottom_ch = 0.8;     // chanfrein du bas
 lid_clearance = 0.25; // jeu du couvercle (à ajuster selon l'imprimante)
 lip_h = 7;           // hauteur de la jupe du couvercle
+
+// --- Pieds inclinés (part = "stand") : deux cales dans lesquelles la
+// boîte vient se poser, écran relevé vers l'utilisateur ---
+stand_angle = 20;    // inclinaison, en degrés depuis l'horizontale
+stand_w = 45;        // largeur d'un pied
+stand_len = 0;       // longueur ; 0 = 70 % de la profondeur extérieure
+stand_lip = 9;       // hauteur de la butée avant
+stand_back = 0;      // butée arrière ; 0 = aucune
 lip_t = 1.8;         // épaisseur de la jupe (fine = elle flexe pour clipser)
 
 /* [Aérations] */
@@ -1239,8 +1247,39 @@ module lid() {
 }
 
 // ------------------------------------------------------------
+// Pieds inclinés
+// ------------------------------------------------------------
+// Une cale : plateau plat sur la table, face supérieure inclinée, et
+// une butée à l'avant contre laquelle la boîte s'appuie. Imprimée telle
+// quelle, sans support : tout est en pente ou vertical.
+module stand_foot(len, w, ang, lip, back) {
+    h = len * tan(ang);
+    union() {
+        // le coin lui-même
+        hull() {
+            cube([w, 0.01, 0.01]);
+            translate([0, len - 0.01, 0]) cube([w, 0.01, h]);
+        }
+        // butée avant : la boîte s'y appuie et ne glisse pas sur la pente
+        cube([w, 2.4, lip]);
+        // butée arrière optionnelle, pour l'enfermer complètement
+        if (back > 0)
+            translate([0, len - 2.4, 0]) cube([w, 2.4, h + back]);
+    }
+}
+
+module stand() {
+    len = stand_len > 0 ? stand_len : od * 0.7;
+    // les deux pieds côte à côte, espacés pour l'impression
+    for (sx = [0, 1])
+        translate([sx * (stand_w + 6), 0, 0])
+            stand_foot(len, stand_w, stand_angle, stand_lip, stand_back);
+}
+
+// ------------------------------------------------------------
 // Sortie
 // ------------------------------------------------------------
+if (part == "stand") stand();
 if (part == "base") base();
 if (part == "lid") lid();
 if (part == "both") {
