@@ -34,6 +34,7 @@ lip_h = 7;           // hauteur de la jupe du couvercle
 // --- Pieds inclinés (part = "stand") : deux socles à rainure dans
 // lesquels la boîte s'encastre, écran relevé vers l'utilisateur ---
 stand_angle = 15;    // inclinaison, en degrés DEPUIS LA VERTICALE
+stand_n = 2;         // nombre de socles : 2 aux extrémités, ou 1 large
 stand_w = 45;        // largeur d'un socle
 stand_depth = 18;    // profondeur d'encastrement de la boîte
 stand_wall = 4;      // matière autour de la rainure
@@ -1359,9 +1360,9 @@ module stand_foot(w, slot, depth, ang, wall, nw = 0, nh = 0, nside = "front",
 
 module stand() {
     slot = stand_slot > 0 ? stand_slot : H + 0.6;
-    // les deux socles côte à côte, espacés SELON LEUR LARGEUR : la
-    // languette arrière s'étend dans l'autre sens, ils se rejoindraient
-    for (sy = [0, 1])
+    // socles côte à côte, espacés SELON LEUR LARGEUR : la languette
+    // arrière s'étend dans l'autre sens, ils se rejoindraient
+    for (sy = [0 : max(stand_n, 1) - 1])
         translate([0, -sy * (stand_w + 8), 0])
             stand_foot(stand_w, slot, stand_depth, stand_angle, stand_wall,
                        stand_notch_w, stand_notch_h, stand_notch_side, stand_tail,

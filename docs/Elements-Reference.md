@@ -380,6 +380,12 @@ footprint and how high the screen reaches. That drawing is how you
 pick a tilt; the 3D preview also leans the box to the chosen angle,
 but a rotating box tells you little about degrees.
 
+**One socket or two.** Two sockets sit at the two ends of the edge
+and leave the middle clear — a cable gets out on its own. A single
+wide one is steadier and looks cleaner, but it covers the whole edge:
+a connector there is then buried, and needs the *Cable pass* below.
+The panel says so in amber when you pick one socket without a pass.
+
 **The groove takes the box's thickness**, not its orientation — floor
 + inner height + lid, plus 0.6. Portrait or landscape, the same
 socket fits; what changes is *Width*, which must let **two** sockets
