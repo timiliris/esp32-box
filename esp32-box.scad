@@ -288,16 +288,23 @@ module xcapsule(len, r) {
                 sphere(r = r, $fn = 32);
 }
 
+// Congé d'arête effectif : le tore du haut est décrit par un cercle de
+// rayon edge_r posé à (corner_r - edge_r) de l'axe. Dès que edge_r
+// atteint la moitié du rayon de coin, ce cercle touche l'axe, la
+// révolution se recoupe et le maillage s'ouvre — silencieusement, on
+// n'a qu'un « mesh is not closed » sur une pièce qui sort quand même.
+edge_rr = min(edge_r, corner_r * 0.45);
+
 // Colonne d'angle : chanfrein bas, fût, congé haut
 module corner_column() {
     cylinder(r1 = corner_r - bottom_ch, r2 = corner_r, h = bottom_ch);
     translate([0, 0, bottom_ch])
-        cylinder(r = corner_r, h = H - bottom_ch - edge_r);
-    translate([0, 0, H - edge_r]) {
+        cylinder(r = corner_r, h = H - bottom_ch - edge_rr);
+    translate([0, 0, H - edge_rr]) {
         rotate_extrude()
-            translate([corner_r - edge_r, 0])
-                circle(r = edge_r);
-        cylinder(r = corner_r - edge_r, h = edge_r);
+            translate([corner_r - edge_rr, 0])
+                circle(r = edge_rr);
+        cylinder(r = corner_r - edge_rr, h = edge_rr);
     }
 }
 
@@ -350,8 +357,14 @@ module snap_grooves() {
 module vent_cuts() {
     usable = id - 2 * (corner_r + 6);
     n = max(floor(usable / vent_pitch), 3);
-    h = max(ih * vent_frac, 8);
-    zc = floor_t + h / 2 + 4;   // bande basse, discrète
+    // La bande doit rester DANS la paroi : 3 mm de marge sous le joint
+    // et au-dessus du fond. Sans cette borne, sur un boîtier plat elle
+    // débouchait par le haut de la paroi et ouvrait le maillage — la
+    // pièce sortait quand même, en « Simple: no ».
+    libre = ih - 6;
+    h = min(max(ih * vent_frac, 8), libre);
+    zc = floor_t + 3 + h / 2;   // bande basse, discrète
+    if (h >= 4)
     for (side = [-1, 1])
         for (i = [0 : n - 1])
             translate([side * (iw / 2 + wall / 2),

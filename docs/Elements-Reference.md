@@ -295,6 +295,57 @@ Case panel.
   touching outer walls**. Cable pass on any of the four frame walls
   (not on a fused one — the builder warns).
 
+## CYD template (ESP32-2432S028R)
+
+The yellow *cheap yellow display*, 2.8″ 240×320 resistive. Every
+dimension below was measured on the real board, and they cross-check:
+on a **50 × 86** PCB the SD connector comes out at exactly 15.0 mm
+long and the RGB LED at 4 × 4.
+
+| | mm |
+|---|---|
+| PCB | 50 × 86 × 1.5 |
+| Hole spacing | 40.5 × 79.5, reachable from the front |
+| Panel | 44 × 60, standing 3.5 proud of the PCB |
+| Panel margins | 10 top, 16 bottom, 3 each side |
+| Tallest thing on the back | 6.2 |
+| RGB LED | 4 × 4, centred across, 44 from the top edge |
+| microSD socket | 15 long, 28.5 from the top edge |
+| RESET / BOOT | ±7 from the centre of the USB-C |
+
+**Everything but the panel is on the back.** The ESP32 module, the
+RGB LED, both buttons, the USB-C and the card reader all sit on the
+face turned towards the floor — the panel is alone on the other side.
+So the button holes and the LED light guide are cut in the **floor**,
+not the lid, and the box comes out 53 × 89 × **12** inside: 7 of
+standoff to clear the back, 1.5 of PCB, 3.5 of panel.
+
+**Screwed, not clipped.** The four holes are reachable from the front,
+so the board drops onto four floor standoffs and is screwed down
+through them. No retaining clips at all.
+
+**The window does not touch the glass.** The panel's face ends up
+flush with the lid's inner face, so the opening is cut at the glass
+size plus 0.4 of clearance rather than overlapping it — the exact
+active area is not known here, and a wider overlap would crop it.
+
+**The light guide is in the floor.** The RGB LED shines down at the
+base, so its guide is an insert in the floor, right under it: print
+that one piece in PETG and it carries the colour out as a status
+indicator.
+
+**A flat box needs different proportions.** Two settings this
+template exposes because 12 mm of inner height cannot keep the
+defaults: the **skirt** drops from 7 to 4, and the **corner radius**
+from 9 to 5 — at 9 the rounded inner corners (radius 6.6) bite into
+the board's corners.
+
+The USB-C and the card slot sit right under the seam, so both cross
+the lid skirt and notch it. The builder says so; regenerate the lid
+and it is handled.
+
+![CYD base](../preview/cyd-fond.png)
+
 ## Tilt feet (separate part)
 
 *Case* panel → **Tilt feet**. Two **grooved sockets** the box slots

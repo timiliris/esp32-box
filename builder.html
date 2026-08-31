@@ -267,6 +267,8 @@
               <span id="tplStaleTxt">Ce projet vient d’une version plus ancienne du modèle.</span>
               <button class="btn" id="tplUpdate">Régénérer</button>
             </div>
+            <button class="btn primary" id="tplCYD" style="text-align:left;margin-top:8px">CYD jaune ESP32-2432S028R — 2.8″</button>
+            <div class="empty" style="margin-top:6px">Le « cheap yellow display » : carte 50 × 86 vissée par l’avant sur quatre entretoises, dalle 2.8″ affleurant le couvercle, USB-C, RESET/BOOT, lecteur microSD et guide de lumière au-dessus de la LED RGB.</div>
             <div class="empty" style="margin-top:6px">Projet complet : boîte 176 × 117 × 45, écran clipsé sous le couvercle avec sa fenêtre décalée, la caméra qui regarde au-dessus de l’écran, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.</div>
           </div>
         </div>
@@ -292,6 +294,10 @@
               <input type="checkbox" id="optTear"></div>
             <div class="rowline" title="Épaisseur du dessus du couvercle. Plus fin = bordure moins épaisse autour d'un écran. La jupe raidit le pourtour, mais sous 1.6 mm une grande plaque reste souple."><label style="width:auto;flex:1">Épaisseur couvercle</label>
               <input type="number" id="optLidT" step="0.2" min="1" max="6"></div>
+            <div class="rowline" title="Hauteur de la jupe qui descend du couvercle et le guide. Sur un boîtier plat elle mange toute la hauteur : descends-la."><label style="width:auto;flex:1">Hauteur de jupe</label>
+              <input type="number" id="optLipH" step="0.5" min="2" max="14"></div>
+            <div class="rowline" title="Rayon des coins extérieurs. 9 convient à une grande boîte ; sur une petite, les coins intérieurs arrondis viennent mordre la carte."><label style="width:auto;flex:1">Rayon des coins</label>
+              <input type="number" id="optCornerR" step="0.5" min="1" max="20"></div>
             <div class="rowline" title="Épaisseur du fond de la boîte. C'est lui qui porte tout : 2 mm suffisent, monte à 3 ou 4 pour un boîtier lourd ou vissé au mur."><label style="width:auto;flex:1">Épaisseur fond</label>
               <input type="number" id="optFloorT" step="0.2" min="1" max="8"></div>
           </div>
@@ -548,6 +554,11 @@ const EN = {
     'How far the screen leans back from vertical. 0 = box upright.',
   'Sur quelle hauteur la boîte s\'enfonce dans la rainure. Plus c\'est profond, plus c\'est stable.':
     'How far the box sinks into the groove. Deeper is steadier.',
+  'Hauteur de jupe': 'Skirt height', 'Rayon des coins': 'Corner radius',
+  'Hauteur de la jupe qui descend du couvercle et le guide. Sur un boîtier plat elle mange toute la hauteur : descends-la.':
+    'Height of the skirt that drops from the lid and guides it. On a flat case it eats the whole height: bring it down.',
+  'Rayon des coins extérieurs. 9 convient à une grande boîte ; sur une petite, les coins intérieurs arrondis viennent mordre la carte.':
+    'Outer corner radius. 9 suits a big box; on a small one the rounded inner corners bite into the board.',
   'Épaisseur couvercle': 'Lid thickness', 'Épaisseur fond': 'Floor thickness',
   'Épaisseur murs': 'Wall thickness', 'Régénérer': 'Rebuild',
   'Épaisseur du fond de la boîte. C\'est lui qui porte tout : 2 mm suffisent, monte à 3 ou 4 pour un boîtier lourd ou vissé au mur.':
@@ -759,6 +770,10 @@ Object.assign(EN, {
   '1 découpe traverse la jupe — régénère le couvercle': '1 cutout crosses the skirt — regenerate the lid',
   'découpes traversent la jupe — régénère le couvercle': 'cutouts cross the skirt — regenerate the lid',
   'Remplacer le projet actuel ?': 'Replace the current project?',
+  'CYD jaune ESP32-2432S028R — 2.8″': 'Yellow CYD ESP32-2432S028R — 2.8″',
+  'Le « cheap yellow display » : carte 50 × 86 vissée par l’avant sur quatre entretoises, dalle 2.8″ affleurant le couvercle, USB-C, RESET/BOOT, lecteur microSD et guide de lumière au-dessus de la LED RGB.':
+    'The “cheap yellow display”: 50 × 86 board screwed from the front onto four standoffs, 2.8″ panel flush with the lid, USB-C, RESET/BOOT, microSD reader and a light guide above the RGB LED.',
+  'Écran 2.8″ 240×320': '2.8″ 240×320 screen', 'Guide LED RGB': 'RGB LED guide',
   'Projet complet : boîte 176 × 117 × 45, écran clipsé sous le couvercle avec sa fenêtre décalée, la caméra qui regarde au-dessus de l’écran, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.':
     'Complete project: 176 × 117 × 45 box, display clipped under the lid with its offset window, the camera looking out above the screen, and the 7 edge openings (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) at the right height.',
   'Accès bouton': 'Button access', '151.6 × 83.4 · couvercle': '151.6 × 83.4 · lid',
@@ -995,7 +1010,7 @@ const BOX_PRESETS = [
 const DEFAULT_STATE = () => ({
   inner: { w: 100, d: 70, h: 40 },
   vents: false, tieSlots: false, lidFix: 'snap',
-  holeComp: 0.3, teardrop: true, lidT: 3, floorT: 2,
+  holeComp: 0.3, teardrop: true, lidT: 3, floorT: 2, lipH: 7, cornerR: 9,
   stand: false, standAngle: 15, standW: 45, standDepth: 18, standWall: 4,
   standNotchW: 0, standNotchH: 0, standNotchSide: 'front', standTail: 0,
   mountTabs: 'none', mountN: 2, panel: 'cut',
@@ -2672,6 +2687,8 @@ function buildArgList(part) {
   if (state.holeComp !== 0.3) args.push(`hole_comp=${state.holeComp}`);
   if (state.lidT !== 3) args.push(`lid_t=${state.lidT}`);
   if (state.floorT !== 2) args.push(`floor_t=${state.floorT}`);
+  if (state.lipH !== 7) args.push(`lip_h=${state.lipH}`);
+  if (state.cornerR !== 9) args.push(`corner_r=${state.cornerR}`);
   if (part === 'stand') {
     args.push(`stand_angle=${state.standAngle}`, `stand_w=${state.standW}`,
               `stand_depth=${state.standDepth}`, `stand_wall=${state.standWall}`);
@@ -2861,6 +2878,90 @@ function applyTemplateP4_7B() {
                     fov: FOV, recess: CAM_REC });
 
   state.tpl = { id: 'p4_7b', v: TPL_7B_V };
+  state.face = 'lid';
+  state.panel = 'box';
+  state.sel = null;
+  resetView();
+}
+
+// Version du modèle CYD, même mécanique que le 7B : à incrémenter dès
+// que la géométrie change, pour que les projets déjà générés le sachent.
+const TPL_CYD_V = 1;
+
+// Modèle « ESP32-2432S028R » — le CYD jaune, 2.8" 240×320 résistif.
+// Toutes les cotes viennent du pied à coulisse de l'utilisateur et se
+// recoupent sur une carte de 50 × 86 : le connecteur SD tombe alors
+// pile à 15.0 mm de long et la LED RGB à 4 × 4.
+function applyTemplateCYD() {
+  const PCB_W = 50, PCB_D = 86, PCB_T = 1.5;
+  const HX = 40.5, HY = 79.5;      // entraxe des trous, vissés par l'avant
+  const SCR_W = 44, SCR_D = 60;    // la dalle sur la carte
+  const SCR_TOP = 10, SCR_BOT = 16, SCR_H = 3.5;   // marges, et dépassement
+  // Le dos porte TOUT : module ESP32, LED RGB, boutons, USB-C, lecteur
+  // SD. La dalle est seule sur l'autre face. 6.2 est le plus haut du dos.
+  const BACK_H = 6.2;
+  const JEU = 1.5;                 // jeu de la carte contre les parois
+  // Entretoises : elles doivent dégager le dos de la carte, rien de plus.
+  const SH = Math.ceil(BACK_H + 0.8);            // 7
+  const IH = SH + PCB_T + SCR_H;                 // 12 : la dalle touche le couvercle
+  const W = PCB_W + 2 * JEU, D = PCB_D + 2 * JEU;
+  const dessus = SH + PCB_T;       // face écran, depuis le fond intérieur
+
+  // Repère : Y+ vers le HAUT de la carte, le port USB-C est en bas.
+  const haut = y => r1(PCB_D / 2 - y);      // cote donnée depuis le bord haut
+  const bas  = y => r1(-PCB_D / 2 + y);     // cote donnée depuis le bord bas
+
+  state.inner = { w: W, d: D, h: IH };
+  state.lidT = 2; state.floorT = 2;
+  // Une jupe de 7 et des coins de 9 sont taillés pour une grande boîte :
+  // ici la jupe mangerait toute la hauteur, et les coins intérieurs
+  // arrondis (rayon 6.6) viendraient mordre les angles de la carte.
+  state.lipH = 4; state.cornerR = 5;
+  state.cuts = []; state.pcbs = []; state.cells = []; state.divs = [];
+  state.comps = []; state.clips = [];
+
+  // Les quatre trous sont accessibles par l'avant : la carte se visse
+  // sur des entretoises montées du fond, pas de crochets à prévoir.
+  state.pcbs.push({ id: state.nextId++, cx: 0, cy: 0, sh: SH,
+                    dx: HX, dy: HY, holes: 4, pd: 6.5, pp: 2.2, onLid: false });
+
+  const cut = o => { state.cuts.push(Object.assign({ id: state.nextId++, fromTop: false }, o)); };
+
+  // Fenêtre : la dalle affleure la face intérieure du couvercle, qui ne
+  // la touche donc pas. On l'ouvre à la taille du verre + 0.4 de jeu
+  // plutôt que de mordre dessus : la zone active exacte est inconnue,
+  // et un recouvrement trop large la rognerait.
+  cut({ face: 'lid', type: 'rect', label: 'Écran 2.8″ 240×320',
+        off: 0, z: r1((bas(SCR_BOT) + haut(SCR_TOP)) / 2),
+        w: SCR_W + 0.4, h: SCR_D + 0.4 });
+
+  // Tout le reste est au DOS de la carte : le module, la LED, les
+  // boutons, l'USB-C et le lecteur SD. Ils regardent donc le FOND.
+
+  // RESET et BOOT : de part et d'autre de l'USB-C à 7 mm. Leur poussoir
+  // pointe vers le fond, on les atteint par deux trous dans le fond.
+  for (const [nom, sx] of [['RESET', -1], ['BOOT', 1]])
+    cut({ face: 'floor', type: 'circle', label: nom, off: sx * 7,
+          z: bas(6.5), d: 4 });
+
+  // LED RGB : 4 × 4, centrée en largeur, à 44 du bord haut. Elle éclaire
+  // vers le fond : le guide de lumière est donc dans le fond, à imprimer
+  // en PETG — c'est lui qui ressort la couleur.
+  cut({ face: 'floor', type: 'insert', label: 'Guide LED RGB',
+        off: 0, z: haut(46), w: 7, h: 7, skin: 0.8 });
+
+  // USB-C au ras du bord bas, centré sur la carte
+  cut({ face: 'front', type: 'rect', label: 'USB-C',
+        off: 0, z: r1(dessus + 1.6), w: 12, h: 6 });
+
+  // Lecteur microSD : 28.5 du haut à 42.5 du bas. Il est à droite sur
+  // une photo du DOS, donc à gauche quand on regarde l'écran — c'est
+  // cette vue-là que montre le plan. Un clic sur la découpe et le
+  // champ « Face » le renvoie à droite si je me suis trompé de sens.
+  cut({ face: 'left', type: 'rect', label: 'Carte microSD',
+        off: -haut(36), z: r1(dessus + 1.1), w: 15, h: 2.5 });
+
+  state.tpl = { id: 'cyd', v: TPL_CYD_V };
   state.face = 'lid';
   state.panel = 'box';
   state.sel = null;
@@ -3229,6 +3330,11 @@ function buildStatic() {
       const v = parseFloat($(id).value);
       if (!isNaN(v) && v >= mini) { pushHistory(cle); state[cle] = v; updateAll(); }
     });
+  for (const [id, cle, mini] of [['optLipH', 'lipH', 2], ['optCornerR', 'cornerR', 1]])
+    $(id).addEventListener('input', () => {
+      const v = parseFloat($(id).value);
+      if (!isNaN(v) && v >= mini) { pushHistory(cle); state[cle] = v; updateAll(); }
+    });
   $('optFloorT').addEventListener('input', () => {
     const v = parseFloat($('optFloorT').value);
     if (!isNaN(v) && v >= 1) { pushHistory('floorT'); state.floorT = v; updateAll(); }
@@ -3244,8 +3350,19 @@ function buildStatic() {
     applyTemplateP4_7B();
     updateAll();
   });
+  $('tplCYD').addEventListener('click', () => {
+    const busy = state.cuts.length || state.pcbs.length || state.cells.length ||
+                 state.divs.length || state.comps.length;
+    if (busy && !confirm(t('Remplacer le projet actuel ?'))) return;
+    pushHistory();
+    applyTemplateCYD();
+    updateAll();
+  });
   $('tplUpdate').addEventListener('click', () => {
-    pushHistory(); applyTemplateP4_7B(); updateAll();
+    pushHistory();
+    if (state.tpl && state.tpl.id === 'cyd') applyTemplateCYD();
+    else applyTemplateP4_7B();
+    updateAll();
   });
   $('undoBtn').addEventListener('click', undo);
   $('redoBtn').addEventListener('click', redo);
@@ -3377,6 +3494,8 @@ function updateAll(withInspector = true) {
   $('optTear').checked = state.teardrop;
   if (document.activeElement !== $('optLidT')) $('optLidT').value = state.lidT;
   if (document.activeElement !== $('optFloorT')) $('optFloorT').value = state.floorT;
+  for (const [id, cle] of [['optLipH', 'lipH'], ['optCornerR', 'cornerR']])
+    if (document.activeElement !== $(id)) $(id).value = state[cle];
   $('optStand').checked = state.stand;
   $('standRows').style.display = state.stand ? '' : 'none';
   for (const cle of ['standAngle', 'standW', 'standDepth', 'standWall',
@@ -3394,7 +3513,8 @@ function updateAll(withInspector = true) {
         `${t('Le centre de gravité passe derrière l\'assise : ça bascule. Queue arrière de')} ` +
         `${pr.besoin} mm ${t('au moins.')}</div>`);
   }
-  const stale = state.tpl && state.tpl.id === 'p4_7b' && state.tpl.v < TPL_7B_V;
+  const stale = state.tpl && ((state.tpl.id === 'p4_7b' && state.tpl.v < TPL_7B_V) ||
+                             (state.tpl.id === 'cyd' && state.tpl.v < TPL_CYD_V));
   $('tplStale').style.display = stale ? '' : 'none';
   if (stale) $('tplStaleTxt').textContent =
     t('Ce projet vient d’une version plus ancienne du modèle : les cotes de la caméra et l’épaisseur du couvercle ont changé depuis. Régénère-le pour en profiter — tes réglages du panneau Boîtier seront réécrits.');
