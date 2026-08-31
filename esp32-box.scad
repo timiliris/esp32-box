@@ -237,7 +237,10 @@ inner_r = max(corner_r - wall, 1);
 
 lip_w = iw - 2 * lid_clearance;
 lip_d = id - 2 * lid_clearance;
-snap_z = seam - 3.5;         // altitude des clips
+// Altitude des clips : 3.5 sous le joint, mais jamais si bas que la
+// jupe ne les atteint plus. Avec une jupe courte, les bossages
+// tombaient sous son bord libre et ne retenaient plus rien.
+snap_z = seam - min(3.5, lip_h * 0.6);
 
 // Colonnes de vissage — enfoncées de 0.8 mm dans les parois
 post_x = iw / 2 - post_d / 2 + 0.8;
@@ -545,6 +548,18 @@ module usbc_cradle(L) {
 }
 
 // solides des boutons (ajoutés après la différence de la base)
+// Plot conducteur de lumière : un cylindre plein qui monte du fond
+// jusque sous une LED montée au dos d'une carte. Imprimé dans un
+// boîtier translucide, il amène la couleur jusqu'à la paroi — pas de
+// trou, pas de pièce rapportée, c'est la matière qui conduit.
+// [face="floor", "pipe", x, y, Ø, hauteur au-dessus du fond]
+module light_pipes_all() {
+    for (c = cuts)
+        if (c[0] == "floor" && c[1] == "pipe")
+            translate([c[2], c[3], floor_t - 0.4])
+                cylinder(d = c[4], h = c[5] + 0.4);
+}
+
 module buttons_solids() {
     for (c = cuts)
         if ((is_btn(c[1]) || c[1] == "usbc") &&
@@ -1201,6 +1216,7 @@ module base() {
         compartment_vents_floor();
         compartment_vents_walls();
     }
+    light_pipes_all();
     if (standoffs) board_posts();
     standoff_sets_all();
     cell_holders_all();

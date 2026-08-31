@@ -509,6 +509,9 @@ const EN = {
   'Grille ronde': 'Round grid', 'Nid d\'abeille': 'Honeycomb',
   'Rect libre': 'Custom rect', 'Rond libre': 'Custom hole',
   'Guide LED 1.75': 'LED pipe 1.75', 'Poussoir 7': 'Push btn 7',
+  'Plot de lumière': 'Light post', 'Ø 6 · plein': 'Ø 6 · solid',
+  'Plot PLEIN monté du fond jusque sous une LED soudée au dos de la carte. Aucun trou : dans un boîtier translucide, c\'est la matière qui conduit la couleur jusqu\'à la paroi. Largeur = diamètre, hauteur = jusqu\'où il monte.':
+    'A SOLID post from the floor up under an LED soldered on the back of the board. No hole: in a translucent case the material itself carries the colour to the wall. Width = diameter, height = how far up it goes.',
   'Poussoir 12': 'Push btn 12',
   '8.7 × 2.9 · support': '8.7 × 2.9 · mount',
   'Ø 1.8 · filament': 'Ø 1.8 · filament',
@@ -773,7 +776,7 @@ Object.assign(EN, {
   'CYD jaune ESP32-2432S028R — 2.8″': 'Yellow CYD ESP32-2432S028R — 2.8″',
   'Le « cheap yellow display » : carte 50 × 86 vissée par l’avant sur quatre entretoises, dalle 2.8″ affleurant le couvercle, USB-C, RESET/BOOT, lecteur microSD et guide de lumière au-dessus de la LED RGB.':
     'The “cheap yellow display”: 50 × 86 board screwed from the front onto four standoffs, 2.8″ panel flush with the lid, USB-C, RESET/BOOT, microSD reader and a light guide above the RGB LED.',
-  'Écran 2.8″ 240×320': '2.8″ 240×320 screen', 'Guide LED RGB': 'RGB LED guide',
+  'Écran 2.8″ 240×320': '2.8″ 240×320 screen', 'Plot LED RGB': 'RGB LED post',
   'Projet complet : boîte 176 × 117 × 45, écran clipsé sous le couvercle avec sa fenêtre décalée, la caméra qui regarde au-dessus de l’écran, et les 7 ouvertures de bord (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) à la bonne altitude.':
     'Complete project: 176 × 117 × 45 box, display clipped under the lid with its offset window, the camera looking out above the screen, and the 7 edge openings (USB-A, 2× USB-C, microSD, ON/OFF, RESET, BOOT) at the right height.',
   'Accès bouton': 'Button access', '151.6 × 83.4 · couvercle': '151.6 × 83.4 · lid',
@@ -841,8 +844,11 @@ function setLang(l) {
 // Constantes géométrie (doivent suivre esp32-box.scad)
 // ---------------------------------------------------------------
 const CORNER_R = 9;      // rayon des coins
-const LID_BAND = 9;      // zone haute affichée (jupe + rainure de clip)
-const SKIRT_H = 7;       // jupe réelle du couvercle (lip_h du .scad)
+// Jupe réelle du couvercle : elle suit le réglage, elle n'est plus figée
+// à 7. Sans ça, l'avertissement « traverse la jupe » restait allumé sur
+// un boîtier plat dont les découpes passaient pourtant dessous.
+const skirtH = () => state.lipH;
+const lidBand = () => state.lipH + 2;   // jupe + rainure de clip, à l'écran
 const GRID = 0.5;        // pas de la grille (mm)
 const SNAP_TOL = 5;      // tolérance d'aimantation (px)
 
@@ -923,6 +929,8 @@ const PALETTE = [
     tip: 'Jack audio 3.5 mm châssis : se visse dans la paroi avec son écrou' },
   { label: 'Guide LED 1.75', sub: 'Ø 1.8 · filament', type: 'circle', d: 1.8,
     tip: 'Bout de filament transparent en guide de lumière pour une LED témoin' },
+  { label: 'Plot de lumière', sub: 'Ø 6 · plein', type: 'pipe', w: 6, h: 6, floorOnly: true,
+    tip: 'Plot PLEIN monté du fond jusque sous une LED soudée au dos de la carte. Aucun trou : dans un boîtier translucide, c\'est la matière qui conduit la couleur jusqu\'à la paroi. Largeur = diamètre, hauteur = jusqu\'où il monte.' },
   { label: 'Poussoir 7',   sub: 'Ø 7.2',    type: 'circle', d: 7.2,
     tip: 'Petit bouton poussoir châssis 7 mm (type PBS-110)' },
   { label: 'Poussoir 12',  sub: 'Ø 12.2',   type: 'circle', d: 12.2,
@@ -1286,7 +1294,7 @@ function render() {
     const cw = CORNER_R * S;
     g.push(`<rect x="${x0}" y="${y0}" width="${cw}" height="${fh * S}" fill="rgba(240,179,80,.06)"/>`);
     g.push(`<rect x="${x0 + fw * S - cw}" y="${y0}" width="${cw}" height="${fh * S}" fill="rgba(240,179,80,.06)"/>`);
-    g.push(`<rect x="${x0}" y="${y0}" width="${fw * S}" height="${LID_BAND * S}" fill="rgba(240,179,80,.08)"/>`);
+    g.push(`<rect x="${x0}" y="${y0}" width="${fw * S}" height="${lidBand() * S}" fill="rgba(240,179,80,.08)"/>`);
     g.push(`<text pointer-events="none" x="${x0 + fw * S / 2}" y="${y0 + 13}" fill="#5b6274" font-size="10" text-anchor="middle">${t('jupe + clips du couvercle')}</text>`);
   } else {
     // coins arrondis de la boîte
@@ -1689,7 +1697,7 @@ function cutNotes(c) {
   if (isFlat(c.face)) return [];
   const hh = c.type === 'circle' || isBtnType(c.type) ? c.d / 2
            : c.type === 'usbc' ? 5 : c.h / 2;
-  return (c.z + hh > state.inner.h - SKIRT_H)
+  return (c.z + hh > state.inner.h - skirtH())
     ? [t('traverse la jupe — régénère le couvercle')] : [];
 }
 
@@ -2906,6 +2914,10 @@ function applyTemplateCYD() {
   const IH = SH + PCB_T + SCR_H;                 // 12 : la dalle touche le couvercle
   const W = PCB_W + 2 * JEU, D = PCB_D + 2 * JEU;
   const dessus = SH + PCB_T;       // face écran, depuis le fond intérieur
+  // L'USB-C et le lecteur SD sont montés au DOS : leur corps pend SOUS
+  // la carte, entre le fond et elle. Leurs ouvertures se placent donc
+  // par rapport à SH, la face arrière, et non par rapport à la dalle.
+  const dos = SH;
 
   // Repère : Y+ vers le HAUT de la carte, le port USB-C est en bas.
   const haut = y => r1(PCB_D / 2 - y);      // cote donnée depuis le bord haut
@@ -2945,21 +2957,25 @@ function applyTemplateCYD() {
           z: bas(6.5), d: 4 });
 
   // LED RGB : 4 × 4, centrée en largeur, à 44 du bord haut. Elle éclaire
-  // vers le fond : le guide de lumière est donc dans le fond, à imprimer
-  // en PETG — c'est lui qui ressort la couleur.
-  cut({ face: 'floor', type: 'insert', label: 'Guide LED RGB',
-        off: 0, z: haut(46), w: 7, h: 7, skin: 0.8 });
+  // vers le fond : un plot PLEIN monte du fond jusque sous elle et lui
+  // sert de guide. Rien à percer, rien à rapporter — dans un boîtier
+  // translucide c'est la matière qui conduit la couleur.
+  cut({ face: 'floor', type: 'pipe', label: 'Plot LED RGB',
+        off: 0, z: haut(46), w: 6, h: r1(SH - 1.5) });
 
-  // USB-C au ras du bord bas, centré sur la carte
+  // USB-C au ras du bord bas, centré sur la carte. Sa prise fait 3.2 de
+  // haut sous la carte, soit de 3.8 à 7. L'ouverture est calée 0.2 sous
+  // le bord de la jupe : à 6 de haut elle enveloppe largement la prise
+  // et cesse d'entamer le couvercle.
   cut({ face: 'front', type: 'rect', label: 'USB-C',
-        off: 0, z: r1(dessus + 1.6), w: 12, h: 6 });
+        off: 0, z: r1(IH - 4 - 0.2 - 3), w: 12, h: 6 });
 
   // Lecteur microSD : 28.5 du haut à 42.5 du bas. Il est à droite sur
   // une photo du DOS, donc à gauche quand on regarde l'écran — c'est
   // cette vue-là que montre le plan. Un clic sur la découpe et le
   // champ « Face » le renvoie à droite si je me suis trompé de sens.
   cut({ face: 'left', type: 'rect', label: 'Carte microSD',
-        off: -haut(36), z: r1(dessus + 1.1), w: 15, h: 2.5 });
+        off: -haut(36), z: r1(dos - 0.9), w: 15, h: 2.5 });
 
   state.tpl = { id: 'cyd', v: TPL_CYD_V };
   state.face = 'lid';
@@ -3152,7 +3168,7 @@ function buildStatic() {
     tabs.append(b);
   }
   const PAL_CATS = [
-    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Ports power bank', 'Carte microSD', 'Caméra', 'Interrupteur à glissière', 'Accès bouton', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
+    ['Connecteurs', ['USB-C encastré', 'USB-C', 'USB-A', 'micro-USB', 'Rangée ports', 'Ports power bank', 'Carte microSD', 'Caméra', 'Interrupteur à glissière', 'Accès bouton', 'Plot de lumière', 'Rocker KCD1', 'Jack 3.5', 'Poussoir 7', 'Poussoir 12', 'PG7', 'Guide LED 1.75']],
     ['Boutons tact 6×6', ['Bouton languette', 'Bouton poussoir']],
     ['Fenêtres & inserts', ['Écran 7″ 1024×600', 'Fenêtre LED', 'Fenêtre radar', 'Insert libre', 'Fenêtre libre']],
     ['Aérations', ['Fentes vert.', 'Fentes horiz.', 'Grille ronde', 'Nid d\'abeille']],

@@ -329,10 +329,14 @@ flush with the lid's inner face, so the opening is cut at the glass
 size plus 0.4 of clearance rather than overlapping it — the exact
 active area is not known here, and a wider overlap would crop it.
 
-**The light guide is in the floor.** The RGB LED shines down at the
-base, so its guide is an insert in the floor, right under it: print
-that one piece in PETG and it carries the colour out as a status
-indicator.
+**The light post is solid.** The RGB LED shines down at the base, so
+a **Light post** — a plain cylinder, no hole, no separate part —
+climbs from the floor to just under it, stopping 1.5 mm short to
+leave room for the LED body. Print the case in translucent PETG and
+the material itself carries the colour out to the wall. It is a
+palette item like any other: drop one on the *Floor* tab wherever a
+board has an LED on its back, and set width (its diameter) and height
+(how far up it goes).
 
 **A flat box needs different proportions.** Two settings this
 template exposes because 12 mm of inner height cannot keep the
@@ -340,9 +344,12 @@ defaults: the **skirt** drops from 7 to 4, and the **corner radius**
 from 9 to 5 — at 9 the rounded inner corners (radius 6.6) bite into
 the board's corners.
 
-The USB-C and the card slot sit right under the seam, so both cross
-the lid skirt and notch it. The builder says so; regenerate the lid
-and it is handled.
+**Both back connectors sit under the board, not above it.** The USB-C
+and the card reader are soldered on the back face, so their bodies
+hang between the board and the floor — the openings are placed off
+the board's *back* face, and the USB-C is dropped so its top stops
+0.2 mm below the skirt. Nothing crosses the lid skirt: the template
+comes up with no warnings at all.
 
 ![CYD base](../preview/cyd-fond.png)
 
