@@ -312,6 +312,7 @@
               <div class="rowline"><label>Largeur</label><input type="number" id="standW" min="15" max="120" step="1"><span class="unit">mm</span></div>
               <div class="rowline" title="Sur quelle hauteur la boîte s'enfonce dans la rainure. Plus c'est profond, plus c'est stable."><label>Encastrement</label><input type="number" id="standDepth" min="6" max="60" step="1"><span class="unit">mm</span></div>
               <div class="rowline"><label>Matière autour</label><input type="number" id="standWall" min="2" max="12" step="0.5"><span class="unit">mm</span></div>
+              <div class="rowline" title="Hauteur de matière sous la rainure. C'est elle qui dégage un connecteur posé sur la tranche encastrée — l'USB-C du CYD par exemple. 0 = même valeur que « Matière autour »."><label>Dessous</label><input type="number" id="standUnder" min="0" max="40" step="0.5"><span class="unit">mm</span></div>
               <div class="rowline" title="Canal pour un connecteur qui se trouve sur la tranche encastrée : il passerait sous la rainure et ressortirait devant, au ras de la table. 0 = aucun."><label>Passage câble</label><input type="number" id="standCableW" min="0" max="60" step="1"><span class="unit">mm</span></div>
               <div id="standCableRows" style="display:none">
                 <div class="rowline"><label>Haut. sortie</label><input type="number" id="standCableH" min="2" max="30" step="0.5"><span class="unit">mm</span></div>
@@ -551,6 +552,9 @@ const EN = {
   'Encoche': 'Notch', 'Haut. encoche': 'Notch height', 'Joue': 'Jaw',
   'Queue arrière': 'Rear tail', 'au moins.': 'at least.',
   'Passage câble': 'Cable pass', 'Haut. sortie': 'Exit height', 'Larg. puits': 'Shaft width',
+  'Dessous': 'Underside', 'dessous': 'clear underneath',
+  'Hauteur de matière sous la rainure. C\'est elle qui dégage un connecteur posé sur la tranche encastrée — l\'USB-C du CYD par exemple. 0 = même valeur que « Matière autour ».':
+    'Height of material under the groove. This is what clears a connector sitting on the seated edge — the CYD\'s USB-C for one. 0 = same as “Wall around”.',
   'Deux socles de': 'Two sockets of', 'ne tiennent pas sous une tranche de': 'do not fit under an edge of',
   'Canal pour un connecteur qui se trouve sur la tranche encastrée : il passerait sous la rainure et ressortirait devant, au ras de la table. 0 = aucun.':
     'Channel for a connector sitting on the seated edge: it runs under the groove and comes out at the front, level with the desk. 0 = none.',
@@ -1032,7 +1036,7 @@ const DEFAULT_STATE = () => ({
   holeComp: 0.3, teardrop: true, lidT: 3, floorT: 2, lipH: 7, cornerR: 9,
   stand: false, standAngle: 15, standW: 45, standDepth: 18, standWall: 4,
   standNotchW: 0, standNotchH: 0, standNotchSide: 'front', standTail: 0,
-  standCableW: 0, standCableH: 6, standCableD: 10,
+  standCableW: 0, standCableH: 6, standCableD: 10, standUnder: 0,
   mountTabs: 'none', mountN: 2, panel: 'cut',
   face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], clips: [], nextId: 1, sel: null,
 });
@@ -2183,7 +2187,8 @@ function standProfileSvg() {
   const wall = state.standWall, depth = state.standDepth;
   const T = state.floorT + state.inner.h + state.lidT + 0.6;   // la rainure
   const od = state.inner.d + 4.8;                              // la boîte
-  const hs = T / 2, by = wall + hs * Math.sin(a);
+  const sous = state.standUnder > 0 ? state.standUnder : wall;
+  const hs = T / 2, by = sous + hs * Math.sin(a);
   const ux = Math.sin(a), uy = Math.cos(a);
   const nx = Math.cos(a), ny = -Math.sin(a);
   const P = (t, u) => [t * nx + u * ux, by + t * ny + u * uy];
@@ -2284,7 +2289,7 @@ function standProfileSvg() {
       ' mm : descends la largeur vers ' + r1((tranche - 14) / 2) + ' mm.'
     : null;
   const xs2 = bloc.concat(queue || []).map(p => p[0]);
-  return { svg: g, h: r1(hb), stable: ok, besoin, large,
+  return { svg: g, h: r1(hb), stable: ok, besoin, large, dessous: by,
            hors: r1(Math.max(...boite.map(p => p[1]))),
            emprise: r1(Math.max(...xs2) - Math.min(...xs2)) };
 }
@@ -2729,6 +2734,7 @@ function buildArgList(part) {
     args.push(`stand_angle=${state.standAngle}`, `stand_w=${state.standW}`,
               `stand_depth=${state.standDepth}`, `stand_wall=${state.standWall}`);
     if (state.standTail > 0) args.push(`stand_tail=${state.standTail}`);
+    if (state.standUnder > 0) args.push(`stand_under=${state.standUnder}`);
     if (state.standCableW > 0)
       args.push(`stand_cable_w=${state.standCableW}`,
                 `stand_cable_h=${state.standCableH}`,
@@ -3376,7 +3382,8 @@ function buildStatic() {
                                  ['standTail', 'standTail', 0],
                                  ['standCableW', 'standCableW', 0],
                                  ['standCableH', 'standCableH', 2],
-                                 ['standCableD', 'standCableD', 4]])
+                                 ['standCableD', 'standCableD', 4],
+                                 ['standUnder', 'standUnder', 0]])
     $(id).addEventListener('input', () => {
       const v = parseFloat($(id).value);
       if (!isNaN(v) && v >= mini) { pushHistory(cle); state[cle] = v; updateAll(); }
@@ -3551,16 +3558,18 @@ function updateAll(withInspector = true) {
   $('standRows').style.display = state.stand ? '' : 'none';
   for (const cle of ['standAngle', 'standW', 'standDepth', 'standWall',
                      'standNotchW', 'standNotchH', 'standTail',
-                     'standCableW', 'standCableH', 'standCableD'])
+                     'standCableW', 'standCableH', 'standCableD', 'standUnder'])
     if (document.activeElement !== $(cle)) $(cle).value = state[cle];
   $('standNotchSide').value = state.standNotchSide;
   $('standNotchRows').style.display = state.standNotchW > 0 ? '' : 'none';
   $('standCableRows').style.display = state.standCableW > 0 ? '' : 'none';
   if (state.stand) {
     const pr = standProfileSvg();
+    const by0 = pr.dessous;
     $('standNote').innerHTML = pr.svg +
       `<div style="margin-top:4px">${t('Socle haut de')} ${pr.h} mm · ` +
-      `${t('emprise')} ${pr.emprise} mm · ${t('écran à')} ${pr.hors} mm</div>` +
+      `${t('emprise')} ${pr.emprise} mm · ${t('écran à')} ${pr.hors} mm · ` +
+      `${t('dessous')} ${r1(by0)} mm</div>` +
       (pr.stable ? '' :
         `<div style="margin-top:5px;color:var(--danger)">` +
         `${t('Le centre de gravité passe derrière l\'assise : ça bascule. Queue arrière de')} ` +

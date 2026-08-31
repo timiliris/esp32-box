@@ -37,6 +37,9 @@ stand_angle = 15;    // inclinaison, en degrés DEPUIS LA VERTICALE
 stand_w = 45;        // largeur d'un socle
 stand_depth = 18;    // profondeur d'encastrement de la boîte
 stand_wall = 4;      // matière autour de la rainure
+// Dessous du socle : hauteur sous le coin bas de la rainure. C'est elle
+// qui dégage un connecteur pose sur la tranche encastree. 0 = stand_wall.
+stand_under = 0;
 stand_slot = 0;      // largeur de rainure ; 0 = épaisseur de la boîte + jeu
 stand_notch_w = 0;   // encoche centrale dans la joue ; 0 = aucune
 stand_notch_h = 0;   // sa hauteur ; 0 = toute la profondeur d'encastrement
@@ -1294,13 +1297,13 @@ module lid() {
 // les deux joues de la rainure la tiennent des deux côtés.
 // Le bloc épouse la rainure : il ne pèse que ce qu'il faut.
 module stand_foot(w, slot, depth, ang, wall, nw = 0, nh = 0, nside = "front",
-                  tail = 0, cw = 0, ch = 6, cd = 10) {
+                  tail = 0, cw = 0, ch = 6, cd = 10, under = 0) {
     ux = sin(ang);  uy = cos(ang);      // le long de la rainure
     nx = cos(ang);  ny = -sin(ang);     // en travers
     hs = slot / 2;
     // le fond de la rainure est incliné lui aussi : on le remonte assez
     // pour que son coin bas garde `wall` de matière sous lui
-    bx = 0; by = wall + hs * sin(ang);
+    bx = 0; by = (under > 0 ? under : wall) + hs * sin(ang);
     coin = function (t, u)
         [bx + t * nx + u * ux, by + t * ny + u * uy];
     p  = [coin(-hs, 0), coin(hs, 0), coin(hs, depth), coin(-hs, depth)];
@@ -1362,7 +1365,7 @@ module stand() {
         translate([0, -sy * (stand_w + 8), 0])
             stand_foot(stand_w, slot, stand_depth, stand_angle, stand_wall,
                        stand_notch_w, stand_notch_h, stand_notch_side, stand_tail,
-                       stand_cable_w, stand_cable_h, stand_cable_d);
+                       stand_cable_w, stand_cable_h, stand_cable_d, stand_under);
 }
 
 // ------------------------------------------------------------

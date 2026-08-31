@@ -386,6 +386,13 @@ socket fits; what changes is *Width*, which must let **two** sockets
 sit under the edge the box stands on. The panel says so in red with
 the width to use when they would not fit.
 
+**Underside.** How much material sits under the groove — and so how
+much room is left beneath the box's seated edge. It defaults to
+*Wall around*, which leaves only about 6 mm: not enough for a USB-C
+plug. Raise it and the whole socket rises with it; the panel prints
+the resulting clearance next to the other figures, so you can dial it
+straight to the plug you use.
+
 **Cable pass.** A connector on the seated edge — the CYD's USB-C sits
 right there — would be buried in the groove. *Cable pass* cuts a
 channel that drops under the groove and comes out at the front, level
