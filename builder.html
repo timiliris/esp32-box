@@ -312,6 +312,11 @@
               <div class="rowline"><label>Largeur</label><input type="number" id="standW" min="15" max="120" step="1"><span class="unit">mm</span></div>
               <div class="rowline" title="Sur quelle hauteur la boîte s'enfonce dans la rainure. Plus c'est profond, plus c'est stable."><label>Encastrement</label><input type="number" id="standDepth" min="6" max="60" step="1"><span class="unit">mm</span></div>
               <div class="rowline"><label>Matière autour</label><input type="number" id="standWall" min="2" max="12" step="0.5"><span class="unit">mm</span></div>
+              <div class="rowline" title="Canal pour un connecteur qui se trouve sur la tranche encastrée : il passerait sous la rainure et ressortirait devant, au ras de la table. 0 = aucun."><label>Passage câble</label><input type="number" id="standCableW" min="0" max="60" step="1"><span class="unit">mm</span></div>
+              <div id="standCableRows" style="display:none">
+                <div class="rowline"><label>Haut. sortie</label><input type="number" id="standCableH" min="2" max="30" step="0.5"><span class="unit">mm</span></div>
+                <div class="rowline" title="Largeur du puits sous la rainure, dans le sens de la profondeur du socle"><label>Larg. puits</label><input type="number" id="standCableD" min="4" max="40" step="1"><span class="unit">mm</span></div>
+              </div>
               <div class="rowline" title="Languette plate à l'arrière du socle. Penchée, la boîte a son centre de gravité en arrière : sans elle, l'ensemble bascule."><label>Queue arrière</label><input type="number" id="standTail" min="0" max="120" step="1"><span class="unit">mm</span></div>
               <div class="rowline" title="Fenêtre au centre de la joue : une bande LED ou un connecteur sur la tranche de la boîte n'est plus aveuglé. 0 = aucune."><label>Encoche</label><input type="number" id="standNotchW" min="0" max="200" step="1"><span class="unit">mm</span></div>
               <div id="standNotchRows" style="display:none">
@@ -545,6 +550,12 @@ const EN = {
   'Encastrement': 'Seat depth', 'Matière autour': 'Wall around',
   'Encoche': 'Notch', 'Haut. encoche': 'Notch height', 'Joue': 'Jaw',
   'Queue arrière': 'Rear tail', 'au moins.': 'at least.',
+  'Passage câble': 'Cable pass', 'Haut. sortie': 'Exit height', 'Larg. puits': 'Shaft width',
+  'Deux socles de': 'Two sockets of', 'ne tiennent pas sous une tranche de': 'do not fit under an edge of',
+  'Canal pour un connecteur qui se trouve sur la tranche encastrée : il passerait sous la rainure et ressortirait devant, au ras de la table. 0 = aucun.':
+    'Channel for a connector sitting on the seated edge: it runs under the groove and comes out at the front, level with the desk. 0 = none.',
+  'Largeur du puits sous la rainure, dans le sens de la profondeur du socle':
+    'Width of the shaft under the groove, along the socket depth',
   'Le centre de gravité passe derrière l\'assise : ça bascule. Queue arrière de':
     'The centre of gravity falls behind the base: it tips. Rear tail of',
   'Languette plate à l\'arrière du socle. Penchée, la boîte a son centre de gravité en arrière : sans elle, l\'ensemble bascule.':
@@ -1021,6 +1032,7 @@ const DEFAULT_STATE = () => ({
   holeComp: 0.3, teardrop: true, lidT: 3, floorT: 2, lipH: 7, cornerR: 9,
   stand: false, standAngle: 15, standW: 45, standDepth: 18, standWall: 4,
   standNotchW: 0, standNotchH: 0, standNotchSide: 'front', standTail: 0,
+  standCableW: 0, standCableH: 6, standCableD: 10,
   mountTabs: 'none', mountN: 2, panel: 'cut',
   face: 'front', cuts: [], pcbs: [], cells: [], divs: [], comps: [], clips: [], nextId: 1, sel: null,
 });
@@ -2239,6 +2251,14 @@ function standProfileSvg() {
   if (queue)
     g += `<polygon points="${poly2(queue)}" fill="rgba(240,179,80,.30)" stroke="#f0b350" stroke-width="1.2"/>`;
   g += `<polygon points="${poly2(rainure)}" fill="#10141b" stroke="#f0b350" stroke-width=".8"/>`;
+  if (state.standCableW > 0) {
+    const ch2 = state.standCableH, cd2 = state.standCableD;
+    const x0c = Math.min(...bloc.map(q => q[0]));
+    g += `<polygon points="${poly2([[-cd2/2, 0], [cd2/2, 0], [cd2/2, by], [-cd2/2, by]])}" ` +
+         `fill="rgba(16,20,27,.85)" stroke="#f0b350" stroke-width=".8" stroke-dasharray="3 2"/>`;
+    g += `<polygon points="${poly2([[x0c, 0], [cd2/2, 0], [cd2/2, ch2], [x0c, ch2]])}" ` +
+         `fill="rgba(16,20,27,.85)" stroke="#f0b350" stroke-width=".8" stroke-dasharray="3 2"/>`;
+  }
   if (state.standNotchW > 0) {
     const hn = state.standNotchH > 0 ? state.standNotchH : depth;
     for (const sg of (state.standNotchSide === 'both' ? [-1, 1]
@@ -2255,8 +2275,16 @@ function standProfileSvg() {
   g += `</svg>`;
   const hb = Math.max(...bloc.map(p => p[1]));
   const besoin = Math.max(0, r1(cg[0] + 12 - xArr));
+  // la tranche encastrée fait la largeur de la boîte : deux socles
+  // doivent y tenir, et laisser de la place entre eux
+  const tranche = state.inner.w + 4.8;
+  const large = 2 * state.standW > tranche - 10
+    ? t('Deux socles de') + ' ' + state.standW + ' mm ' +
+      t('ne tiennent pas sous une tranche de') + ' ' + r1(tranche) +
+      ' mm : descends la largeur vers ' + r1((tranche - 14) / 2) + ' mm.'
+    : null;
   const xs2 = bloc.concat(queue || []).map(p => p[0]);
-  return { svg: g, h: r1(hb), stable: ok, besoin,
+  return { svg: g, h: r1(hb), stable: ok, besoin, large,
            hors: r1(Math.max(...boite.map(p => p[1]))),
            emprise: r1(Math.max(...xs2) - Math.min(...xs2)) };
 }
@@ -2701,6 +2729,10 @@ function buildArgList(part) {
     args.push(`stand_angle=${state.standAngle}`, `stand_w=${state.standW}`,
               `stand_depth=${state.standDepth}`, `stand_wall=${state.standWall}`);
     if (state.standTail > 0) args.push(`stand_tail=${state.standTail}`);
+    if (state.standCableW > 0)
+      args.push(`stand_cable_w=${state.standCableW}`,
+                `stand_cable_h=${state.standCableH}`,
+                `stand_cable_d=${state.standCableD}`);
     if (state.standNotchW > 0)
       args.push(`stand_notch_w=${state.standNotchW}`,
                 `stand_notch_h=${state.standNotchH}`,
@@ -3341,7 +3373,10 @@ function buildStatic() {
   for (const [id, cle, mini] of [['standAngle', 'standAngle', 0], ['standW', 'standW', 15],
                                  ['standDepth', 'standDepth', 6], ['standWall', 'standWall', 2],
                                  ['standNotchW', 'standNotchW', 0], ['standNotchH', 'standNotchH', 0],
-                                 ['standTail', 'standTail', 0]])
+                                 ['standTail', 'standTail', 0],
+                                 ['standCableW', 'standCableW', 0],
+                                 ['standCableH', 'standCableH', 2],
+                                 ['standCableD', 'standCableD', 4]])
     $(id).addEventListener('input', () => {
       const v = parseFloat($(id).value);
       if (!isNaN(v) && v >= mini) { pushHistory(cle); state[cle] = v; updateAll(); }
@@ -3515,10 +3550,12 @@ function updateAll(withInspector = true) {
   $('optStand').checked = state.stand;
   $('standRows').style.display = state.stand ? '' : 'none';
   for (const cle of ['standAngle', 'standW', 'standDepth', 'standWall',
-                     'standNotchW', 'standNotchH', 'standTail'])
+                     'standNotchW', 'standNotchH', 'standTail',
+                     'standCableW', 'standCableH', 'standCableD'])
     if (document.activeElement !== $(cle)) $(cle).value = state[cle];
   $('standNotchSide').value = state.standNotchSide;
   $('standNotchRows').style.display = state.standNotchW > 0 ? '' : 'none';
+  $('standCableRows').style.display = state.standCableW > 0 ? '' : 'none';
   if (state.stand) {
     const pr = standProfileSvg();
     $('standNote').innerHTML = pr.svg +
@@ -3527,7 +3564,8 @@ function updateAll(withInspector = true) {
       (pr.stable ? '' :
         `<div style="margin-top:5px;color:var(--danger)">` +
         `${t('Le centre de gravité passe derrière l\'assise : ça bascule. Queue arrière de')} ` +
-        `${pr.besoin} mm ${t('au moins.')}</div>`);
+        `${pr.besoin} mm ${t('au moins.')}</div>`) +
+      (pr.large ? `<div style="margin-top:5px;color:var(--danger)">${esc(pr.large)}</div>` : '');
   }
   const stale = state.tpl && ((state.tpl.id === 'p4_7b' && state.tpl.v < TPL_7B_V) ||
                              (state.tpl.id === 'cyd' && state.tpl.v < TPL_CYD_V));

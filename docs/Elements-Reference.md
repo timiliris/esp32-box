@@ -380,6 +380,19 @@ footprint and how high the screen reaches. That drawing is how you
 pick a tilt; the 3D preview also leans the box to the chosen angle,
 but a rotating box tells you little about degrees.
 
+**The groove takes the box's thickness**, not its orientation — floor
++ inner height + lid, plus 0.6. Portrait or landscape, the same
+socket fits; what changes is *Width*, which must let **two** sockets
+sit under the edge the box stands on. The panel says so in red with
+the width to use when they would not fit.
+
+**Cable pass.** A connector on the seated edge — the CYD's USB-C sits
+right there — would be buried in the groove. *Cable pass* cuts a
+channel that drops under the groove and comes out at the front, level
+with the desk, so the lead reaches it from below. Often you do not
+need it: two narrow sockets placed at the two ends of the edge
+already leave the middle clear.
+
 **Rear tail.** Leaning back, the box carries its centre of gravity
 *behind* the socket — past roughly 35° the whole thing tips over
 backwards. *Rear tail* adds a flat tongue along the desk to catch it.

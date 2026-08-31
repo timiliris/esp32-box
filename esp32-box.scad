@@ -42,6 +42,12 @@ stand_notch_w = 0;   // encoche centrale dans la joue ; 0 = aucune
 stand_notch_h = 0;   // sa hauteur ; 0 = toute la profondeur d'encastrement
 stand_notch_side = "front";  // "front" (côté écran), "back", ou "both"
 stand_tail = 0;      // languette arrière contre le basculement ; 0 = aucune
+// Passage de câble : un connecteur sur la tranche encastrée serait
+// enterré dans la rainure. Le canal descend sous elle puis ressort
+// devant, au ras de la table. 0 = aucun.
+stand_cable_w = 0;   // largeur du canal (le long de la tranche)
+stand_cable_h = 6;   // hauteur de sa sortie devant
+stand_cable_d = 10;  // largeur du puits, dans le profil
 lip_t = 1.8;         // épaisseur de la jupe (fine = elle flexe pour clipser)
 
 /* [Aérations] */
@@ -1288,7 +1294,7 @@ module lid() {
 // les deux joues de la rainure la tiennent des deux côtés.
 // Le bloc épouse la rainure : il ne pèse que ce qu'il faut.
 module stand_foot(w, slot, depth, ang, wall, nw = 0, nh = 0, nside = "front",
-                  tail = 0) {
+                  tail = 0, cw = 0, ch = 6, cd = 10) {
     ux = sin(ang);  uy = cos(ang);      // le long de la rainure
     nx = cos(ang);  ny = -sin(ang);     // en travers
     hs = slot / 2;
@@ -1337,6 +1343,14 @@ module stand_foot(w, slot, depth, ang, wall, nw = 0, nh = 0, nside = "front",
                         if (nside != "back")  polygon(fen(-1));
                         if (nside != "front") polygon(fen(1));
                     }
+        // canal de câble : puits sous la rainure + sortie vers l'avant
+        if (cw > 0)
+            rotate([90, 0, 0])
+                translate([0, 0, (w - cw) / 2])
+                    linear_extrude(height = cw) {
+                        translate([-cd / 2, -1]) square([cd, by + 2]);
+                        translate([-300, -1]) square([300 + cd / 2, ch + 1]);
+                    }
     }
 }
 
@@ -1347,7 +1361,8 @@ module stand() {
     for (sy = [0, 1])
         translate([0, -sy * (stand_w + 8), 0])
             stand_foot(stand_w, slot, stand_depth, stand_angle, stand_wall,
-                       stand_notch_w, stand_notch_h, stand_notch_side, stand_tail);
+                       stand_notch_w, stand_notch_h, stand_notch_side, stand_tail,
+                       stand_cable_w, stand_cable_h, stand_cable_d);
 }
 
 // ------------------------------------------------------------
