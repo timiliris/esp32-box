@@ -401,8 +401,9 @@ straight to the plug you use.
 
 **Cable pass.** A connector on the seated edge — the CYD's USB-C sits
 right there — would be buried in the groove. *Cable pass* cuts a
-channel that drops under the groove and comes out at the front, level
-with the desk, so the lead reaches it from below. Often you do not
+channel that drops under the groove and comes out level with the desk
+— **behind the screen by default**, so the lead never runs across the
+front. *Exit* flips it forward if you prefer. Often you do not
 need it: two narrow sockets placed at the two ends of the edge
 already leave the middle clear.
 

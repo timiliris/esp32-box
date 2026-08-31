@@ -52,6 +52,7 @@ stand_tail = 0;      // languette arrière contre le basculement ; 0 = aucune
 stand_cable_w = 0;   // largeur du canal (le long de la tranche)
 stand_cable_h = 6;   // hauteur de sa sortie devant
 stand_cable_d = 10;  // largeur du puits, dans le profil
+stand_cable_side = "back";   // par où il ressort : "back" ou "front"
 lip_t = 1.8;         // épaisseur de la jupe (fine = elle flexe pour clipser)
 
 /* [Aérations] */
@@ -1298,7 +1299,8 @@ module lid() {
 // les deux joues de la rainure la tiennent des deux côtés.
 // Le bloc épouse la rainure : il ne pèse que ce qu'il faut.
 module stand_foot(w, slot, depth, ang, wall, nw = 0, nh = 0, nside = "front",
-                  tail = 0, cw = 0, ch = 6, cd = 10, under = 0) {
+                  tail = 0, cw = 0, ch = 6, cd = 10, under = 0,
+                  cside = "back") {
     ux = sin(ang);  uy = cos(ang);      // le long de la rainure
     nx = cos(ang);  ny = -sin(ang);     // en travers
     hs = slot / 2;
@@ -1353,7 +1355,12 @@ module stand_foot(w, slot, depth, ang, wall, nw = 0, nh = 0, nside = "front",
                 translate([0, 0, (w - cw) / 2])
                     linear_extrude(height = cw) {
                         translate([-cd / 2, -1]) square([cd, by + 2]);
-                        translate([-300, -1]) square([300 + cd / 2, ch + 1]);
+                        // sortie au ras de la table, derrière l'écran par
+                        // défaut : le câble ne passe pas devant la dalle
+                        if (cside == "front")
+                            translate([-300, -1]) square([300 + cd / 2, ch + 1]);
+                        else
+                            translate([-cd / 2, -1]) square([300 + cd / 2, ch + 1]);
                     }
     }
 }
@@ -1366,7 +1373,8 @@ module stand() {
         translate([0, -sy * (stand_w + 8), 0])
             stand_foot(stand_w, slot, stand_depth, stand_angle, stand_wall,
                        stand_notch_w, stand_notch_h, stand_notch_side, stand_tail,
-                       stand_cable_w, stand_cable_h, stand_cable_d, stand_under);
+                       stand_cable_w, stand_cable_h, stand_cable_d, stand_under,
+                       stand_cable_side);
 }
 
 // ------------------------------------------------------------
