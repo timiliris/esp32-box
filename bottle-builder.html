@@ -339,7 +339,7 @@ const DEFAUT = () => ({
   shoulder_h: 10, neck_d: 46, neck_h: 18,
   thread_lead: 10, thread_depth: 1.8, thread_starts: 3, thread_clear: 0.35,
   label: 0, label_w: 20, label_h: 55, label_card: 1.2, label_front: 1.2,
-  label_rail: 3, label_z: 20, label_flat: 1.5,
+  label_rail: 3, label_z: 20, label_flat: 2.6,
   lid_top: 2.4, lid_wall: 2.4, lid_extra: 2, knurl: 44, knurl_d: 0.6,
 });
 
@@ -403,6 +403,8 @@ function alertes(c) {
     out.push(['dur', `Le col n’a plus d’ouverture : Ø ${e.neck_d} moins deux parois de ${e.wall}.`]);
   if (c.fil_ep < 1.2)
     out.push(['mou', `Filet de ${r1(c.fil_ep)} mm d’épaisseur : trois couches à peine, il s’arrachera. Monte le pas ou baisse le nombre de départs.`]);
+  if (e.label && e.flutes > 0 && e.label_flat < e.flute_d + 0.3)
+    out.push(['mou', `Méplat de ${e.label_flat} pour des cannelures de ${e.flute_d} : elles le traverseront et le rainureront. Passe-le au-dessus de ${r1(e.flute_d + 0.3)}.`]);
   if (e.label && e.label_flat >= e.flute_d + e.wall)
     out.push(['dur', `Le méplat (${e.label_flat}) creuse plus profond que la matière disponible (${r1(e.flute_d + e.wall)}) : il perce la paroi.`]);
   if (e.label && e.label_z + e.label_h + e.label_rail > e.body_h)

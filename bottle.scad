@@ -48,7 +48,9 @@ label_card = 1.2;    // son épaisseur (fente = celle-ci + 0.5 de jeu)
 label_front = 1.2;   // épaisseur de la face avant du cadre
 label_rail = 3;      // largeur du cadre
 label_z    = 20;     // hauteur du bas du cadre sur le fût
-label_flat = 1.5;    // profondeur du méplat
+// Le méplat doit être PLUS PROFOND que les cannelures, sinon celles-ci
+// le traversent et le rainurent : le cadre ne pose plus à plat.
+label_flat = 2.6;    // profondeur du méplat
 
 // --- Couvercle ---------------------------------------------
 lid_top   = 2.4;  // épaisseur du dessus
@@ -128,10 +130,14 @@ capacite = PI * pow(in_r, 2) * (z_col - floor_t) / 1000;
 // Porte-étiquette
 // ------------------------------------------------------------
 module meplat() {
-    // rabote une corde du fût, pour que le cadre pose à plat
+    // Rabote une corde du fût pour que le cadre pose à plat — mais
+    // seulement sur la bande du cadre : sur toute la hauteur, il
+    // hacherait les cannelures d'un bout à l'autre du pot.
+    m = 3;
     if (label)
-        translate([lab_x, -body_r - 1, -1])
-            cube([body_r + 2, 2 * body_r + 2, h_tot + 2]);
+        translate([lab_x, -(label_w / 2 + label_rail + m), label_z - m])
+            cube([body_r + 2, label_w + 2 * label_rail + 2 * m,
+                  lab_hz + 2 * m]);
 }
 module cadre_etiquette() {
     if (label)
