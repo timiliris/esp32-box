@@ -22,11 +22,14 @@ diff_t    = 1.6; // épaisseur du diffuseur
 diff_grip = 1.2; // profondeur des rainures qui le retiennent
 diff_clr  = 0.25;// jeu de glissement
 
-// --- Platine de fixation -----------------------------------
-plate_h  = 26;   // hauteur de la platine contre le support
-plate_t  = 3;    // son épaisseur
-screw_d  = 3.4;  // Ø de perçage
-screw_n  = 2;    // vis par segment ; 0 = aucune (collage)
+// --- Semelle de collage ------------------------------------
+// Le profil se COLLE à plat sur une bordure. Pas de platine verticale,
+// pas de vis : une semelle large qui offre de la surface au ruban
+// adhésif. Le mur est du côté -x, la volée du côté +x.
+base_w   = 26;   // largeur de la semelle, posée sur la bordure
+base_t   = 2.5;  // son épaisseur
+screw_d  = 3.4;  // Ø de perçage, si l'on veut visser quand même
+screw_n  = 0;    // vis par segment ; 0 = collage seul
 
 // --- Segment et raccord ------------------------------------
 seg_len  = 200;  // longueur d'un segment
@@ -71,23 +74,26 @@ module diffuseur_2d(sw, grip, clr, dt) {
 // ------------------------------------------------------------
 // Section complète : platine + canal incliné
 // ------------------------------------------------------------
-// Le canal est dessiné bouche vers +y. Pour que `angle` se lise comme
-// on l'attend — 0 = plein axe, 90 = rasant le support — il faut donc le
-// basculer de angle-90, et non de -angle.
-th   = angle - 90;
+// Le canal est dessiné bouche vers +y : à angle = 0 il éclaire droit
+// vers le haut. Un angle POSITIF le penche vers -x, c'est-à-dire vers
+// le mur ; la visière, elle, reste du côté +x — celui de la volée,
+// celui d'où l'on regarde. Elle abrite donc l'œil sans rien couper.
+th   = angle;
 hu_  = strip_w / 2 + wall_t;
-hv_  = wall_t + chan_d + visor;
-// abscisse la plus rentrante du canal une fois tourné : on s'en sert
-// pour l'enfoncer juste ce qu'il faut dans la platine
-coins = [[-hu_, 0], [hu_, 0], [hu_, hv_], [-hu_, wall_t + chan_d]];
-minx  = min([for (p = coins) p[0] * cos(th) - p[1] * sin(th)]);
-dx    = plate_t - minx - wall_t;   // recouvrement franc, pas un contact
+hv_  = wall_t + chan_d;
+coins = [[-hu_, 0], [hu_, 0], [hu_, hv_ + visor], [-hu_, hv_]];
+// on pose le canal sur la semelle, enfoncé d'une épaisseur de paroi
+miny = min([for (p = coins) p[0] * sin(th) + p[1] * cos(th)]);
+dy   = base_t - miny - wall_t;
+// et on le centre en largeur sur la semelle
+cxs  = [for (p = coins) p[0] * cos(th) - p[1] * sin(th)];
+dx   = base_w / 2 - (min(cxs) + max(cxs)) / 2;
 
 module section_2d() {
     union() {
-        // platine contre le support, dans le plan x = 0..plate_t
-        translate([0, -plate_h / 2]) square([plate_t, plate_h]);
-        translate([dx, 0])
+        // semelle plate, collée sur la bordure
+        square([base_w, base_t]);
+        translate([dx, dy])
             rotate([0, 0, th])
                 canal_2d(strip_w, wall_t, chan_d, diff_t, diff_grip,
                          diff_clr, visor);
@@ -99,16 +105,17 @@ module section_2d() {
 // Un décalage négatif de toute la section effaçait les joues de 2 mm
 // et sortait en pièce détachée — d'où un tenon dessiné, pas déduit.
 // ------------------------------------------------------------
-join_w = max(min(plate_h - 6, 14), 5);   // largeur du tenon
+join_w = max(min(base_w - 6, 16), 5);   // largeur du tenon
 
 module tenon_2d(jeu = 0) {
     offset(delta = -jeu)
-        translate([0.6, -join_w / 2]) square([plate_t - 1.2, join_w]);
+        translate([base_w / 2 - join_w / 2, 0.5])
+            square([join_w, base_t - 1]);
 }
 // cran d'encliquetage : un bourrelet en travers du tenon
 module cran(z, jeu = 0) {
-    translate([plate_t - 0.6, 0, z])
-        rotate([90, 0, 0])
+    translate([base_w / 2, base_t - 0.5, z])
+        rotate([0, 90, 0])
             cylinder(r = 0.5 + jeu, h = join_w + 2, center = true, $fn = 16);
 }
 
@@ -128,11 +135,11 @@ module segment() {
         translate([0, 0, -0.01])
             linear_extrude(height = join_len + 0.02) tenon_2d();
         cran(join_len / 2, join_clr);
-        // perçages de fixation
+        // perçages de fixation, à travers la semelle si l'on en veut
         if (screw_n > 0)
             for (i = [0 : screw_n - 1])
-                translate([-1, 0, seg_len * (i + 0.5) / screw_n])
-                    rotate([0, 90, 0]) cylinder(d = screw_d, h = plate_t + 2);
+                translate([base_w / 2, -1, seg_len * (i + 0.5) / screw_n])
+                    rotate([-90, 0, 0]) cylinder(d = screw_d, h = base_t + 2);
     }
 }
 
@@ -145,7 +152,7 @@ if (part == "diff")
         diffuseur_2d(strip_w, diff_grip, diff_clr, diff_t);
 if (part == "both") {
     segment();
-    translate([plate_t + chan_d + 20, 0, 0])
+    translate([base_w + 14, 0, 0])
         linear_extrude(height = seg_len)
             diffuseur_2d(strip_w, diff_grip, diff_clr, diff_t);
 }

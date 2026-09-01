@@ -236,7 +236,7 @@
   <div class="bb-side">
     <div class="group"><h2>Ruban et canal</h2><div class="insp" id="gCan"></div></div>
     <div class="group"><h2>Diffuseur</h2><div class="insp" id="gDif"></div></div>
-    <div class="group"><h2>Platine</h2><div class="insp" id="gPla"></div></div>
+    <div class="group"><h2>Semelle collée</h2><div class="insp" id="gPla"></div></div>
     <div class="group"><h2>Segment et raccord</h2><div class="insp" id="gSeg"></div></div>
     <div class="group"><h2>Modèles</h2><div class="insp" id="gTpl"></div></div>
   </div>
@@ -244,7 +244,7 @@
     <div class="bb-stats" id="dstats"></div>
     <div id="dnotes"></div>
     <div class="bb-figs">
-      <div><div id="figSec"></div><div class="bb-cap">Coupe · faisceau en jaune · au-delà de la visière, en vert, les LED sont invisibles</div></div>
+      <div><div id="figSec"></div><div class="bb-cap">Coupe · collé sur la bordure · faisceau en jaune, mur à gauche · en vert, les LED sont invisibles</div></div>
       <div><div id="figJoin"></div><div class="bb-cap">Raccord · deux segments emboîtés</div></div>
     </div>
   </div>
@@ -287,8 +287,8 @@ const CHAMPS = [
     ['diff_clr',  'Jeu',           0, 1, 0.05],
   ]],
   ['gPla', [
-    ['plate_h', 'Hauteur',  8, 90, 1],
-    ['plate_t', 'Épaisseur', 2, 10, 0.5],
+    ['base_w',  'Largeur',   8, 90, 1],
+    ['base_t',  'Épaisseur', 1.2, 10, 0.5],
     ['screw_d', 'Ø perçage', 2,  8, 0.2],
     ['screw_n', 'Vis / segment', 0, 8, 1],
   ]],
@@ -302,15 +302,15 @@ const CHAMPS = [
 const DEFAUT = () => ({
   strip_w: 10, chan_d: 12, angle: 78, visor: 10, wall_t: 2,
   diff_t: 1.6, diff_grip: 1.2, diff_clr: 0.25,
-  plate_h: 26, plate_t: 3, screw_d: 3.4, screw_n: 2,
+  base_w: 26, base_t: 2.5, screw_d: 3.4, screw_n: 0,
   seg_len: 200, join_len: 8, join_clr: 0.25,
 });
 
 const MODELES = {
-  'Lèche-mur d’escalier': { angle: 78, visor: 12, chan_d: 12, plate_h: 26 },
-  'Plein axe': { angle: 0, visor: 0, chan_d: 10, plate_h: 20 },
-  'Sous-nez de marche': { angle: 55, visor: 16, chan_d: 14, plate_h: 30 },
-  'Rasant, très abrité': { angle: 86, visor: 22, chan_d: 16, plate_h: 34 },
+  'Lèche-mur d’escalier': { angle: 72, visor: 12, chan_d: 12, base_w: 26 },
+  'Plein axe, vers le haut': { angle: 0, visor: 0, chan_d: 10, base_w: 18 },
+  'Mi-hauteur': { angle: 45, visor: 14, chan_d: 14, base_w: 24 },
+  'Rasant, très abrité': { angle: 84, visor: 22, chan_d: 16, base_w: 34 },
 };
 
 let etat = DEFAUT();
@@ -322,25 +322,27 @@ try { const s = JSON.parse(localStorage.getItem('ledbuilder') || 'null');
 // ---------------------------------------------------------------
 function cotes() {
   const e = etat;
-  const th = rad(e.angle - 90);
+  const th = rad(e.angle);
   const hu = e.strip_w / 2 + e.wall_t;
   const hv = e.wall_t + e.chan_d;
   const coins = [[-hu, 0], [hu, 0], [hu, hv + e.visor], [-hu, hv]];
+  const ry = coins.map(p => p[0] * Math.sin(th) + p[1] * Math.cos(th));
   const rx = coins.map(p => p[0] * Math.cos(th) - p[1] * Math.sin(th));
-  const dx = e.plate_t - Math.min(...rx) - e.wall_t;
-  // passage du repère canal au repère mur
+  const dy = e.base_t - Math.min(...ry) - e.wall_t;
+  const dx = e.base_w / 2 - (Math.min(...rx) + Math.max(...rx)) / 2;
+  // passage du repère canal au repère de la bordure
   const M = (u, v) => [dx + u * Math.cos(th) - v * Math.sin(th),
-                       u * Math.sin(th) + v * Math.cos(th)];
+                       dy + u * Math.sin(th) + v * Math.cos(th)];
   // rayons limites : d'un bord du ruban par-dessus la lèvre opposée
   const A0 = M(-e.strip_w / 2, e.wall_t), A1 = M(e.strip_w / 2, hv + e.visor);
   const B0 = M(e.strip_w / 2, e.wall_t),  B1 = M(-e.strip_w / 2, hv);
-  // Angle par rapport AU MUR, pas à sa normale : 0 = rasant le support,
-  // 90 = plein axe. C'est ainsi qu'on raisonne sur un lèche-mur.
-  const ang = (p, q) => deg(Math.atan2(q[0] - p[0], q[1] - p[1]));
-  return { th, hu, hv, dx, M, A0, A1, B0, B1,
+  // Angle par rapport à la VERTICALE : 0 = plein axe vers le haut,
+  // 90 = rasant la bordure. Positif = penché vers le mur (-x).
+  const ang = (p, q) => deg(Math.atan2(p[0] - q[0], q[1] - p[1]));
+  const ys = coins.map(p => dy + p[0] * Math.sin(th) + p[1] * Math.cos(th));
+  return { th, hu, hv, dx, dy, M, A0, A1, B0, B1,
            aVisor: ang(A0, A1), aOpen: ang(B0, B1),
-           saillie: Math.max(...coins.map((p, i) =>
-             dx + p[0] * Math.cos(th) - p[1] * Math.sin(th))) };
+           haut: Math.max(...ys), large: e.base_w };
 }
 
 function alertes(c) {
@@ -349,16 +351,14 @@ function alertes(c) {
     out.push(['dur', `Rainures de ${e.diff_grip} pour un jeu de ${e.diff_clr} : le diffuseur ne tiendrait pas.`]);
   if (e.chan_d < e.diff_t + e.diff_grip + 1)
     out.push(['dur', `Canal de ${e.chan_d} trop court pour loger le diffuseur (${e.diff_t}) et ses rainures.`]);
-  if (e.plate_h < e.strip_w + 6)
-    out.push(['mou', `Platine de ${e.plate_h} pour un canal de ${r1(2 * c.hu)} : peu d’assise, le profil vrillera au vissage.`]);
-  // la vis TRAVERSE la platine : c'est sa hauteur qui doit entourer le
-  // trou, pas son épaisseur
-  if (e.screw_n > 0 && e.plate_h < e.screw_d + 6)
-    out.push(['mou', `Platine haute de ${e.plate_h} percée à ${e.screw_d} : moins de 3 mm de matière autour de la vis.`]);
+  if (e.base_w < 2 * c.hu + 4)
+    out.push(['mou', `Semelle de ${e.base_w} sous un canal de ${r1(2 * c.hu)} : peu de surface pour l’adhésif, ça décollera.`]);
+  if (e.screw_n > 0 && e.base_w < e.screw_d + 8)
+    out.push(['mou', `Semelle de ${e.base_w} percée à ${e.screw_d} : moins de 4 mm de matière autour de la vis.`]);
   if (e.join_len > 0 && e.join_len < 5)
     out.push(['mou', `Raccord de ${e.join_len} mm : trop court pour tenir l’alignement.`]);
-  if (c.aVisor > 45)
-    out.push(['mou', `Le faisceau sort jusqu’à ${r1(c.aVisor)}° du mur : à cet angle on regarde les LED en face. Rallonge la visière ou incline davantage.`]);
+  if (c.aVisor < 35)
+    out.push(['mou', `La visière ne coupe qu’à ${r1(c.aVisor)}° de la verticale : depuis la volée on verra les LED. Rallonge-la ou incline davantage.`]);
   return out;
 }
 
@@ -374,8 +374,7 @@ function figSec(c) {
                c.M(hu - e.wall_t, hv + e.visor), c.M(hu - e.wall_t, e.wall_t),
                c.M(-hu + e.wall_t, e.wall_t), c.M(-hu + e.wall_t, hv),
                c.M(-hu, hv)];
-  const plaque = [[0, -e.plate_h / 2], [e.plate_t, -e.plate_h / 2],
-                  [e.plate_t, e.plate_h / 2], [0, e.plate_h / 2]];
+  const plaque = [[0, 0], [e.base_w, 0], [e.base_w, e.base_t], [0, e.base_t]];
   const ruban = [c.M(-e.strip_w / 2, e.wall_t), c.M(e.strip_w / 2, e.wall_t),
                  c.M(e.strip_w / 2, e.wall_t + 1.2), c.M(-e.strip_w / 2, e.wall_t + 1.2)];
   const dif = [c.M(-e.strip_w / 2 - e.diff_grip, hv - e.diff_t),
@@ -399,8 +398,8 @@ function figSec(c) {
   const k = L / Math.hypot(c.A1[0] - c.A0[0], c.A1[1] - c.A0[1]);
   const kb = L / Math.hypot(c.B1[0] - c.B0[0], c.B1[1] - c.B0[1]);
   let g = `<svg viewBox="0 0 ${r1(w)} ${r1(h)}" width="${r1(w)}" height="${r1(h)}">`;
-  // le support
-  g += `<line x1="${r1(X([0, y0]))}" y1="0" x2="${r1(X([0, y0]))}" y2="${r1(h)}" stroke="#3d475c" stroke-width="1.4"/>`;
+  // la bordure sur laquelle on colle
+  g += `<line x1="0" y1="${r1(Y([0, 0]))}" x2="${r1(w)}" y2="${r1(Y([0, 0]))}" stroke="#3d475c" stroke-width="1.4"/>`;
   // cône éclairé
   g += `<polygon points="${D([c.A0, loin(c.A0, c.A1, k), loin(c.B0, c.B1, kb), c.B0])}" fill="rgba(240,200,90,.16)" stroke="none"/>`;
   for (const [p, q, kk, col] of [[c.A0, c.A1, k, '#f0c85a'], [c.B0, c.B1, kb, '#f0c85a']])
@@ -408,7 +407,7 @@ function figSec(c) {
   // Au-delà du rayon de la visière il n'y a plus de lumière directe :
   // c'est la zone d'où l'on ne voit PAS les LED, celle qu'on cherche.
   const bout = loin(c.A0, c.A1, k);
-  g += `<polygon points="${D([c.A0, bout, [x1, bout[1]], [x1, c.A0[1]]])}" fill="rgba(105,210,160,.08)" stroke="none"/>`;
+  g += `<polygon points="${D([c.A0, bout, [x1, bout[1]], [x1, c.A0[1]]])}" fill="rgba(105,210,160,.10)" stroke="none"/>`;
   // matière
   g += `<polygon points="${D(plaque)}" fill="rgba(127,199,255,.20)" stroke="#7fc7ff" stroke-width="1.3"/>`;
   g += `<polygon points="${D(ext)}" fill="rgba(127,199,255,.20)" stroke="#7fc7ff" stroke-width="1.3"/>`;
@@ -423,16 +422,16 @@ function figSec(c) {
 // ---------------------------------------------------------------
 function figJoin(c) {
   const e = etat;
-  const jw = Math.max(Math.min(e.plate_h - 6, 14), 5);
+  const jw = Math.max(Math.min(e.base_w - 6, 16), 5);
   const Ltot = e.seg_len + e.join_len;
-  const W = 300, S = Math.min(W / (2 * Ltot + 20), 120 / (e.plate_h + 8));
-  const w = (2 * Ltot + 20) * S + 16, h = (e.plate_h + 16) * S + 16;
+  const W = 300, S = Math.min(W / (2 * Ltot + 20), 120 / (e.base_w + 8));
+  const w = (2 * Ltot + 20) * S + 16, h = (e.base_w + 16) * S + 16;
   const X = x => 8 + (x + 10) * S, Y = y => h / 2 - y * S;
   const R = (x, y, dx2, dy2, f, st, da) =>
     `<rect x="${r1(X(x))}" y="${r1(Y(y + dy2))}" width="${r1(dx2 * S)}" height="${r1(dy2 * S)}" fill="${f}" stroke="${st}" stroke-width="1.1"${da ? ' stroke-dasharray="4 3"' : ''}/>`;
   let g = `<svg viewBox="0 0 ${r1(w)} ${r1(h)}" width="${r1(w)}" height="${r1(h)}">`;
   for (const off of [0, Ltot]) {
-    g += R(off, -e.plate_h / 2, e.seg_len, e.plate_h, 'rgba(127,199,255,.18)', '#7fc7ff');
+    g += R(off, -e.base_w / 2, e.seg_len, e.base_w, 'rgba(127,199,255,.18)', '#7fc7ff');
     if (e.join_len > 0)
       g += R(off + e.seg_len, -jw / 2, e.join_len, jw, 'rgba(240,179,80,.30)', '#f0b350');
   }
@@ -485,11 +484,11 @@ function construire() {
 
 function rendre(refaire = true) {
   const c = cotes();
-  $('ddims').textContent = `saillie ${r1(c.saillie)} mm · segment ${etat.seg_len}`;
+  $('ddims').textContent = `${r1(c.large)} × ${r1(c.haut)} mm · segment ${etat.seg_len}`;
   $('dstats').innerHTML =
-    `<div class="bb-stat"><b>${r1(c.aVisor)}°</b><span>bord côté visière</span></div>` +
+    `<div class="bb-stat"><b>${r1(c.aVisor)}°</b><span>coupe de la visière</span></div>` +
     `<div class="bb-stat"><b>${r1(c.aOpen)}°</b><span>bord côté mur</span></div>` +
-    `<div class="bb-stat"><b>${r1(c.saillie)} mm</b><span>saillie au mur</span></div>` +
+    `<div class="bb-stat"><b>${r1(c.haut)} mm</b><span>hauteur hors tout</span></div>` +
     `<div class="bb-stat"><b>${etat.seg_len} mm</b><span>par segment</span></div>`;
   const al = alertes(c);
   $('dnotes').innerHTML = al.map(([k, m]) =>
