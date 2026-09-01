@@ -18,7 +18,10 @@ import webbrowser
 
 PORT = 8765
 ROOT = os.path.dirname(os.path.abspath(__file__))
-SCAD = os.path.join(ROOT, 'esp32-box.scad')
+# Modèles disponibles. La requête choisit par nom : jamais de chemin
+# venu du client, sinon n'importe quel fichier deviendrait générable.
+MODELES = {'box': 'esp32-box.scad', 'bottle': 'bottle.scad'}
+SCAD = os.path.join(ROOT, MODELES['box'])
 OPENSCAD = shutil.which('openscad') or '/opt/homebrew/bin/openscad'
 
 # n'accepte que des définitions de variables OpenSCAD : nom=valeur,
@@ -57,8 +60,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split('?', 1)[0]
-        if path in ('/', '/index.html', '/builder.html'):
-            with open(os.path.join(ROOT, 'builder.html'), 'rb') as f:
+        if path in ('/', '/index.html', '/builder.html', '/bottle-builder.html'):
+            nom = 'bottle-builder.html' if path == '/bottle-builder.html' \
+                  else 'builder.html'
+            with open(os.path.join(ROOT, nom), 'rb') as f:
                 self._reply(200, f.read(), 'text/html; charset=utf-8')
         elif path == '/ping':
             body = json.dumps({'ok': True, 'openscad': OPENSCAD}).encode()
@@ -79,7 +84,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             req = json.loads(self.rfile.read(n))
             part = req.get('part')
             args = req.get('args', [])
-            if part not in ('base', 'lid', 'inserts', 'stand'):
+            modele = req.get('model', 'box')
+            if modele not in MODELES:
+                raise ValueError('modèle invalide')
+            if part not in ('base', 'lid', 'inserts', 'stand', 'body', 'both'):
                 raise ValueError('part invalide')
             if not isinstance(args, list) or not all(
                     isinstance(a, str) and ARG_RE.match(a) for a in args):
@@ -89,7 +97,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             cmd = [OPENSCAD, '-o', out, '--export-format', 'binstl']
             for a in args:
                 cmd += ['-D', a]
-            cmd.append(SCAD)
+            cmd.append(os.path.join(ROOT, MODELES[modele]))
             r = subprocess.run(cmd, capture_output=True, text=True,
                                timeout=300, cwd=ROOT)
             if r.returncode != 0 or not os.path.getsize(out):

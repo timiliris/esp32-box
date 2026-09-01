@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bottle Builder</title>
+<style>
+      .tplstale { margin-top:8px; padding:8px 10px; border-radius:7px;
+        background:rgba(240,179,80,.10); border:1px solid rgba(240,179,80,.45);
+        font-size:12px; line-height:1.45; color:#e9d3a8 }
+      .tplstale .btn { margin-top:7px; width:100% }
+  :root {
+    --bg: #0f1115; --panel: #161a21; --panel2: #1c212b; --line: #262c38;
+    --text: #e6e9ef; --muted: #8b93a7; --accent: #4f8cff; --accent2: #7db0ff;
+    --danger: #ff6b6b; --ok: #51c98a; --warn: #f0b350;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  input, select { font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 7px; }
+  input[type=number] { width: 62px; font-family: var(--mono); font-size: 12px; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  svg { display: block; }
+
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 8px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--line); flex: none;
+  }
+  header h1 { font-size: 14px; font-weight: 600; letter-spacing: .2px; }
+  header h1 span { color: var(--accent); }
+  .presets { display: flex; gap: 6px; }
+  .chip {
+    padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--muted); font-size: 12px;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--text); }
+  .dims { display: flex; align-items: center; gap: 5px; margin-left: auto; }
+  .dims label { color: var(--muted); font-size: 12px; }
+  .opts { display: flex; gap: 12px; align-items: center; }
+  .opts label { display: flex; gap: 5px; align-items: center; color: var(--muted); font-size: 12px; cursor: pointer; }
+
+  main { display: flex; flex: 1; min-height: 0; }
+  #rail {
+    width: 46px; flex: none; background: var(--bg); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 4px;
+  }
+  .railbtn {
+    width: 36px; height: 36px; border-radius: 9px; display: flex;
+    align-items: center; justify-content: center; color: var(--muted);
+    border: 1px solid transparent;
+  }
+  .railbtn:hover { color: var(--text); background: var(--panel2); }
+  .railbtn.active { color: var(--accent); background: rgba(79,140,255,.12); border-color: rgba(79,140,255,.35); }
+  .railbtn .ico { width: 17px; height: 17px; }
+  #sidebar {
+    width: 278px; flex: none; background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  #panels { flex: 1; overflow-y: auto; padding: 12px; min-height: 0; }
+  .panel { display: none; flex-direction: column; gap: 14px; }
+  .panel.active { display: flex; }
+  #selWrap {
+    flex: none; border-top: 1px solid var(--line); padding: 10px 12px;
+    max-height: 46%; overflow-y: auto; background: var(--panel);
+  }
+  .palcat {
+    grid-column: 1 / -1; font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .7px; color: #5b6274;
+    margin-top: 6px;
+  }
+  .unit { color: var(--muted); font-size: 11px; }
+  .chip.active { border-color: var(--accent); color: var(--text); background: rgba(79,140,255,.10); }
+  .tabn {
+    display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 8px;
+    background: rgba(79,140,255,.18); color: var(--accent2); font-size: 10px;
+  }
+  #dragTip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--bg); border: 1px solid var(--accent); border-radius: 6px;
+    padding: 2px 7px; font-family: var(--mono); font-size: 11px; color: var(--accent2);
+    z-index: 5; white-space: nowrap;
+  }
+  footer.nocmd .cmd { display: none; }
+  #p3open { color: var(--muted); display: flex; margin-left: auto; }
+  #p3open:hover { color: var(--text); }
+  #p3open.active { color: var(--accent); }
+  #prev3d .p3hint { margin-left: 0; }
+  @media (max-width: 1080px) {
+    #sidebar { width: 236px; }
+    .palette { grid-template-columns: 1fr; }
+    #prev3d { width: 206px; }
+    #p3scene { height: 168px; }
+    .presets { display: none; }
+  }
+  .group h2 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--muted); margin-bottom: 7px;
+  }
+  .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .pal {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 9px; text-align: left;
+  }
+  .pal:hover { border-color: var(--accent); }
+  .pal b { font-size: 12px; font-weight: 600; }
+  .pal small { color: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+
+  .insp { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .insp .rowline { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+  .insp .rowline label { color: var(--muted); width: 62px; font-size: 12px; }
+  .insp .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; font-size: 12px;
+    color: var(--text); background: var(--bg);
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .btn:disabled:hover { border-color: var(--line); }
+  .btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent2); }
+  .empty { color: var(--muted); font-size: 12px; padding: 4px 2px; }
+
+  #center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .tabs { display: flex; gap: 2px; padding: 8px 12px 0; flex: none; }
+  .tab {
+    padding: 6px 14px; border-radius: 8px 8px 0 0; color: var(--muted); font-size: 12.5px;
+    border: 1px solid transparent; border-bottom: none;
+  }
+  .tab.active { background: var(--panel); color: var(--text); border-color: var(--line); }
+  #canvasWrap { flex: 1; background: var(--panel); margin: 0 12px; border: 1px solid var(--line);
+    border-radius: 0 10px 10px 10px; position: relative; min-height: 0; }
+  #canvas { width: 100%; height: 100%; touch-action: none; }
+  #hint {
+    position: absolute; left: 10px; bottom: 8px; max-width: 52%; color: var(--muted); font-size: 11px;
+    background: color-mix(in srgb, var(--panel) 82%, transparent); padding: 3px 8px; border-radius: 6px;
+    pointer-events: none;
+  }
+  #warns { position: absolute; left: 10px; top: 8px; display: flex; flex-direction: column;
+    align-items: flex-start; gap: 4px; pointer-events: none; }
+  .warnline { color: var(--warn); font-size: 11.5px; background: rgba(240,179,80,.09);
+    border: 1px solid rgba(240,179,80,.35); padding: 2px 8px; border-radius: 6px;
+    pointer-events: auto; cursor: pointer; text-align: left; }
+  .warnline:hover { border-color: var(--warn); background: rgba(240,179,80,.16); }
+  .noteline { color: var(--accent2); font-size: 11.5px; background: rgba(79,140,255,.08);
+    border: 1px solid rgba(79,140,255,.3); padding: 2px 8px; border-radius: 6px;
+    pointer-events: auto; cursor: pointer; text-align: left; }
+  .noteline:hover { border-color: var(--accent); background: rgba(79,140,255,.16); }
+
+  #objects { display: flex; flex-direction: column; gap: 4px; }
+  .objrow { display: flex; align-items: center; gap: 7px; width: 100%;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 7px;
+    padding: 5px 8px; font-size: 12px; text-align: left; }
+  .objrow:hover { border-color: var(--accent); }
+  .objrow.sel { border-color: var(--accent); background: rgba(79,140,255,.08); }
+  .objrow .of { color: var(--muted); font-size: 10.5px; }
+  .objrow .oi { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .objrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); flex: none; }
+
+  footer {
+    flex: none; background: var(--panel); border-top: 1px solid var(--line);
+    padding: 10px 14px; display: flex; gap: 12px; align-items: stretch;
+  }
+  .cmdbox { flex: 1; min-width: 0; }
+  .cmdbox .cap { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .cmdbox .cap b { font-size: 12px; }
+  .cmdbox .cap span { color: var(--muted); font-size: 11.5px; }
+  .cmd {
+    font-family: var(--mono); font-size: 11px; color: var(--accent2);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 9px; white-space: nowrap; overflow-x: auto; user-select: all;
+  }
+  .copyok { color: var(--ok) !important; border-color: var(--ok) !important; }
+
+  .ico { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.8; fill: none;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+  #prev3d {
+    position: absolute; right: 12px; bottom: 12px; width: 258px;
+    background: color-mix(in srgb, var(--panel2) 92%, transparent);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    user-select: none;
+  }
+  .p3head {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    border-bottom: 1px solid var(--line); font-size: 11.5px; font-weight: 600;
+  }
+  .p3hint { color: var(--muted); font-weight: 400; font-size: 10.5px; margin-left: auto; }
+  #p3toggle { color: var(--muted); display: flex; }
+  #p3toggle:hover { color: var(--text); }
+  #prev3d.collapsed #p3scene { display: none; }
+  #prev3d.collapsed #p3toggle svg { transform: rotate(180deg); }
+  #p3scene {
+    height: 212px; perspective: 720px; cursor: grab; touch-action: none;
+    overflow: hidden;
+  }
+  #p3scene:active { cursor: grabbing; }
+  #p3cube {
+    position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+    transform-style: preserve-3d;
+  }
+  .p3face {
+    position: absolute; backface-visibility: hidden;
+  }
+  .p3face svg { width: 100%; height: 100%; display: block; }
+</style>
+<style>
+  .bb-wrap { display:flex; gap:14px; padding:14px; height:calc(100vh - 118px); box-sizing:border-box }
+  .bb-side { width:290px; overflow-y:auto; flex:none }
+  .bb-view { flex:1; display:flex; gap:14px; align-items:flex-start;
+             background:var(--panel2); border:1px solid var(--line);
+             border-radius:12px; padding:16px; overflow:auto }
+  .bb-view svg { background:transparent }
+  .bb-figs { display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap }
+  .bb-cap { font-size:12px; color:var(--muted); text-align:center; margin-top:6px }
+  .bb-stats { display:flex; gap:18px; flex-wrap:wrap; margin-bottom:12px }
+  .bb-stat b { display:block; font-size:19px; color:var(--txt); font-weight:600 }
+  .bb-stat span { font-size:11px; color:var(--muted); text-transform:uppercase;
+                  letter-spacing:.5px }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Bottle <span>Builder</span></div>
+  <a class="btn" href="builder.html" style="margin-left:auto">Boîtiers ESP32</a>
+  <div class="dims" id="bbDims"></div>
+</header>
+
+<div class="bb-wrap">
+  <div class="bb-side">
+    <div class="group"><h2>Corps</h2><div class="insp" id="gCorps"></div></div>
+    <div class="group"><h2>Cannelures</h2><div class="insp" id="gCan"></div></div>
+    <div class="group"><h2>Col et filetage</h2><div class="insp" id="gCol"></div></div>
+    <div class="group"><h2>Couvercle</h2><div class="insp" id="gLid"></div></div>
+    <div class="group"><h2>Modèles</h2><div class="insp" id="gTpl"></div></div>
+  </div>
+  <div class="bb-view">
+    <div style="width:100%">
+      <div class="bb-stats" id="bbStats"></div>
+      <div id="bbNotes"></div>
+      <div class="bb-figs">
+        <div><div id="fig3d"></div><div class="bb-cap">Vue d’ensemble · couvercle soulevé</div></div>
+        <div><div id="figCoupe"></div><div class="bb-cap">Coupe · couvercle vissé en pointillés</div></div>
+        <div><div id="figDessus"></div><div class="bb-cap">Vue de dessus · cannelures</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="cmdbox">
+    <div class="cap"><b>Corps</b><span>le pot</span>
+      <button class="btn primary" id="genBody" style="margin-left:auto">Générer le STL</button>
+      <button class="btn" id="copyBody">Copier</button>
+    </div>
+    <div class="cmd" id="cmdBody"></div>
+  </div>
+  <div class="cmdbox">
+    <div class="cap"><b>Couvercle</b><span>à visser</span>
+      <button class="btn primary" id="genLid" style="margin-left:auto">Générer le STL</button>
+      <button class="btn" id="copyLid">Copier</button>
+    </div>
+    <div class="cmd" id="cmdLid"></div>
+  </div>
+</footer>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const r1 = v => Math.round(v * 10) / 10;
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// Réglages, avec leurs bornes. Le nom est celui du paramètre .scad :
+// la ligne de commande se déduit de l'état, sans table de conversion.
+const CHAMPS = [
+  ['gCorps', [
+    ['body_d',  'Diamètre',        30, 200, 1],
+    ['body_h',  'Hauteur du fût',  20, 250, 1],
+    ['wall',    'Paroi',          0.8,   6, 0.2],
+    ['floor_t', 'Fond',           0.8,   8, 0.2],
+    ['base_ch', 'Chanfrein bas',    0,   4, 0.2],
+  ]],
+  ['gCan', [
+    ['flutes',  'Nombre',           0,  60, 1],
+    ['flute_d', 'Profondeur',       0,   8, 0.1],
+    ['flute_w', 'Largeur d’outil',  1,  30, 0.5],
+    ['flute_bot', 'Bande lisse en bas', 0, 120, 1],
+    ['flute_top', 'Bande lisse en haut', 0, 120, 1],
+    ['twist',   'Vrille (°)',    -720, 720, 5],
+  ]],
+  ['gCol', [
+    ['shoulder_h',    'Épaule',        0, 60, 1],
+    ['neck_d',        'Ø du col',     15, 190, 1],
+    ['neck_h',        'Hauteur filetée', 5, 60, 1],
+    ['thread_lead',   'Pas',           2, 20, 0.5],
+    ['thread_depth',  'Profondeur',  0.4,  4, 0.1],
+    ['thread_starts', 'Nb de filets',  1,  6, 1],
+    ['thread_clear',  'Jeu',           0,  1, 0.05],
+  ]],
+  ['gLid', [
+    ['lid_top',   'Dessus',      1, 8, 0.2],
+    ['lid_wall',  'Jupe',      1.2, 8, 0.2],
+    ['lid_extra', 'Garde',       0, 10, 0.5],
+    ['knurl',     'Stries',      0, 120, 1],
+    ['knurl_d',   'Leur relief', 0, 2, 0.1],
+  ]],
+];
+
+const DEFAUT = () => ({
+  body_d: 70, body_h: 100, wall: 2, floor_t: 2.4, base_ch: 1,
+  flutes: 12, flute_d: 2.2, flute_w: 5, flute_bot: 12, flute_top: 10, twist: 220,
+  shoulder_h: 10, neck_d: 46, neck_h: 14,
+  thread_lead: 6, thread_depth: 1.4, thread_starts: 3, thread_clear: 0.35,
+  lid_top: 2.4, lid_wall: 2.4, lid_extra: 2, knurl: 44, knurl_d: 0.6,
+});
+
+const MODELES = {
+  'Bocal cannelé': { },
+  'Bouteille élancée': { body_d: 58, body_h: 150, flutes: 18, flute_d: 1.6,
+                         flute_w: 4, flute_bot: 18, flute_top: 16, twist: 320,
+                         neck_d: 34, shoulder_h: 26,
+                         thread_lead: 5, thread_starts: 2 },
+  'Pot large, lisse': { body_d: 92, body_h: 70, flutes: 0, twist: 0,
+                        neck_d: 74, shoulder_h: 8, thread_lead: 7,
+                        thread_depth: 1.6, knurl: 60 },
+  'Boîte à pilules':  { body_d: 40, body_h: 34, flutes: 8, flute_d: 1.4,
+                        flute_w: 3, flute_bot: 4, flute_top: 4, twist: 120,
+                        neck_d: 32, shoulder_h: 4,
+                        neck_h: 9, thread_lead: 4.5, thread_starts: 3,
+                        wall: 1.6, floor_t: 1.6 },
+};
+
+let etat = DEFAUT();
+try {
+  const sv = JSON.parse(localStorage.getItem('bottlebuilder') || 'null');
+  if (sv && sv.body_d) etat = Object.assign(DEFAUT(), sv);
+} catch (e) {}
+
+// ---------------------------------------------------------------
+// Cotes dérivées — mêmes formules que le .scad, une seule vérité
+// ---------------------------------------------------------------
+function cotes() {
+  const e = etat;
+  const body_r = e.body_d / 2, neck_r = e.neck_d / 2;
+  const in_r = body_r - e.flute_d - e.wall;
+  const neck_in = neck_r - e.wall;
+  const z_ep = e.body_h, z_col = e.body_h + e.shoulder_h;
+  const h_tot = z_col + e.neck_h;
+  const tours = e.neck_h / e.thread_lead;
+  const lid_in_r = neck_r + e.thread_clear;
+  const lid_out_r = lid_in_r + e.thread_depth + e.lid_wall;
+  const lid_h = e.neck_h + e.lid_extra + e.lid_top;
+  const cap = Math.PI * in_r * in_r * (z_col - e.floor_t) / 1000;
+  return { body_r, neck_r, in_r, neck_in, z_ep, z_col, h_tot, tours,
+           lid_in_r, lid_out_r, lid_h, cap };
+}
+
+// ---------------------------------------------------------------
+// Ce qui cloche
+// ---------------------------------------------------------------
+function alertes(c) {
+  const e = etat, out = [];
+  if (c.in_r <= 1)
+    out.push(['dur', `Il ne reste pas de volume : Ø ${e.body_d} moins ${e.flute_d} de cannelure et ${e.wall} de paroi ne laissent rien.`]);
+  if (e.flutes > 0 && e.flute_bot + e.flute_top >= e.body_h)
+    out.push(['mou', `Les bandes lisses (${e.flute_bot} + ${e.flute_top}) couvrent tout le fût : plus aucune cannelure.`]);
+  if (e.flute_d > 0 && e.flute_d >= e.flute_w)
+    out.push(['dur', `Une cannelure ne peut pas être plus profonde (${e.flute_d}) que le rayon de son outil (${e.flute_w}).`]);
+  if (c.neck_r >= c.body_r - e.flute_d)
+    out.push(['dur', `Le col (Ø ${e.neck_d}) est aussi large que le fond des cannelures : l’épaule s’inverse. Réduis-le sous ${r1((c.body_r - e.flute_d) * 2)}.`]);
+  if (c.neck_in <= 1)
+    out.push(['dur', `Le col n’a plus d’ouverture : Ø ${e.neck_d} moins deux parois de ${e.wall}.`]);
+  if (c.tours < 1)
+    out.push(['mou', `Moins d’un tour de filet (${r1(c.tours)}) : ça tiendra mal. Monte la hauteur filetée ou baisse le pas.`]);
+  if (e.thread_lead / e.thread_starts < 2)
+    out.push(['mou', `Filets espacés de ${r1(e.thread_lead / e.thread_starts)} mm seulement : ils se toucheront à l’impression.`]);
+  if (c.lid_out_r > c.body_r + 0.5)
+    out.push(['mou', `Le couvercle (Ø ${r1(c.lid_out_r * 2)}) déborde du fût (Ø ${e.body_d}).`]);
+  if (e.wall < 1.2)
+    out.push(['mou', `Paroi de ${e.wall} mm : deux périmètres ne rentrent pas, le pot sera translucide et souple.`]);
+  return out;
+}
+
+// ---------------------------------------------------------------
+// Dessins
+// ---------------------------------------------------------------
+// Vue isométrique calculée. Une révolution vue en isométrie projette
+// chaque cercle sur une ellipse d'axes fixes : rx = 1.2247 r,
+// ry = 0.7071 r. Le reste n'est que des hélices échantillonnées, dont
+// on ne trace que la moitié tournée vers l'œil (cosφ + sinφ > 0).
+const ISO_X = 0.8660, ISO_Y = 0.5;
+function iso(r, phi, z) {
+  const cx = Math.cos(phi), sy = Math.sin(phi);
+  return [r * (cx - sy) * ISO_X, r * (cx + sy) * ISO_Y - z];
+}
+const vu = phi => Math.cos(phi) + Math.sin(phi) > 0;
+
+function fig3d(c) {
+  const e = etat;
+  const ecl = 16;                       // vue éclatée : couvercle soulevé
+  const hautMax = c.h_tot + ecl + c.lid_h;
+  const RX = Math.max(c.body_r, c.lid_out_r) * 1.2247;
+  const RY = Math.max(c.body_r, c.lid_out_r) * 0.7071;
+  const W = 300, H = 430;
+  const S = Math.min((W - 24) / (2 * RX), (H - 24) / (hautMax + 2 * RY));
+  const ox = W / 2, oy = H - 12 - RY * S;
+  const X = p => ox + p[0] * S, Y = p => oy + p[1] * S;
+  const D = pts => pts.map(p => `${r1(X(p))},${r1(Y(p))}`).join(' ');
+  const ell = (r, z, cls) =>
+    `<ellipse cx="${r1(ox)}" cy="${r1(oy - z * S)}" rx="${r1(r * 1.2247 * S)}" ` +
+    `ry="${r1(r * 0.7071 * S)}" ${cls}/>`;
+
+  const bleu = '#7fc7ff', ambre = '#f0b350';
+  let g = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+
+  // ---- fût : deux flancs + ellipses de bout
+  const fl = `fill="rgba(127,199,255,.13)" stroke="${bleu}" stroke-width="1.3"`;
+  g += `<path d="M ${r1(ox - c.body_r * 1.2247 * S)} ${r1(oy)} ` +
+       `V ${r1(oy - c.z_ep * S)} A ${r1(c.body_r * 1.2247 * S)} ${r1(c.body_r * 0.7071 * S)} 0 0 0 ` +
+       `${r1(ox + c.body_r * 1.2247 * S)} ${r1(oy - c.z_ep * S)} V ${r1(oy)} ` +
+       `A ${r1(c.body_r * 1.2247 * S)} ${r1(c.body_r * 0.7071 * S)} 0 0 1 ` +
+       `${r1(ox - c.body_r * 1.2247 * S)} ${r1(oy)} Z" ${fl}/>`;
+  // dessus du fût : l'épaule est plus étroite, une couronne reste vue
+  g += ell(c.body_r, c.z_ep, `fill="rgba(127,199,255,.22)" stroke="${bleu}" stroke-width="1.1"`);
+  // épaule et col
+  g += `<polygon points="${D([iso(c.body_r, Math.PI * 1.25, c.z_ep), iso(c.neck_r, Math.PI * 1.25, c.z_col), iso(c.neck_r, Math.PI * 1.25, c.h_tot), iso(c.neck_r, Math.PI * 0.25, c.h_tot), iso(c.neck_r, Math.PI * 0.25, c.z_col), iso(c.body_r, Math.PI * 0.25, c.z_ep)])}" ${fl}/>`;
+  g += ell(c.neck_r, c.h_tot, `fill="rgba(127,199,255,.20)" stroke="${bleu}" stroke-width="1.2"`);
+  g += ell(c.neck_in, c.h_tot, `fill="var(--panel2)" stroke="${bleu}" stroke-width="1"`);
+
+  // ---- cannelures vrillées, moitié visible seulement
+  if (e.flutes > 0 && e.flute_d > 0) {
+    const N = 26, zA = e.flute_bot, zB = c.z_ep - e.flute_top;
+    for (let i = 0; i < e.flutes && zB > zA; i++) {
+      const p0 = i * 2 * Math.PI / e.flutes;
+      let seg = [];
+      for (let k = 0; k <= N; k++) {
+        const z = zA + (zB - zA) * k / N;
+        const phi = p0 + e.twist * Math.PI / 180 * ((z - zA) / (zB - zA));
+        if (vu(phi)) seg.push(iso(c.body_r - e.flute_d * 0.5, phi, z));
+        else if (seg.length) {
+          g += `<polyline points="${D(seg)}" fill="none" stroke="${bleu}" stroke-width="${r1(Math.max(e.flute_d * S * 0.9, 1))}" stroke-opacity=".55" stroke-linecap="round"/>`;
+          seg = [];
+        }
+      }
+      if (seg.length)
+        g += `<polyline points="${D(seg)}" fill="none" stroke="${bleu}" stroke-width="${r1(Math.max(e.flute_d * S * 0.9, 1))}" stroke-opacity=".55" stroke-linecap="round"/>`;
+    }
+  }
+
+  // ---- filet du col : une hélice par départ
+  const tmax = Math.max(c.tours - 0.25, 0.3);
+  for (let d = 0; d < e.thread_starts; d++) {
+    const p0 = d * 2 * Math.PI / e.thread_starts;
+    let seg = [];
+    const M = Math.max(Math.ceil(tmax * 24), 8);
+    for (let k = 0; k <= M; k++) {
+      const t = tmax * k / M;
+      const z = c.z_col + 0.6 + t * e.thread_lead;
+      const phi = p0 - t * 2 * Math.PI;
+      if (vu(phi)) seg.push(iso(c.neck_r + e.thread_depth / 2, phi, z));
+      else if (seg.length) {
+        g += `<polyline points="${D(seg)}" fill="none" stroke="${bleu}" stroke-width="${r1(Math.max(e.thread_depth * S, 1))}" stroke-linecap="round"/>`;
+        seg = [];
+      }
+    }
+    if (seg.length)
+      g += `<polyline points="${D(seg)}" fill="none" stroke="${bleu}" stroke-width="${r1(Math.max(e.thread_depth * S, 1))}" stroke-linecap="round"/>`;
+  }
+
+  // ---- couvercle, soulevé au-dessus du col
+  const zb = c.h_tot + ecl, zh = zb + c.lid_h;
+  const fa = `fill="rgba(240,179,80,.15)" stroke="${ambre}" stroke-width="1.3"`;
+  g += `<path d="M ${r1(ox - c.lid_out_r * 1.2247 * S)} ${r1(oy - zb * S)} ` +
+       `V ${r1(oy - zh * S)} A ${r1(c.lid_out_r * 1.2247 * S)} ${r1(c.lid_out_r * 0.7071 * S)} 0 0 0 ` +
+       `${r1(ox + c.lid_out_r * 1.2247 * S)} ${r1(oy - zh * S)} V ${r1(oy - zb * S)} ` +
+       `A ${r1(c.lid_out_r * 1.2247 * S)} ${r1(c.lid_out_r * 0.7071 * S)} 0 0 1 ` +
+       `${r1(ox - c.lid_out_r * 1.2247 * S)} ${r1(oy - zb * S)} Z" ${fa}/>`;
+  g += ell(c.lid_out_r, zh, `fill="rgba(240,179,80,.22)" stroke="${ambre}" stroke-width="1.2"`);
+  // stries de préhension, sur la moitié vue
+  if (e.knurl > 0)
+    for (let i = 0; i < e.knurl; i++) {
+      const phi = i * 2 * Math.PI / e.knurl;
+      if (!vu(phi)) continue;
+      g += `<line x1="${r1(X(iso(c.lid_out_r, phi, zb)))}" y1="${r1(Y(iso(c.lid_out_r, phi, zb)))}" ` +
+           `x2="${r1(X(iso(c.lid_out_r, phi, zh)))}" y2="${r1(Y(iso(c.lid_out_r, phi, zh)))}" ` +
+           `stroke="${ambre}" stroke-width=".8" stroke-opacity=".5"/>`;
+    }
+  g += `</svg>`;
+  return g;
+}
+
+function figCoupe(c) {
+  const e = etat;
+  const R = Math.max(c.body_r, c.lid_out_r) + 4;
+  const HT = c.h_tot + e.lid_extra + e.lid_top + 6;
+  const W = 250, S = Math.min(W / (2 * R), 330 / HT);
+  const w = 2 * R * S + 20, h = HT * S + 20;
+  const X = r => 10 + (r + R) * S, Y = z => h - 10 - z * S;
+  const P = pts => pts.map(p => `${r1(X(p[0]))},${r1(Y(p[1]))}`).join(' ');
+  // silhouette extérieure, moitié droite puis miroir
+  const demi = [[0, 0], [c.body_r - e.base_ch, 0], [c.body_r, e.base_ch],
+                [c.body_r, c.z_ep], [c.neck_r, c.z_col], [c.neck_r, c.h_tot], [0, c.h_tot]];
+  const plein = demi.concat(demi.slice().reverse().map(p => [-p[0], p[1]]));
+  const creux0 = [[0, e.floor_t], [c.in_r, e.floor_t], [c.in_r, c.z_ep],
+                  [c.neck_in, c.z_col], [c.neck_in, c.h_tot], [0, c.h_tot]];
+  const creux = creux0.concat(creux0.slice().reverse().map(p => [-p[0], p[1]]));
+  let g = `<svg viewBox="0 0 ${r1(w)} ${r1(h)}" width="${r1(w)}" height="${r1(h)}">`;
+  g += `<polygon points="${P(plein)}" fill="rgba(127,199,255,.20)" stroke="#7fc7ff" stroke-width="1.4"/>`;
+  g += `<polygon points="${P(creux)}" fill="var(--panel2)" stroke="#7fc7ff" stroke-width="1"/>`;
+  // dents de filet, des deux côtés du col
+  const n = Math.max(Math.floor(c.tours * e.thread_starts), 0);
+  for (let i = 0; i < n; i++) {
+    const z = c.z_col + 0.6 + (i + 0.5) * e.thread_lead / e.thread_starts;
+    if (z > c.h_tot - 0.5) break;
+    for (const s of [1, -1]) {
+      const a = e.thread_lead / e.thread_starts * 0.22;
+      g += `<polygon points="${P([[s * c.neck_r, z - a], [s * (c.neck_r + e.thread_depth), z],
+                                 [s * c.neck_r, z + a]])}" fill="#7fc7ff"/>`;
+    }
+  }
+  // couvercle vissé
+  const bas = c.h_tot - e.neck_h, haut = bas + c.lid_h;
+  const lid = [[c.lid_in_r, bas], [c.lid_out_r, bas], [c.lid_out_r, haut],
+               [-c.lid_out_r, haut], [-c.lid_out_r, bas], [-c.lid_in_r, bas],
+               [-c.lid_in_r, haut - e.lid_top], [c.lid_in_r, haut - e.lid_top]];
+  g += `<polygon points="${P(lid)}" fill="rgba(240,179,80,.13)" stroke="#f0b350" stroke-width="1.2" stroke-dasharray="5 3"/>`;
+  g += `</svg>`;
+  return g;
+}
+
+function figDessus(c) {
+  const e = etat;
+  const R = c.body_r + 3, W = 190, S = W / (2 * R);
+  const w = 2 * R * S + 12, cx = w / 2;
+  let g = `<svg viewBox="0 0 ${r1(w)} ${r1(w)}" width="${r1(w)}" height="${r1(w)}">`;
+  g += `<circle cx="${r1(cx)}" cy="${r1(cx)}" r="${r1(c.body_r * S)}" fill="rgba(127,199,255,.20)" stroke="#7fc7ff" stroke-width="1.4"/>`;
+  if (e.flutes > 0 && e.flute_d > 0)
+    for (let i = 0; i < e.flutes; i++) {
+      const a = i * 2 * Math.PI / e.flutes;
+      const d = c.body_r + e.flute_w - e.flute_d;
+      g += `<circle cx="${r1(cx + d * S * Math.cos(a))}" cy="${r1(cx + d * S * Math.sin(a))}" r="${r1(e.flute_w * S)}" fill="var(--panel2)" stroke="#7fc7ff" stroke-width=".8"/>`;
+    }
+  g += `<circle cx="${r1(cx)}" cy="${r1(cx)}" r="${r1(c.in_r * S)}" fill="var(--panel2)" stroke="#7fc7ff" stroke-width="1" stroke-dasharray="4 3"/>`;
+  g += `<circle cx="${r1(cx)}" cy="${r1(cx)}" r="${r1(c.neck_r * S)}" fill="none" stroke="#f0b350" stroke-width="1" stroke-dasharray="3 3"/>`;
+  g += `</svg>`;
+  return g;
+}
+
+// ---------------------------------------------------------------
+// Ligne de commande
+// ---------------------------------------------------------------
+function args(part) {
+  const a = [`part="${part}"`];
+  const d = DEFAUT();
+  for (const k of Object.keys(d))
+    if (etat[k] !== d[k]) a.push(`${k}=${etat[k]}`);
+  return a;
+}
+function cmd(part, nom) {
+  return `openscad -o ${nom} ` + args(part).map(x => `-D '${x}'`).join(' ') +
+         ` bottle.scad`;
+}
+
+// ---------------------------------------------------------------
+// Interface
+// ---------------------------------------------------------------
+function champ(cle, nom, min, max, pas) {
+  const row = document.createElement('div');
+  row.className = 'rowline';
+  row.innerHTML = `<label style="width:auto;flex:1">${esc(nom)}</label>` +
+    `<input type="number" step="${pas}" min="${min}" max="${max}" value="${etat[cle]}">` +
+    `<span class="unit">mm</span>`;
+  const inp = row.querySelector('input');
+  if (cle === 'flutes' || cle === 'knurl' || cle === 'thread_starts' || cle === 'twist')
+    row.querySelector('.unit').textContent = cle === 'twist' ? '°' : '';
+  inp.addEventListener('input', () => {
+    const v = parseFloat(inp.value);
+    if (!isNaN(v) && v >= min && v <= max) { etat[cle] = v; rendre(false); }
+  });
+  inp.dataset.cle = cle;
+  return row;
+}
+
+function construire() {
+  for (const [zone, liste] of CHAMPS) {
+    const box = $(zone); box.innerHTML = '';
+    for (const [cle, nom, min, max, pas] of liste)
+      box.append(champ(cle, nom, min, max, pas));
+  }
+  const t = $('gTpl'); t.innerHTML = '';
+  for (const nom of Object.keys(MODELES)) {
+    const b = document.createElement('button');
+    b.className = 'btn'; b.style.cssText = 'text-align:left;width:100%;margin-bottom:6px';
+    b.textContent = nom;
+    b.addEventListener('click', () => {
+      etat = Object.assign(DEFAUT(), MODELES[nom]);
+      construire(); rendre();
+    });
+    t.append(b);
+  }
+}
+
+function rendre(refaire = true) {
+  const c = cotes();
+  $('bbDims').textContent = `Ø ${etat.body_d} × ${r1(c.h_tot)} mm`;
+  $('bbStats').innerHTML =
+    `<div class="bb-stat"><b>${Math.round(c.cap)} ml</b><span>contenance</span></div>` +
+    `<div class="bb-stat"><b>${r1(c.h_tot)} mm</b><span>hauteur du pot</span></div>` +
+    `<div class="bb-stat"><b>Ø ${r1(c.lid_out_r * 2)}</b><span>couvercle</span></div>` +
+    `<div class="bb-stat"><b>${r1(c.tours)}</b><span>tours de filet</span></div>` +
+    `<div class="bb-stat"><b>${r1(360 / etat.thread_starts)}°</b><span>pour ouvrir</span></div>`;
+  const al = alertes(c);
+  $('bbNotes').innerHTML = al.map(([k, m]) =>
+    `<div class="warnline" style="cursor:default;color:${k === 'dur' ? 'var(--danger)' : '#f0b350'}">${esc(m)}</div>`).join('');
+  $('fig3d').innerHTML = fig3d(c);
+  $('figCoupe').innerHTML = figCoupe(c);
+  $('figDessus').innerHTML = figDessus(c);
+  $('cmdBody').textContent = cmd('body', 'pot.stl');
+  $('cmdLid').textContent = cmd('lid', 'couvercle.stl');
+  if (refaire)
+    for (const i of document.querySelectorAll('.bb-side input'))
+      if (document.activeElement !== i) i.value = etat[i.dataset.cle];
+  try { localStorage.setItem('bottlebuilder', JSON.stringify(etat)); } catch (e) {}
+}
+
+// ---------------------------------------------------------------
+// Génération directe, via builder-server.py
+// ---------------------------------------------------------------
+async function generer(part, btn) {
+  const txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Calcul…';
+  try {
+    const rep = await fetch('/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'bottle', part, args: args(part) }),
+    });
+    if (!rep.ok) throw new Error((await rep.json()).error || 'échec');
+    const blob = await rep.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = part === 'lid' ? 'couvercle.stl' : 'pot.stl';
+    a.click(); URL.revokeObjectURL(a.href);
+    btn.textContent = 'Téléchargé';
+  } catch (err) {
+    btn.textContent = 'Erreur';
+    alert('Génération impossible : ' + err.message);
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = txt; }, 1400);
+}
+
+$('genBody').addEventListener('click', () => generer('body', $('genBody')));
+$('genLid').addEventListener('click', () => generer('lid', $('genLid')));
+for (const [b, src] of [['copyBody', 'cmdBody'], ['copyLid', 'cmdLid']])
+  $(b).addEventListener('click', () => navigator.clipboard.writeText($(src).textContent));
+
+construire();
+rendre();
+
+</script>
+</body>
+</html>
