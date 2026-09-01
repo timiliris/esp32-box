@@ -87,7 +87,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             modele = req.get('model', 'box')
             if modele not in MODELES:
                 raise ValueError('modèle invalide')
-            if part not in ('base', 'lid', 'inserts', 'stand', 'body', 'both'):
+            if part not in ('base', 'lid', 'inserts', 'stand', 'body', 'both', 'tag'):
                 raise ValueError('part invalide')
             if not isinstance(args, list) or not all(
                     isinstance(a, str) and ARG_RE.match(a) for a in args):

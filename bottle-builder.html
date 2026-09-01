@@ -240,6 +240,7 @@
     <div class="group"><h2>Corps</h2><div class="insp" id="gCorps"></div></div>
     <div class="group"><h2>Cannelures</h2><div class="insp" id="gCan"></div></div>
     <div class="group"><h2>Col et filetage</h2><div class="insp" id="gCol"></div></div>
+    <div class="group"><h2>Porte-étiquette</h2><div class="insp" id="gLab"></div></div>
     <div class="group"><h2>Couvercle</h2><div class="insp" id="gLid"></div></div>
     <div class="group"><h2>Modèles</h2><div class="insp" id="gTpl"></div></div>
   </div>
@@ -263,6 +264,13 @@
       <button class="btn" id="copyBody">Copier</button>
     </div>
     <div class="cmd" id="cmdBody"></div>
+  </div>
+  <div class="cmdbox" id="boxTag">
+    <div class="cap"><b>Languette</b><span>à écrire</span>
+      <button class="btn primary" id="genTag" style="margin-left:auto">Générer le STL</button>
+      <button class="btn" id="copyTag">Copier</button>
+    </div>
+    <div class="cmd" id="cmdTag"></div>
   </div>
   <div class="cmdbox">
     <div class="cap"><b>Couvercle</b><span>à visser</span>
@@ -306,6 +314,16 @@ const CHAMPS = [
     ['thread_starts', 'Nb de filets',  1,  6, 1],
     ['thread_clear',  'Jeu',           0,  1, 0.05],
   ]],
+  ['gLab', [
+    ['label',       'Porte-étiquette (0/1)', 0,  1, 1],
+    ['label_w',     'Largeur languette',    10, 150, 1],
+    ['label_h',     'Hauteur languette',     8, 150, 1],
+    ['label_card',  'Épaisseur languette', 0.4,  4, 0.1],
+    ['label_rail',  'Cadre',                 1, 10, 0.5],
+    ['label_front', 'Face avant',          0.6,  5, 0.2],
+    ['label_z',     'Hauteur sur le fût',    0, 240, 1],
+    ['label_flat',  'Méplat',                0,  8, 0.1],
+  ]],
   ['gLid', [
     ['lid_top',   'Dessus',      1, 8, 0.2],
     ['lid_wall',  'Jupe',      1.2, 8, 0.2],
@@ -318,8 +336,10 @@ const CHAMPS = [
 const DEFAUT = () => ({
   body_d: 70, body_h: 100, wall: 2, floor_t: 2.4, base_ch: 1,
   flutes: 12, flute_d: 2.2, flute_w: 5, flute_bot: 12, flute_top: 10, twist: 220,
-  shoulder_h: 10, neck_d: 46, neck_h: 14,
-  thread_lead: 6, thread_depth: 1.4, thread_starts: 3, thread_clear: 0.35,
+  shoulder_h: 10, neck_d: 46, neck_h: 18,
+  thread_lead: 10, thread_depth: 1.8, thread_starts: 3, thread_clear: 0.35,
+  label: 0, label_w: 20, label_h: 55, label_card: 1.2, label_front: 1.2,
+  label_rail: 3, label_z: 20, label_flat: 1.5,
   lid_top: 2.4, lid_wall: 2.4, lid_extra: 2, knurl: 44, knurl_d: 0.6,
 });
 
@@ -360,8 +380,10 @@ function cotes() {
   const lid_out_r = lid_in_r + e.thread_depth + e.lid_wall;
   const lid_h = e.neck_h + e.lid_extra + e.lid_top;
   const cap = Math.PI * in_r * in_r * (z_col - e.floor_t) / 1000;
+  // épaisseur axiale d'un filet, à mi-hauteur de son profil
+  const fil_ep = 0.45 * e.thread_lead / e.thread_starts;
   return { body_r, neck_r, in_r, neck_in, z_ep, z_col, h_tot, tours,
-           lid_in_r, lid_out_r, lid_h, cap };
+           lid_in_r, lid_out_r, lid_h, cap, fil_ep };
 }
 
 // ---------------------------------------------------------------
@@ -379,6 +401,16 @@ function alertes(c) {
     out.push(['dur', `Le col (Ø ${e.neck_d}) est aussi large que le fond des cannelures : l’épaule s’inverse. Réduis-le sous ${r1((c.body_r - e.flute_d) * 2)}.`]);
   if (c.neck_in <= 1)
     out.push(['dur', `Le col n’a plus d’ouverture : Ø ${e.neck_d} moins deux parois de ${e.wall}.`]);
+  if (c.fil_ep < 1.2)
+    out.push(['mou', `Filet de ${r1(c.fil_ep)} mm d’épaisseur : trois couches à peine, il s’arrachera. Monte le pas ou baisse le nombre de départs.`]);
+  if (e.label && e.label_flat >= e.flute_d + e.wall)
+    out.push(['dur', `Le méplat (${e.label_flat}) creuse plus profond que la matière disponible (${r1(e.flute_d + e.wall)}) : il perce la paroi.`]);
+  if (e.label && e.label_z + e.label_h + e.label_rail > e.body_h)
+    out.push(['mou', `Le cadre dépasse du fût : il monte à ${r1(e.label_z + e.label_h + e.label_rail)} pour un fût de ${e.body_h}.`]);
+  if (e.label && e.label_h < e.label_w)
+    out.push(['mou', `Languette plus large (${e.label_w}) que haute (${e.label_h}) : en paysage elle doit épouser la courbure du fût sur toute sa largeur.`]);
+  if (e.label && e.label_w + 2 * e.label_rail > 1.6 * c.body_r)
+    out.push(['mou', `Cadre large de ${r1(e.label_w + 2 * e.label_rail)} sur un Ø ${e.body_d} : il enveloppera trop la courbe pour poser à plat.`]);
   if (c.tours < 1)
     out.push(['mou', `Moins d’un tour de filet (${r1(c.tours)}) : ça tiendra mal. Monte la hauteur filetée ou baisse le pas.`]);
   if (e.thread_lead / e.thread_starts < 2)
@@ -474,6 +506,17 @@ function fig3d(c) {
     }
     if (seg.length)
       g += `<polyline points="${D(seg)}" fill="none" stroke="${bleu}" stroke-width="${r1(Math.max(e.thread_depth * S, 1))}" stroke-linecap="round"/>`;
+  }
+
+  // ---- porte-étiquette, à plat sur le méplat (φ = 0)
+  if (e.label) {
+    const rl = c.body_r - e.label_flat + e.label_card + 0.5 + e.label_front;
+    const dy = e.label_w / 2 + e.label_rail;
+    const zb = e.label_z, zh = zb + e.label_h + e.label_rail;
+    const coin = (y, z) => iso(Math.hypot(rl, y), Math.atan2(y, rl), z);
+    g += `<polygon points="${D([coin(-dy, zb), coin(dy, zb), coin(dy, zh), coin(-dy, zh)])}" fill="rgba(240,179,80,.18)" stroke="${ambre}" stroke-width="1.2"/>`;
+    const fy = e.label_w / 2 - e.label_rail;
+    g += `<polygon points="${D([coin(-fy, zb + 2 * e.label_rail), coin(fy, zb + 2 * e.label_rail), coin(fy, zb + e.label_h - e.label_rail), coin(-fy, zb + e.label_h - e.label_rail)])}" fill="var(--panel2)" stroke="${ambre}" stroke-width="1"/>`;
   }
 
   // ---- couvercle, soulevé au-dessus du col
@@ -617,7 +660,8 @@ function rendre(refaire = true) {
     `<div class="bb-stat"><b>${r1(c.h_tot)} mm</b><span>hauteur du pot</span></div>` +
     `<div class="bb-stat"><b>Ø ${r1(c.lid_out_r * 2)}</b><span>couvercle</span></div>` +
     `<div class="bb-stat"><b>${r1(c.tours)}</b><span>tours de filet</span></div>` +
-    `<div class="bb-stat"><b>${r1(360 / etat.thread_starts)}°</b><span>pour ouvrir</span></div>`;
+    `<div class="bb-stat"><b>${r1(360 / etat.thread_starts)}°</b><span>pour ouvrir</span></div>` +
+    `<div class="bb-stat"><b>${r1(c.fil_ep)} mm</b><span>épaisseur du filet</span></div>`;
   const al = alertes(c);
   $('bbNotes').innerHTML = al.map(([k, m]) =>
     `<div class="warnline" style="cursor:default;color:${k === 'dur' ? 'var(--danger)' : '#f0b350'}">${esc(m)}</div>`).join('');
@@ -626,6 +670,8 @@ function rendre(refaire = true) {
   $('figDessus').innerHTML = figDessus(c);
   $('cmdBody').textContent = cmd('body', 'pot.stl');
   $('cmdLid').textContent = cmd('lid', 'couvercle.stl');
+  $('cmdTag').textContent = cmd('tag', 'languette.stl');
+  $('boxTag').style.display = etat.label ? '' : 'none';
   if (refaire)
     for (const i of document.querySelectorAll('.bb-side input'))
       if (document.activeElement !== i) i.value = etat[i.dataset.cle];
@@ -647,7 +693,8 @@ async function generer(part, btn) {
     const blob = await rep.blob();
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = part === 'lid' ? 'couvercle.stl' : 'pot.stl';
+    a.download = part === 'lid' ? 'couvercle.stl'
+               : part === 'tag' ? 'languette.stl' : 'pot.stl';
     a.click(); URL.revokeObjectURL(a.href);
     btn.textContent = 'Téléchargé';
   } catch (err) {
@@ -659,7 +706,8 @@ async function generer(part, btn) {
 
 $('genBody').addEventListener('click', () => generer('body', $('genBody')));
 $('genLid').addEventListener('click', () => generer('lid', $('genLid')));
-for (const [b, src] of [['copyBody', 'cmdBody'], ['copyLid', 'cmdLid']])
+$('genTag').addEventListener('click', () => generer('tag', $('genTag')));
+for (const [b, src] of [['copyBody', 'cmdBody'], ['copyLid', 'cmdLid'], ['copyTag', 'cmdTag']])
   $(b).addEventListener('click', () => navigator.clipboard.writeText($(src).textContent));
 
 construire();

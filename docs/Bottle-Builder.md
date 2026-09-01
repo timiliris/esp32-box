@@ -30,6 +30,33 @@ grip worse and strip sooner.
 The panel prints the number of **turns of thread** and the angle needed
 to open. Under one full turn it says so: the lid will feel loose.
 
+The panel prints the **thread thickness** — `0.45 × lead / starts`,
+the axial height of one thread. That is the number that matters on
+FDM: below 1.2 mm a thread is barely three layers and strips. Three
+starts on a 6 mm lead gives 0.9 mm, which is why the defaults moved to
+a **10 mm lead**: same three starts, same 120° to open, but 1.5 mm of
+thread. A coarse pitch beats a fine one here.
+
+## Label holder
+
+A flat is planed into the barrel and a frame sits on it. The tongue
+**slides in from the top** — the slot is open up there, so nothing
+overhangs, and the frame's window is a plain bridge between two
+supported sides. No supports anywhere.
+
+| | |
+|---|---|
+| Tongue | width, height, thickness — the slot takes it plus 0.5 |
+| Frame | border width, and the front face thickness |
+| Height on the barrel | where the frame's bottom sits |
+| Flat | how deep the chord is planed |
+
+The **Tongue** part appears as a third button once the holder is on:
+print it flat, write on it, slide it in. The panel refuses a flat
+deeper than the material available — it would pierce the wall — and
+warns when the frame runs past the top of the barrel or wraps too far
+around the curve to sit flat.
+
 ## The body
 
 **Flutes** are cut by a twisted circular tool rather than by twisting a

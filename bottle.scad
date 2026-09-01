@@ -24,13 +24,31 @@ flute_top = 10;   // ... et en haut, sous l'épaule
 // --- Épaule et col -----------------------------------------
 shoulder_h = 10;  // hauteur du congé entre le fût et le col
 neck_d     = 46;  // diamètre extérieur du col, sous filet
-neck_h     = 14;  // hauteur filetée
+neck_h     = 18;  // hauteur filetée
 
 // --- Filetage ----------------------------------------------
-thread_lead   = 6;    // avance axiale par tour
-thread_depth  = 1.4;  // saillie radiale du filet
+// L'épaisseur d'un filet vaut 0.45 x pas / nombre de départs. Sous
+// 1.2 mm il ne fait plus que trois couches et s'arrache : d'où un pas
+// large plutôt qu'un pas fin, même à trois départs.
+thread_lead   = 10;   // avance axiale par tour
+thread_depth  = 1.8;  // saillie radiale du filet
 thread_starts = 3;    // nombre de filets : 3 = ouverture en 1/3 de tour
 thread_clear  = 0.35; // jeu au montage (par flanc)
+
+// --- Porte-étiquette ---------------------------------------
+// Un méplat raboté dans le fût, et par-dessus un cadre dans lequel on
+// glisse une languette PAR LE HAUT. Rien ne surplombe : la fente est
+// ouverte en haut, la fenêtre du cadre est un simple pont.
+label      = false;  // true = porte-étiquette
+// La languette est en PORTRAIT : plus haute que large, elle suit le
+// fût et n'a pas à épouser la courbure sur une grande largeur.
+label_w    = 20;     // largeur de la languette
+label_h    = 55;     // sa hauteur
+label_card = 1.2;    // son épaisseur (fente = celle-ci + 0.5 de jeu)
+label_front = 1.2;   // épaisseur de la face avant du cadre
+label_rail = 3;      // largeur du cadre
+label_z    = 20;     // hauteur du bas du cadre sur le fût
+label_flat = 1.5;    // profondeur du méplat
 
 // --- Couvercle ---------------------------------------------
 lid_top   = 2.4;  // épaisseur du dessus
@@ -98,13 +116,64 @@ lid_in_r = neck_r + thread_clear;                  // alésage
 lid_out_r = lid_in_r + thread_depth + lid_wall;    // rayon extérieur
 lid_h    = neck_h + lid_extra + lid_top;
 
+// porte-étiquette
+lab_x   = body_r - label_flat;          // plan du méplat
+lab_ext = label_card + 0.5 + label_front;
+lab_hz  = label_h + label_rail;         // hauteur du cadre
+
 // contenance approchée, en millilitres
 capacite = PI * pow(in_r, 2) * (z_col - floor_t) / 1000;
+
+// ------------------------------------------------------------
+// Porte-étiquette
+// ------------------------------------------------------------
+module meplat() {
+    // rabote une corde du fût, pour que le cadre pose à plat
+    if (label)
+        translate([lab_x, -body_r - 1, -1])
+            cube([body_r + 2, 2 * body_r + 2, h_tot + 2]);
+}
+module cadre_etiquette() {
+    if (label)
+        translate([lab_x, -(label_w / 2 + label_rail), label_z])
+            cube([lab_ext, label_w + 2 * label_rail, lab_hz]);
+}
+module fente_etiquette() {
+    if (label) {
+        // fente : ouverte en haut, on y glisse la languette
+        translate([lab_x - 0.6, -(label_w + 0.5) / 2, label_z + label_rail])
+            cube([label_card + 0.5 + 0.6, label_w + 0.5, lab_hz + 2]);
+        // fenêtre : le pont du haut se fait sans support
+        translate([lab_x + label_card + 0.4,
+                   -(label_w / 2 - label_rail), label_z + 2 * label_rail])
+            cube([lab_ext, label_w - 2 * label_rail,
+                  label_h - 2 * label_rail]);
+    }
+}
+// La languette, à imprimer à plat et à écrire dessus
+module languette() {
+    linear_extrude(height = label_card)
+        offset(r = 1.5, $fn = 24) offset(delta = -1.5)
+            square([label_w, label_h + label_rail], center = true);
+}
 
 // ------------------------------------------------------------
 // Corps
 // ------------------------------------------------------------
 module corps() {
+    difference() {
+        union() {
+            difference() {
+                corps_brut();
+                meplat();
+            }
+            cadre_etiquette();
+        }
+        fente_etiquette();
+    }
+}
+
+module corps_brut() {
     difference() {
         union() {
             // fût, chanfreiné en bas pour que la première couche n'ait
@@ -176,6 +245,7 @@ module couvercle() {
 // ------------------------------------------------------------
 if (part == "body") corps();
 if (part == "lid")  couvercle();
+if (part == "tag")  languette();
 if (part == "both") {
     corps();
     translate([body_d + 12, 0, 0]) couvercle();
