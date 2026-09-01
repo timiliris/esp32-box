@@ -20,7 +20,8 @@ PORT = 8765
 ROOT = os.path.dirname(os.path.abspath(__file__))
 # Modèles disponibles. La requête choisit par nom : jamais de chemin
 # venu du client, sinon n'importe quel fichier deviendrait générable.
-MODELES = {'box': 'esp32-box.scad', 'bottle': 'bottle.scad'}
+MODELES = {'box': 'esp32-box.scad', 'bottle': 'bottle.scad',
+            'led': 'led-profile.scad'}
 SCAD = os.path.join(ROOT, MODELES['box'])
 OPENSCAD = shutil.which('openscad') or '/opt/homebrew/bin/openscad'
 
@@ -60,8 +61,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split('?', 1)[0]
-        if path in ('/', '/index.html', '/builder.html', '/bottle-builder.html'):
-            nom = 'bottle-builder.html' if path == '/bottle-builder.html' \
+        if path in ('/', '/index.html', '/builder.html', '/bottle-builder.html',
+                    '/led-builder.html'):
+            nom = path.lstrip('/') if path.endswith('-builder.html') \
                   else 'builder.html'
             with open(os.path.join(ROOT, nom), 'rb') as f:
                 self._reply(200, f.read(), 'text/html; charset=utf-8')
@@ -87,7 +89,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             modele = req.get('model', 'box')
             if modele not in MODELES:
                 raise ValueError('modèle invalide')
-            if part not in ('base', 'lid', 'inserts', 'stand', 'body', 'both', 'tag'):
+            if part not in ('base', 'lid', 'inserts', 'stand', 'body', 'both', 'tag', 'seg', 'diff'):
                 raise ValueError('part invalide')
             if not isinstance(args, list) or not all(
                     isinstance(a, str) and ARG_RE.match(a) for a in args):

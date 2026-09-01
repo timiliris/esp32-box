@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LED Profile Builder</title>
+<style>
+      .tplstale { margin-top:8px; padding:8px 10px; border-radius:7px;
+        background:rgba(240,179,80,.10); border:1px solid rgba(240,179,80,.45);
+        font-size:12px; line-height:1.45; color:#e9d3a8 }
+      .tplstale .btn { margin-top:7px; width:100% }
+  :root {
+    --bg: #0f1115; --panel: #161a21; --panel2: #1c212b; --line: #262c38;
+    --text: #e6e9ef; --muted: #8b93a7; --accent: #4f8cff; --accent2: #7db0ff;
+    --danger: #ff6b6b; --ok: #51c98a; --warn: #f0b350;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  input, select { font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 7px; }
+  input[type=number] { width: 62px; font-family: var(--mono); font-size: 12px; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  svg { display: block; }
+
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 8px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--line); flex: none;
+  }
+  header h1 { font-size: 14px; font-weight: 600; letter-spacing: .2px; }
+  header h1 span { color: var(--accent); }
+  .presets { display: flex; gap: 6px; }
+  .chip {
+    padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--muted); font-size: 12px;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--text); }
+  .dims { display: flex; align-items: center; gap: 5px; margin-left: auto; }
+  .dims label { color: var(--muted); font-size: 12px; }
+  .opts { display: flex; gap: 12px; align-items: center; }
+  .opts label { display: flex; gap: 5px; align-items: center; color: var(--muted); font-size: 12px; cursor: pointer; }
+
+  main { display: flex; flex: 1; min-height: 0; }
+  #rail {
+    width: 46px; flex: none; background: var(--bg); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 4px;
+  }
+  .railbtn {
+    width: 36px; height: 36px; border-radius: 9px; display: flex;
+    align-items: center; justify-content: center; color: var(--muted);
+    border: 1px solid transparent;
+  }
+  .railbtn:hover { color: var(--text); background: var(--panel2); }
+  .railbtn.active { color: var(--accent); background: rgba(79,140,255,.12); border-color: rgba(79,140,255,.35); }
+  .railbtn .ico { width: 17px; height: 17px; }
+  #sidebar {
+    width: 278px; flex: none; background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  #panels { flex: 1; overflow-y: auto; padding: 12px; min-height: 0; }
+  .panel { display: none; flex-direction: column; gap: 14px; }
+  .panel.active { display: flex; }
+  #selWrap {
+    flex: none; border-top: 1px solid var(--line); padding: 10px 12px;
+    max-height: 46%; overflow-y: auto; background: var(--panel);
+  }
+  .palcat {
+    grid-column: 1 / -1; font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .7px; color: #5b6274;
+    margin-top: 6px;
+  }
+  .unit { color: var(--muted); font-size: 11px; }
+  .chip.active { border-color: var(--accent); color: var(--text); background: rgba(79,140,255,.10); }
+  .tabn {
+    display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 8px;
+    background: rgba(79,140,255,.18); color: var(--accent2); font-size: 10px;
+  }
+  #dragTip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--bg); border: 1px solid var(--accent); border-radius: 6px;
+    padding: 2px 7px; font-family: var(--mono); font-size: 11px; color: var(--accent2);
+    z-index: 5; white-space: nowrap;
+  }
+  footer.nocmd .cmd { display: none; }
+  #p3open { color: var(--muted); display: flex; margin-left: auto; }
+  #p3open:hover { color: var(--text); }
+  #p3open.active { color: var(--accent); }
+  #prev3d .p3hint { margin-left: 0; }
+  @media (max-width: 1080px) {
+    #sidebar { width: 236px; }
+    .palette { grid-template-columns: 1fr; }
+    #prev3d { width: 206px; }
+    #p3scene { height: 168px; }
+    .presets { display: none; }
+  }
+  .group h2 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--muted); margin-bottom: 7px;
+  }
+  .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .pal {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 9px; text-align: left;
+  }
+  .pal:hover { border-color: var(--accent); }
+  .pal b { font-size: 12px; font-weight: 600; }
+  .pal small { color: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+
+  .insp { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .insp .rowline { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+  .insp .rowline label { color: var(--muted); width: 62px; font-size: 12px; }
+  .insp .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; font-size: 12px;
+    color: var(--text); background: var(--bg);
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .btn:disabled:hover { border-color: var(--line); }
+  .btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent2); }
+  .empty { color: var(--muted); font-size: 12px; padding: 4px 2px; }
+
+  #center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .tabs { display: flex; gap: 2px; padding: 8px 12px 0; flex: none; }
+  .tab {
+    padding: 6px 14px; border-radius: 8px 8px 0 0; color: var(--muted); font-size: 12.5px;
+    border: 1px solid transparent; border-bottom: none;
+  }
+  .tab.active { background: var(--panel); color: var(--text); border-color: var(--line); }
+  #canvasWrap { flex: 1; background: var(--panel); margin: 0 12px; border: 1px solid var(--line);
+    border-radius: 0 10px 10px 10px; position: relative; min-height: 0; }
+  #canvas { width: 100%; height: 100%; touch-action: none; }
+  #hint {
+    position: absolute; left: 10px; bottom: 8px; max-width: 52%; color: var(--muted); font-size: 11px;
+    background: color-mix(in srgb, var(--panel) 82%, transparent); padding: 3px 8px; border-radius: 6px;
+    pointer-events: none;
+  }
+  #warns { position: absolute; left: 10px; top: 8px; display: flex; flex-direction: column;
+    align-items: flex-start; gap: 4px; pointer-events: none; }
+  .warnline { color: var(--warn); font-size: 11.5px; background: rgba(240,179,80,.09);
+    border: 1px solid rgba(240,179,80,.35); padding: 2px 8px; border-radius: 6px;
+    pointer-events: auto; cursor: pointer; text-align: left; }
+  .warnline:hover { border-color: var(--warn); background: rgba(240,179,80,.16); }
+  .noteline { color: var(--accent2); font-size: 11.5px; background: rgba(79,140,255,.08);
+    border: 1px solid rgba(79,140,255,.3); padding: 2px 8px; border-radius: 6px;
+    pointer-events: auto; cursor: pointer; text-align: left; }
+  .noteline:hover { border-color: var(--accent); background: rgba(79,140,255,.16); }
+
+  #objects { display: flex; flex-direction: column; gap: 4px; }
+  .objrow { display: flex; align-items: center; gap: 7px; width: 100%;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 7px;
+    padding: 5px 8px; font-size: 12px; text-align: left; }
+  .objrow:hover { border-color: var(--accent); }
+  .objrow.sel { border-color: var(--accent); background: rgba(79,140,255,.08); }
+  .objrow .of { color: var(--muted); font-size: 10.5px; }
+  .objrow .oi { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .objrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); flex: none; }
+
+  footer {
+    flex: none; background: var(--panel); border-top: 1px solid var(--line);
+    padding: 10px 14px; display: flex; gap: 12px; align-items: stretch;
+  }
+  .cmdbox { flex: 1; min-width: 0; }
+  .cmdbox .cap { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .cmdbox .cap b { font-size: 12px; }
+  .cmdbox .cap span { color: var(--muted); font-size: 11.5px; }
+  .cmd {
+    font-family: var(--mono); font-size: 11px; color: var(--accent2);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 9px; white-space: nowrap; overflow-x: auto; user-select: all;
+  }
+  .copyok { color: var(--ok) !important; border-color: var(--ok) !important; }
+
+  .ico { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.8; fill: none;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+  #prev3d {
+    position: absolute; right: 12px; bottom: 12px; width: 258px;
+    background: color-mix(in srgb, var(--panel2) 92%, transparent);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    user-select: none;
+  }
+  .p3head {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    border-bottom: 1px solid var(--line); font-size: 11.5px; font-weight: 600;
+  }
+  .p3hint { color: var(--muted); font-weight: 400; font-size: 10.5px; margin-left: auto; }
+  #p3toggle { color: var(--muted); display: flex; }
+  #p3toggle:hover { color: var(--text); }
+  #prev3d.collapsed #p3scene { display: none; }
+  #prev3d.collapsed #p3toggle svg { transform: rotate(180deg); }
+  #p3scene {
+    height: 212px; perspective: 720px; cursor: grab; touch-action: none;
+    overflow: hidden;
+  }
+  #p3scene:active { cursor: grabbing; }
+  #p3cube {
+    position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+    transform-style: preserve-3d;
+  }
+  .p3face {
+    position: absolute; backface-visibility: hidden;
+  }
+  .p3face svg { width: 100%; height: 100%; display: block; }
+</style>
+<style>
+  .bb-wrap { display:flex; gap:14px; padding:14px; height:calc(100vh - 118px); box-sizing:border-box }
+  .bb-side { width:290px; overflow-y:auto; flex:none }
+  .bb-view { flex:1; background:var(--panel2); border:1px solid var(--line);
+             border-radius:12px; padding:16px; overflow:auto }
+  .bb-figs { display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap }
+  .bb-cap { font-size:12px; color:var(--muted); text-align:center; margin-top:6px }
+  .bb-stats { display:flex; gap:18px; flex-wrap:wrap; margin-bottom:12px }
+  .bb-stat b { display:block; font-size:19px; color:var(--txt); font-weight:600 }
+  .bb-stat span { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">LED Profile <span>Builder</span></div>
+  <a class="btn" href="builder.html" style="margin-left:auto">Boîtiers</a>
+  <a class="btn" href="bottle-builder.html">Bouteilles</a>
+  <div class="dims" id="ddims"></div>
+</header>
+<div class="bb-wrap">
+  <div class="bb-side">
+    <div class="group"><h2>Ruban et canal</h2><div class="insp" id="gCan"></div></div>
+    <div class="group"><h2>Diffuseur</h2><div class="insp" id="gDif"></div></div>
+    <div class="group"><h2>Platine</h2><div class="insp" id="gPla"></div></div>
+    <div class="group"><h2>Segment et raccord</h2><div class="insp" id="gSeg"></div></div>
+    <div class="group"><h2>Modèles</h2><div class="insp" id="gTpl"></div></div>
+  </div>
+  <div class="bb-view">
+    <div class="bb-stats" id="dstats"></div>
+    <div id="dnotes"></div>
+    <div class="bb-figs">
+      <div><div id="figSec"></div><div class="bb-cap">Coupe · faisceau en jaune · au-delà de la visière, en vert, les LED sont invisibles</div></div>
+      <div><div id="figJoin"></div><div class="bb-cap">Raccord · deux segments emboîtés</div></div>
+    </div>
+  </div>
+</div>
+<footer>
+  <div class="cmdbox">
+    <div class="cap"><b>Segment</b><span>le profil</span>
+      <button class="btn primary" id="genSeg" style="margin-left:auto">Générer le STL</button>
+      <button class="btn" id="copySeg">Copier</button>
+    </div>
+    <div class="cmd" id="cmdSeg"></div>
+  </div>
+  <div class="cmdbox">
+    <div class="cap"><b>Diffuseur</b><span>PETG translucide</span>
+      <button class="btn primary" id="genDif" style="margin-left:auto">Générer le STL</button>
+      <button class="btn" id="copyDif">Copier</button>
+    </div>
+    <div class="cmd" id="cmdDif"></div>
+  </div>
+</footer>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const r1 = v => Math.round(v * 10) / 10;
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+
+const CHAMPS = [
+  ['gCan', [
+    ['strip_w', 'Largeur du ruban',  3, 40, 0.5],
+    ['chan_d',  'Profondeur',        2, 60, 0.5],
+    ['angle',   'Inclinaison (°)',   0, 88, 1],
+    ['visor',   'Visière',           0, 60, 0.5],
+    ['wall_t',  'Épaisseur',       1.2,  6, 0.2],
+  ]],
+  ['gDif', [
+    ['diff_t',    'Épaisseur',   0.6, 5, 0.2],
+    ['diff_grip', 'Rainures',    0.6, 4, 0.1],
+    ['diff_clr',  'Jeu',           0, 1, 0.05],
+  ]],
+  ['gPla', [
+    ['plate_h', 'Hauteur',  8, 90, 1],
+    ['plate_t', 'Épaisseur', 2, 10, 0.5],
+    ['screw_d', 'Ø perçage', 2,  8, 0.2],
+    ['screw_n', 'Vis / segment', 0, 8, 1],
+  ]],
+  ['gSeg', [
+    ['seg_len',  'Longueur',  40, 350, 5],
+    ['join_len', 'Raccord',    0,  30, 1],
+    ['join_clr', 'Jeu',        0,   1, 0.05],
+  ]],
+];
+
+const DEFAUT = () => ({
+  strip_w: 10, chan_d: 12, angle: 78, visor: 10, wall_t: 2,
+  diff_t: 1.6, diff_grip: 1.2, diff_clr: 0.25,
+  plate_h: 26, plate_t: 3, screw_d: 3.4, screw_n: 2,
+  seg_len: 200, join_len: 8, join_clr: 0.25,
+});
+
+const MODELES = {
+  'Lèche-mur d’escalier': { angle: 78, visor: 12, chan_d: 12, plate_h: 26 },
+  'Plein axe': { angle: 0, visor: 0, chan_d: 10, plate_h: 20 },
+  'Sous-nez de marche': { angle: 55, visor: 16, chan_d: 14, plate_h: 30 },
+  'Rasant, très abrité': { angle: 86, visor: 22, chan_d: 16, plate_h: 34 },
+};
+
+let etat = DEFAUT();
+try { const s = JSON.parse(localStorage.getItem('ledbuilder') || 'null');
+      if (s && s.strip_w) etat = Object.assign(DEFAUT(), s); } catch (e) {}
+
+// ---------------------------------------------------------------
+// Géométrie — mêmes formules que le .scad
+// ---------------------------------------------------------------
+function cotes() {
+  const e = etat;
+  const th = rad(e.angle - 90);
+  const hu = e.strip_w / 2 + e.wall_t;
+  const hv = e.wall_t + e.chan_d;
+  const coins = [[-hu, 0], [hu, 0], [hu, hv + e.visor], [-hu, hv]];
+  const rx = coins.map(p => p[0] * Math.cos(th) - p[1] * Math.sin(th));
+  const dx = e.plate_t - Math.min(...rx) - e.wall_t;
+  // passage du repère canal au repère mur
+  const M = (u, v) => [dx + u * Math.cos(th) - v * Math.sin(th),
+                       u * Math.sin(th) + v * Math.cos(th)];
+  // rayons limites : d'un bord du ruban par-dessus la lèvre opposée
+  const A0 = M(-e.strip_w / 2, e.wall_t), A1 = M(e.strip_w / 2, hv + e.visor);
+  const B0 = M(e.strip_w / 2, e.wall_t),  B1 = M(-e.strip_w / 2, hv);
+  // Angle par rapport AU MUR, pas à sa normale : 0 = rasant le support,
+  // 90 = plein axe. C'est ainsi qu'on raisonne sur un lèche-mur.
+  const ang = (p, q) => deg(Math.atan2(q[0] - p[0], q[1] - p[1]));
+  return { th, hu, hv, dx, M, A0, A1, B0, B1,
+           aVisor: ang(A0, A1), aOpen: ang(B0, B1),
+           saillie: Math.max(...coins.map((p, i) =>
+             dx + p[0] * Math.cos(th) - p[1] * Math.sin(th))) };
+}
+
+function alertes(c) {
+  const e = etat, out = [];
+  if (e.diff_grip <= e.diff_clr)
+    out.push(['dur', `Rainures de ${e.diff_grip} pour un jeu de ${e.diff_clr} : le diffuseur ne tiendrait pas.`]);
+  if (e.chan_d < e.diff_t + e.diff_grip + 1)
+    out.push(['dur', `Canal de ${e.chan_d} trop court pour loger le diffuseur (${e.diff_t}) et ses rainures.`]);
+  if (e.plate_h < e.strip_w + 6)
+    out.push(['mou', `Platine de ${e.plate_h} pour un canal de ${r1(2 * c.hu)} : peu d’assise, le profil vrillera au vissage.`]);
+  // la vis TRAVERSE la platine : c'est sa hauteur qui doit entourer le
+  // trou, pas son épaisseur
+  if (e.screw_n > 0 && e.plate_h < e.screw_d + 6)
+    out.push(['mou', `Platine haute de ${e.plate_h} percée à ${e.screw_d} : moins de 3 mm de matière autour de la vis.`]);
+  if (e.join_len > 0 && e.join_len < 5)
+    out.push(['mou', `Raccord de ${e.join_len} mm : trop court pour tenir l’alignement.`]);
+  if (c.aVisor > 45)
+    out.push(['mou', `Le faisceau sort jusqu’à ${r1(c.aVisor)}° du mur : à cet angle on regarde les LED en face. Rallonge la visière ou incline davantage.`]);
+  return out;
+}
+
+// ---------------------------------------------------------------
+// Coupe
+// ---------------------------------------------------------------
+function figSec(c) {
+  const e = etat;
+  const P = [];
+  const hu = c.hu, hv = c.hv;
+  // contour du canal, en U, dans le repère mur
+  const ext = [c.M(-hu, 0), c.M(hu, 0), c.M(hu, hv + e.visor),
+               c.M(hu - e.wall_t, hv + e.visor), c.M(hu - e.wall_t, e.wall_t),
+               c.M(-hu + e.wall_t, e.wall_t), c.M(-hu + e.wall_t, hv),
+               c.M(-hu, hv)];
+  const plaque = [[0, -e.plate_h / 2], [e.plate_t, -e.plate_h / 2],
+                  [e.plate_t, e.plate_h / 2], [0, e.plate_h / 2]];
+  const ruban = [c.M(-e.strip_w / 2, e.wall_t), c.M(e.strip_w / 2, e.wall_t),
+                 c.M(e.strip_w / 2, e.wall_t + 1.2), c.M(-e.strip_w / 2, e.wall_t + 1.2)];
+  const dif = [c.M(-e.strip_w / 2 - e.diff_grip, hv - e.diff_t),
+               c.M(e.strip_w / 2 + e.diff_grip, hv - e.diff_t),
+               c.M(e.strip_w / 2 + e.diff_grip, hv), c.M(-e.strip_w / 2 - e.diff_grip, hv)];
+  const tous = ext.concat(plaque, ruban);
+  const xs = tous.map(p => p[0]), ys = tous.map(p => p[1]);
+  // cadrage sur la PIÈCE, pas sur les rayons : sinon le profil devient
+  // un timbre-poste au coin d'un grand triangle vide
+  const px0 = Math.min(...xs), px1 = Math.max(...xs);
+  const py0 = Math.min(...ys), py1 = Math.max(...ys);
+  const taille = Math.max(px1 - px0, py1 - py0);
+  const L = taille * 1.5;                      // longueur des rayons tracés
+  const x0 = px0 - 4, x1 = px1 + taille * 0.55;
+  const y0 = py0 - taille * 0.3, y1 = py1 + taille * 0.55;
+  const W = 400, S = Math.min(W / (x1 - x0), 360 / (y1 - y0));
+  const w = (x1 - x0) * S + 16, h = (y1 - y0) * S + 16;
+  const X = p => 8 + (p[0] - x0) * S, Y = p => h - 8 - (p[1] - y0) * S;
+  const D = pts => pts.map(p => `${r1(X(p))},${r1(Y(p))}`).join(' ');
+  const loin = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
+  const k = L / Math.hypot(c.A1[0] - c.A0[0], c.A1[1] - c.A0[1]);
+  const kb = L / Math.hypot(c.B1[0] - c.B0[0], c.B1[1] - c.B0[1]);
+  let g = `<svg viewBox="0 0 ${r1(w)} ${r1(h)}" width="${r1(w)}" height="${r1(h)}">`;
+  // le support
+  g += `<line x1="${r1(X([0, y0]))}" y1="0" x2="${r1(X([0, y0]))}" y2="${r1(h)}" stroke="#3d475c" stroke-width="1.4"/>`;
+  // cône éclairé
+  g += `<polygon points="${D([c.A0, loin(c.A0, c.A1, k), loin(c.B0, c.B1, kb), c.B0])}" fill="rgba(240,200,90,.16)" stroke="none"/>`;
+  for (const [p, q, kk, col] of [[c.A0, c.A1, k, '#f0c85a'], [c.B0, c.B1, kb, '#f0c85a']])
+    g += `<line x1="${r1(X(p))}" y1="${r1(Y(p))}" x2="${r1(X(loin(p, q, kk)))}" y2="${r1(Y(loin(p, q, kk)))}" stroke="${col}" stroke-width="1.1" stroke-dasharray="5 3"/>`;
+  // Au-delà du rayon de la visière il n'y a plus de lumière directe :
+  // c'est la zone d'où l'on ne voit PAS les LED, celle qu'on cherche.
+  const bout = loin(c.A0, c.A1, k);
+  g += `<polygon points="${D([c.A0, bout, [x1, bout[1]], [x1, c.A0[1]]])}" fill="rgba(105,210,160,.08)" stroke="none"/>`;
+  // matière
+  g += `<polygon points="${D(plaque)}" fill="rgba(127,199,255,.20)" stroke="#7fc7ff" stroke-width="1.3"/>`;
+  g += `<polygon points="${D(ext)}" fill="rgba(127,199,255,.20)" stroke="#7fc7ff" stroke-width="1.3"/>`;
+  g += `<polygon points="${D(dif)}" fill="rgba(230,233,239,.28)" stroke="#e6e9ef" stroke-width="1"/>`;
+  g += `<polygon points="${D(ruban)}" fill="#f0c85a" stroke="none"/>`;
+  g += `</svg>`;
+  return g;
+}
+
+// ---------------------------------------------------------------
+// Raccord, vu de côté
+// ---------------------------------------------------------------
+function figJoin(c) {
+  const e = etat;
+  const jw = Math.max(Math.min(e.plate_h - 6, 14), 5);
+  const Ltot = e.seg_len + e.join_len;
+  const W = 300, S = Math.min(W / (2 * Ltot + 20), 120 / (e.plate_h + 8));
+  const w = (2 * Ltot + 20) * S + 16, h = (e.plate_h + 16) * S + 16;
+  const X = x => 8 + (x + 10) * S, Y = y => h / 2 - y * S;
+  const R = (x, y, dx2, dy2, f, st, da) =>
+    `<rect x="${r1(X(x))}" y="${r1(Y(y + dy2))}" width="${r1(dx2 * S)}" height="${r1(dy2 * S)}" fill="${f}" stroke="${st}" stroke-width="1.1"${da ? ' stroke-dasharray="4 3"' : ''}/>`;
+  let g = `<svg viewBox="0 0 ${r1(w)} ${r1(h)}" width="${r1(w)}" height="${r1(h)}">`;
+  for (const off of [0, Ltot]) {
+    g += R(off, -e.plate_h / 2, e.seg_len, e.plate_h, 'rgba(127,199,255,.18)', '#7fc7ff');
+    if (e.join_len > 0)
+      g += R(off + e.seg_len, -jw / 2, e.join_len, jw, 'rgba(240,179,80,.30)', '#f0b350');
+  }
+  if (e.join_len > 0)
+    g += R(Ltot, -jw / 2, e.join_len, jw, 'none', '#f0b350', true);
+  g += `</svg>`;
+  return g;
+}
+
+// ---------------------------------------------------------------
+function args(part) {
+  const a = [`part="${part}"`], d = DEFAUT();
+  for (const k of Object.keys(d)) if (etat[k] !== d[k]) a.push(`${k}=${etat[k]}`);
+  return a;
+}
+const cmd = (p, n) => `openscad -o ${n} ` + args(p).map(x => `-D '${x}'`).join(' ') + ` led-profile.scad`;
+
+function champ(cle, nom, min, max, pas) {
+  const row = document.createElement('div');
+  row.className = 'rowline';
+  row.innerHTML = `<label style="width:auto;flex:1">${esc(nom)}</label>` +
+    `<input type="number" step="${pas}" min="${min}" max="${max}" value="${etat[cle]}">` +
+    `<span class="unit">${cle === 'angle' ? '°' : cle === 'screw_n' ? '' : 'mm'}</span>`;
+  const i = row.querySelector('input');
+  i.dataset.cle = cle;
+  i.addEventListener('input', () => {
+    const v = parseFloat(i.value);
+    if (!isNaN(v) && v >= min && v <= max) { etat[cle] = v; rendre(false); }
+  });
+  return row;
+}
+
+function construire() {
+  for (const [z, l] of CHAMPS) {
+    const b = $(z); b.innerHTML = '';
+    for (const [c, n, mi, ma, p] of l) b.append(champ(c, n, mi, ma, p));
+  }
+  const t = $('gTpl'); t.innerHTML = '';
+  for (const nom of Object.keys(MODELES)) {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.style.cssText = 'text-align:left;width:100%;margin-bottom:6px';
+    b.textContent = nom;
+    b.addEventListener('click', () => {
+      etat = Object.assign(DEFAUT(), MODELES[nom]); construire(); rendre();
+    });
+    t.append(b);
+  }
+}
+
+function rendre(refaire = true) {
+  const c = cotes();
+  $('ddims').textContent = `saillie ${r1(c.saillie)} mm · segment ${etat.seg_len}`;
+  $('dstats').innerHTML =
+    `<div class="bb-stat"><b>${r1(c.aVisor)}°</b><span>bord côté visière</span></div>` +
+    `<div class="bb-stat"><b>${r1(c.aOpen)}°</b><span>bord côté mur</span></div>` +
+    `<div class="bb-stat"><b>${r1(c.saillie)} mm</b><span>saillie au mur</span></div>` +
+    `<div class="bb-stat"><b>${etat.seg_len} mm</b><span>par segment</span></div>`;
+  const al = alertes(c);
+  $('dnotes').innerHTML = al.map(([k, m]) =>
+    `<div class="warnline" style="cursor:default;color:${k === 'dur' ? 'var(--danger)' : '#f0b350'}">${esc(m)}</div>`).join('');
+  $('figSec').innerHTML = figSec(c);
+  $('figJoin').innerHTML = figJoin(c);
+  $('cmdSeg').textContent = cmd('seg', 'profil.stl');
+  $('cmdDif').textContent = cmd('diff', 'diffuseur.stl');
+  if (refaire) for (const i of document.querySelectorAll('.bb-side input'))
+    if (document.activeElement !== i) i.value = etat[i.dataset.cle];
+  try { localStorage.setItem('ledbuilder', JSON.stringify(etat)); } catch (e) {}
+}
+
+async function generer(part, btn) {
+  const txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Calcul…';
+  try {
+    const rep = await fetch('/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'led', part, args: args(part) }),
+    });
+    if (!rep.ok) throw new Error((await rep.json()).error || 'échec');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(await rep.blob());
+    a.download = part === 'diff' ? 'diffuseur.stl' : 'profil.stl';
+    a.click(); URL.revokeObjectURL(a.href);
+    btn.textContent = 'Téléchargé';
+  } catch (err) { btn.textContent = 'Erreur'; alert('Génération impossible : ' + err.message); }
+  setTimeout(() => { btn.disabled = false; btn.textContent = txt; }, 1400);
+}
+$('genSeg').addEventListener('click', () => generer('seg', $('genSeg')));
+$('genDif').addEventListener('click', () => generer('diff', $('genDif')));
+for (const [b, s] of [['copySeg', 'cmdSeg'], ['copyDif', 'cmdDif']])
+  $(b).addEventListener('click', () => navigator.clipboard.writeText($(s).textContent));
+
+construire();
+rendre();
+
+</script>
+</body>
+</html>
