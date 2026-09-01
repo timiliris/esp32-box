@@ -244,7 +244,7 @@
     <div class="bb-stats" id="dstats"></div>
     <div id="dnotes"></div>
     <div class="bb-figs">
-      <div><div id="figSec"></div><div class="bb-cap">Coupe · canal collé à plat · le ruban penché sur sa rampe · mur à gauche, volée à droite</div></div>
+      <div><div id="figSec"></div><div class="bb-cap">Coupe · canal collé à plat · ruban et diffuseur parallèles sur la rampe · mur à gauche</div></div>
       <div><div id="figJoin"></div><div class="bb-cap">Raccord · deux segments emboîtés</div></div>
     </div>
   </div>
@@ -281,7 +281,7 @@ const CHAMPS = [
   ]],
   ['gDif', [
     ['visor',     'Visière',      0, 40, 0.5],
-    ['head',      'Garde au-dessus', 0, 20, 0.5],
+    ['head',      'Écart au diffuseur', 0.5, 20, 0.5],
     ['diff_t',    'Épaisseur',  0.6,  5, 0.2],
     ['diff_grip', 'Rainures',   0.4,  3, 0.1],
     ['diff_clr',  'Jeu',          0,  1, 0.05],
@@ -299,7 +299,7 @@ const CHAMPS = [
 
 const DEFAUT = () => ({
   strip_w: 10, angle: 45, strip_clr: 0.6,
-  wall_t: 1.6, base_t: 1.6, visor: 6, head: 2,
+  wall_t: 1.6, base_t: 1.6, visor: 6, head: 3,
   diff_t: 1.6, diff_grip: 1.0, diff_clr: 0.25,
   seg_len: 200, join_len: 8, join_clr: 0.25,
 });
@@ -320,25 +320,26 @@ try { const s = JSON.parse(localStorage.getItem('ledbuilder') || 'null');
 // ---------------------------------------------------------------
 function cotes() {
   const e = etat;
-  const a = rad(e.angle);
-  const wi = e.strip_w * Math.cos(a) + e.strip_clr;   // largeur intérieure
-  const rise = e.strip_w * Math.sin(a);               // dénivelé du ruban
+  const a = rad(e.angle), C = Math.cos(a), S = Math.sin(a);
+  const wi = e.strip_w * C + e.strip_clr;      // largeur intérieure
+  const rise = wi * Math.tan(a);               // dénivelé de la rampe
   const bw = wi + 2 * e.wall_t;
-  const hDif = e.base_t + rise + e.head;
-  const hLo = hDif + e.diff_t;
-  const hHi = hLo + e.visor;
-  // le ruban, sur sa rampe
-  const P0 = [e.wall_t, e.base_t];                    // bord bas, côté mur
-  const P1 = [e.wall_t + wi, e.base_t + rise];        // bord haut, côté volée
+  // repère de la rampe : d le long, n perpendiculaire
+  const dv = [C, S], nv = [-S, C];
+  const add = (p, v, k) => [p[0] + v[0] * k, p[1] + v[1] * k];
+  const P0 = [e.wall_t, e.base_t];             // bas de rampe, côté mur
+  const P1 = [e.wall_t + wi, e.base_t + rise]; // haut de rampe, côté volée
+  // Le diffuseur est PARALLÈLE au ruban : l'écart est le même partout.
+  // Horizontal, il passait de `head` d'un bord à `head + rise` de
+  // l'autre — points chauds d'un côté, terne de l'autre.
+  const L = add(P0, nv, e.head + e.diff_t);    // sommet de la joue basse
+  const R = add(P1, nv, e.head + e.diff_t + e.visor);  // de la visière
+  const lgDif = wi / C + 2 * (e.diff_grip - e.diff_clr);
   // rayons limites : d'un bord du ruban par-dessus la lèvre opposée
-  const A1 = [bw - e.wall_t, hHi];                    // arête de la visière
-  const B1 = [e.wall_t, hLo];                         // arête de la joue basse
-  // angle depuis la VERTICALE ; positif = penché vers le mur (-x)
+  const A1 = [bw - e.wall_t, R[1]], B1 = [e.wall_t, L[1]];
   const ang = (p, q) => deg(Math.atan2(p[0] - q[0], q[1] - p[1]));
-  // aVolee : de combien le faisceau déborde par-dessus la visière, du
-  // côté d'où l'on regarde. C'est LE chiffre de l'éblouissement, et il
-  // se lit en positif — plus il est petit, mieux on est abrité.
-  return { wi, rise, bw, hDif, hLo, hHi, P0, P1, A0: P0, A1, B0: P1, B1,
+  return { wi, rise, bw, dv, nv, add, P0, P1, L, R, lgDif,
+           hHi: R[1], hLo: L[1], A0: P0, A1, B0: P1, B1,
            aVolee: -ang(P0, A1), aOpen: ang(P1, B1) };
 }
 
@@ -348,8 +349,8 @@ function alertes(c) {
     out.push(['dur', `Rainures de ${e.diff_grip} pour un jeu de ${e.diff_clr} : le diffuseur ne tiendrait pas.`]);
   if (c.wi < e.strip_w * Math.cos(rad(e.angle)))
     out.push(['dur', `Le ruban ne rentre pas : il occupe ${r1(e.strip_w * Math.cos(rad(e.angle)))} de large une fois penché.`]);
-  if (e.head < 1)
-    out.push(['mou', `Garde de ${e.head} au-dessus du ruban : les LED toucheront le diffuseur et feront des points chauds.`]);
+  if (e.head < 2)
+    out.push(['mou', `Écart de ${e.head} sous le diffuseur : les LED sont trop près, on verra les points un par un.`]);
   if (c.aVolee > 30)
     out.push(['mou', `Le faisceau déborde de ${r1(c.aVolee)}° vers la volée : à cet angle on regarde les LED en face. Rallonge la visière ou incline davantage le ruban.`]);
   if (e.join_len > 0 && e.join_len < 5)
@@ -366,13 +367,11 @@ function figSec(c) {
   const e = etat;
   // contour : semelle + joue basse + visière, creusé par la rampe
   const ext = [[0, 0], [c.bw, 0], [c.bw, c.hHi], [c.bw - e.wall_t, c.hHi],
-               [c.bw - e.wall_t, e.base_t + c.rise], [e.wall_t, e.base_t],
-               [e.wall_t, c.hLo], [0, c.hLo]];
-  const ruban = [c.P0, c.P1,
-                 [c.P1[0] - 1.4 * Math.sin(rad(e.angle)), c.P1[1] + 1.4 * Math.cos(rad(e.angle))],
-                 [c.P0[0] - 1.4 * Math.sin(rad(e.angle)), c.P0[1] + 1.4 * Math.cos(rad(e.angle))]];
-  const dif = [[e.wall_t - e.diff_grip, c.hDif], [c.bw - e.wall_t + e.diff_grip, c.hDif],
-               [c.bw - e.wall_t + e.diff_grip, c.hDif + e.diff_t], [e.wall_t - e.diff_grip, c.hDif + e.diff_t]];
+               c.P1, c.P0, [e.wall_t, c.hLo], [0, c.hLo]];
+  const ruban = [c.P0, c.P1, c.add(c.P1, c.nv, 1.4), c.add(c.P0, c.nv, 1.4)];
+  const d0 = c.add(c.add(c.P0, c.dv, -e.diff_grip), c.nv, e.head);
+  const d1 = c.add(c.add(c.P1, c.dv, e.diff_grip), c.nv, e.head);
+  const dif = [d0, d1, c.add(d1, c.nv, e.diff_t), c.add(d0, c.nv, e.diff_t)];
   const taille = Math.max(c.bw, c.hHi);
   const L = taille * 2.2;
   const x0 = -taille * 1.1, x1 = c.bw + taille * 0.5;
@@ -474,6 +473,7 @@ function rendre(refaire = true) {
     `<div class="bb-stat"><b>${r1(c.aVolee)}°</b><span>débord vers la volée</span></div>` +
     `<div class="bb-stat"><b>${r1(c.aOpen)}°</b><span>portée vers le mur</span></div>` +
     `<div class="bb-stat"><b>${r1(c.bw)} × ${r1(c.hHi)}</b><span>section, mm</span></div>` +
+    `<div class="bb-stat"><b>${r1(c.lgDif)} mm</b><span>largeur du diffuseur</span></div>` +
     `<div class="bb-stat"><b>${etat.seg_len} mm</b><span>par segment</span></div>`;
   const al = alertes(c);
   $('dnotes').innerHTML = al.map(([k, m]) =>

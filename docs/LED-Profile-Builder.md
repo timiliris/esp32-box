@@ -22,12 +22,20 @@ its visor.
 |---|---|
 | Tilt | 0° = strip flat, firing straight up; higher aims it at the wall |
 | Visor | how far the tall jaw stands above the diffuser |
-| Headroom | gap between the top of the strip and the diffuser |
+| Gap to diffuser | measured **perpendicular** to the strip |
+
+**The diffuser is parallel to the strip**, not horizontal. Lay it flat
+over a tilted strip and the gap runs from 3 mm at one edge to 12 at
+the other: hot spots on one side, dull on the other. Parallel, the gap
+is the same the whole way across — and the profile ends up shorter
+too, 16.7 mm tall at 55° instead of 21.4.
 
 The inner width is **derived**, not asked for: a strip laid at an angle
 takes `strip_w × cos(angle)` across, so the channel is exactly that
 wide plus the fitting play. Tilt more and the profile gets narrower and
-taller — 10.9 × 18.3 mm at 45°, 9.5 × 21.4 at 55°.
+taller — 10.9 × 16.8 mm at 45°, 9.5 × 16.7 at 55°. The diffuser is
+sized off the ramp, so its width barely moves: 12.3 mm at 45°, 12.5 at
+55°.
 
 ## Reading the section
 

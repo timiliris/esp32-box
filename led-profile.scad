@@ -19,7 +19,9 @@ strip_clr = 0.6; // jeu de pose du ruban dans le canal
 wall_t  = 1.6;   // épaisseur des joues
 base_t  = 1.6;   // épaisseur de la semelle
 visor   = 6;     // ce dont la joue haute dépasse du diffuseur
-head    = 2;     // garde entre le haut du ruban et le diffuseur
+head    = 3;     // écart ruban -> diffuseur, mesuré PERPENDICULAIREMENT
+                 // au ruban : le diffuseur lui est parallèle, donc cet
+                 // écart est le même sur toute la largeur
 
 // --- Diffuseur ----------------------------------------------
 diff_t    = 1.6; // épaisseur
@@ -37,35 +39,41 @@ $fn = 32;
 // Cotes dérivées
 // ------------------------------------------------------------
 wi    = strip_w * cos(angle) + strip_clr;   // largeur intérieure
-rise  = strip_w * sin(angle);               // dénivelé du ruban
+rise  = wi * tan(angle);                    // dénivelé de la rampe
 bw    = wi + 2 * wall_t;                    // largeur hors tout
-h_dif = base_t + rise + head;               // dessous du diffuseur
-h_lo  = h_dif + diff_t;                     // joue côté mur
-h_hi  = h_lo + visor;                       // joue côté volée : la visière
+// repère de la rampe : d le long, n perpendiculaire (vers le haut)
+dvec  = [cos(angle), sin(angle)];
+nvec  = [-sin(angle), cos(angle)];
+P0    = [wall_t, base_t];                   // bas de rampe, côté mur
+P1    = [wall_t + wi, base_t + rise];       // haut de rampe, côté volée
+// sommets des deux joues, pris sur le plan du diffuseur
+L     = P0 + nvec * (head + diff_t);        // joue côté mur
+R     = P1 + nvec * (head + diff_t + visor);// joue côté volée : la visière
+h_hi  = R[1];                               // hauteur hors tout
+h_lo  = L[1];
 
 // ------------------------------------------------------------
 // Section
 // ------------------------------------------------------------
+// Contour : semelle plate, joue basse côté mur, visière côté volée, et
+// entre les deux la rampe du ruban. Huit points, rien de plus.
 module section_2d() {
     difference() {
-        union() {
-            square([bw, h_lo]);                              // canal
-            translate([bw - wall_t, 0]) square([wall_t, h_hi]); // visière
-        }
-        // creux : tout ce qui est au-dessus du plan incliné du ruban
-        translate([wall_t, base_t])
-            polygon([[0, 0], [wi, rise], [wi, h_hi], [0, h_hi]]);
-        // rainures du diffuseur, dans les deux joues
-        translate([wall_t - diff_grip, h_dif - diff_clr])
-            square([diff_grip + 0.01, diff_t + 2 * diff_clr]);
-        translate([bw - wall_t - 0.01, h_dif - diff_clr])
-            square([diff_grip + 0.01, diff_t + 2 * diff_clr]);
+        polygon([[0, 0], [bw, 0], [bw, R[1]], [bw - wall_t, R[1]],
+                 P1, P0, [wall_t, L[1]], [0, L[1]]]);
+        // rainures : le logement du diffuseur, parallèle à la rampe et
+        // débordant dans les deux joues
+        e0 = P0 - dvec * diff_grip + nvec * (head - diff_clr);
+        e1 = P1 + dvec * diff_grip + nvec * (head - diff_clr);
+        ep = nvec * (diff_t + 2 * diff_clr);
+        polygon([e0, e1, e1 + ep, e0 + ep]);
     }
 }
 
+// Le diffuseur : une lame plate, imprimée à plat, qui coulisse dans les
+// rainures. Sa longueur suit la rampe, pas la largeur du canal.
 module diffuseur_2d() {
-    translate([wall_t - diff_grip + diff_clr, 0])
-        square([wi + 2 * (diff_grip - diff_clr), diff_t]);
+    square([wi / cos(angle) + 2 * (diff_grip - diff_clr), diff_t]);
 }
 
 // ------------------------------------------------------------
@@ -113,4 +121,5 @@ if (part == "both") {
     segment();
     translate([bw + 8, 0, 0]) linear_extrude(height = seg_len) diffuseur_2d();
 }
-echo(str("largeur ", bw, " mm, hauteur ", h_hi, " mm"));
+echo(str("largeur ", bw, " mm, hauteur ", h_hi,
+         " mm, diffuseur ", wi / cos(angle) + 2 * (diff_grip - diff_clr)));
