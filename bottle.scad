@@ -42,12 +42,14 @@ thread_clear  = 0.35; // jeu au montage (par flanc)
 label      = false;  // true = porte-étiquette
 // La languette est en PORTRAIT : plus haute que large, elle suit le
 // fût et n'a pas à épouser la courbure sur une grande largeur.
-label_w    = 20;     // largeur de la languette
-label_h    = 55;     // sa hauteur
+// Bande haute, sur presque tout le fût : c'est le méplat qui suit le
+// cadre, pas l'inverse. Raccourcis label_h et le méplat se réduit avec.
+label_w    = 22;     // largeur de la languette
+label_h    = 76;     // sa hauteur
 label_card = 1.2;    // son épaisseur (fente = celle-ci + 0.5 de jeu)
 label_front = 1.2;   // épaisseur de la face avant du cadre
 label_rail = 3;      // largeur du cadre
-label_z    = 20;     // hauteur du bas du cadre sur le fût
+label_z    = 10;     // hauteur du bas du cadre sur le fût
 // Le méplat doit être PLUS PROFOND que les cannelures, sinon celles-ci
 // le traversent et le rainurent : le cadre ne pose plus à plat.
 label_flat = 2.6;    // profondeur du méplat

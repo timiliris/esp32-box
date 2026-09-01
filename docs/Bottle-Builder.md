@@ -57,6 +57,10 @@ longer sits flat — and it is planed **only over the frame's band**,
 not the whole barrel, so the flutes survive above and below it. The
 panel says so when the flat is too shallow.
 
+The frame drives the flat, not the other way round: the default is a
+tall strip running most of the barrel. Shorten *Tongue height* and the
+planed area shrinks with it.
+
 The **Tongue** part appears as a third button once the holder is on:
 print it flat, write on it, slide it in. The panel refuses a flat
 deeper than the material available — it would pierce the wall — and
