@@ -526,6 +526,21 @@ function fig3d(c) {
     }
   }
 
+  // ---- tuyaux d'isolation : ils sont DANS la paroi, donc invisibles
+  // de l'extérieur. On les montre quand même, en transparence, sinon
+  // la double paroi ne se lit que sur la coupe.
+  if (e.iso && e.iso_n > 0) {
+    const zA = e.floor_t + e.iso_base, zB = c.z_ep;
+    for (let i = 0; i < e.iso_n; i++) {
+      const phi = i * 2 * Math.PI / e.iso_n;
+      if (!vu(phi)) continue;
+      const p0 = iso(c.rMid, phi, zA), p1 = iso(c.rMid, phi, zB);
+      g += `<line x1="${r1(X(p0))}" y1="${r1(Y(p0))}" x2="${r1(X(p1))}" y2="${r1(Y(p1))}" ` +
+           `stroke="${bleu}" stroke-width="${r1(Math.max(e.iso_gap * S * 0.8, 0.8))}" ` +
+           `stroke-opacity=".32" stroke-linecap="round"/>`;
+    }
+  }
+
   // ---- filet du col : une hélice par départ
   const tmax = Math.max(c.tours - 0.25, 0.3);
   for (let d = 0; d < e.thread_starts; d++) {

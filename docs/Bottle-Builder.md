@@ -63,6 +63,10 @@ the inner shell so it has something to stand on.
 It costs volume: a Ø 70 jar drops from 321 ml to 239. The panel
 recomputes as you type, and the section draws both shells.
 
+All three views show them: the section in dashed outline, the top view
+tube by tube, and the 3D **through the wall** — they are internal, so
+they are drawn in transparency rather than left out.
+
 The panel prints the **web** left between neighbouring tubes and
 refuses a count that would make them run into each other.
 
