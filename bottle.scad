@@ -33,6 +33,8 @@ iso_n    = 28;    // nombre de tuyaux d'air ; 0 = une lame continue
 iso_gap  = 3;     // Ø d'un tuyau, ou épaisseur de la lame
 iso_wall = 1.2;   // paroi intérieure, celle qui touche le contenu
 iso_base = 4;     // hauteur pleine conservée en bas
+iso_lid  = true;  // isole AUSSI le dessus du bouchon : sans lui, tout
+                  // repart par le couvercle dès qu'on ferme le pot
 // Des tuyaux plutôt qu'une lame continue : les cloisons qui les
 // séparent lient les deux coques, le pot devient bien plus rigide, et
 // il n'y a plus un seul pont à franchir — ce ne sont que des trous
@@ -147,7 +149,9 @@ pente    = (body_r - flute_d - neck_r) / max(shoulder_h, 0.01);
 ext      = pente > 0
            ? max(min((body_r - flute_d - lid_out_r) / pente, shoulder_h), 0)
            : 0;
-lid_h    = neck_h + lid_extra + lid_top + ext;
+// dessus du bouchon : plein, ou deux peaux avec des poches d'air
+lid_ceil = (iso && iso_lid) ? lid_top + iso_gap + iso_wall : lid_top;
+lid_h    = neck_h + lid_extra + lid_ceil + ext;
 
 // porte-étiquette
 lab_x   = body_r - label_flat;          // plan du méplat
@@ -287,22 +291,36 @@ module couvercle() {
                             cylinder(r = knurl_d, h = lid_h, $fn = 12);
         }
         // alésage
-        translate([0, 0, lid_top])
+        translate([0, 0, lid_ceil])
             cylinder(r = lid_in_r + thread_depth, h = lid_h);
         // le filet est ajouté en NÉGATIF : on retire la gorge dans
         // laquelle viendra le filet du col
-        translate([0, 0, lid_top + 0.4])
+        translate([0, 0, lid_ceil + 0.4])
             filet(lid_in_r - 0.2, thread_depth + 0.2, thread_lead,
                   tours + 0.5, thread_starts, thread_clear);
         // le col ne doit pas toucher le plafond
-        translate([0, 0, lid_top])
+        translate([0, 0, lid_ceil])
             cylinder(r = lid_in_r, h = lid_h);
         // dégagement de l'épaule sous le filetage : la jupe l'enjambe
         // sans la toucher, en gardant le même jeu que le filet
         if (ext > 0)
-            translate([0, 0, lid_top + neck_h + lid_extra])
+            translate([0, 0, lid_ceil + neck_h + lid_extra])
                 cylinder(r1 = lid_in_r, r2 = lid_in_r + ext * pente,
                          h = ext + 0.1);
+        // poches d'air du dessus, en nid d'abeilles entre les deux
+        // peaux. Le bouchon s'imprime dessus en bas : chaque poche est
+        // un petit puits, refermé par un pont de sa seule largeur.
+        if (iso && iso_lid) {
+            pas = iso_gap + 1.6;
+            nn  = ceil(lid_in_r / pas) + 1;
+            for (i = [-nn : nn], j = [-nn : nn]) {
+                px = i * pas + (j % 2 == 0 ? 0 : pas / 2);
+                py = j * pas * 0.866;
+                if (sqrt(px * px + py * py) < lid_in_r - iso_gap / 2 - 1.2)
+                    translate([px, py, lid_top])
+                        cylinder(d = iso_gap, h = iso_gap, $fn = 16);
+            }
+        }
     }
 }
 

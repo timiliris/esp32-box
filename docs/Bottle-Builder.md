@@ -67,13 +67,21 @@ All three views show them: the section in dashed outline, the top view
 tube by tube, and the 3D **through the wall** — they are internal, so
 they are drawn in transparency rather than left out.
 
+**The lid is insulated too**, and it has to be: closed, a plain 2.4 mm
+top plate throws away most of what the walls just saved. Its ceiling
+becomes two skins with a honeycomb of air pockets between them —
+little wells, each capped by a bridge no wider than itself, so the lid
+still prints face-down with nothing to support. Turn it off and the
+panel says what it costs.
+
 The panel prints the **web** left between neighbouring tubes and
 refuses a count that would make them run into each other.
 
 **A double-walled body reports more than two volumes, and that is
 correct**: the solid, the outside, and every sealed air pocket counted
-as its own enclosed void — 30 for 28 tubes, 3 for a continuous gap.
-Only a single-wall pot should come out at two.
+as its own enclosed void — 30 for 28 tubes, 3 for a continuous gap,
+and 75 for an insulated lid with its honeycomb. Only a single-wall pot
+should come out at two.
 
 ## Label holder
 

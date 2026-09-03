@@ -312,6 +312,7 @@ const CHAMPS = [
     ['iso_gap',  'Ø d’un tuyau',       1,  20, 0.5],
     ['iso_wall', 'Paroi intérieure', 0.6,  5, 0.2],
     ['iso_base', 'Assise pleine',      1, 40, 0.5],
+    ['iso_lid',  'Isoler le bouchon (0/1)', 0, 1, 1],
   ]],
   ['gCol', [
     ['shoulder_h',    'Épaule',        0, 60, 1],
@@ -344,7 +345,7 @@ const CHAMPS = [
 const DEFAUT = () => ({
   body_d: 70, body_h: 100, wall: 2, floor_t: 2.4, base_ch: 1,
   flutes: 12, flute_d: 2.2, flute_w: 5, flute_bot: 12, flute_top: 10, twist: 220,
-  iso: 0, iso_n: 28, iso_gap: 3, iso_wall: 1.2, iso_base: 4,
+  iso: 0, iso_n: 28, iso_gap: 3, iso_wall: 1.2, iso_base: 4, iso_lid: 1,
   shoulder_h: 10, neck_d: 46, neck_h: 18,
   thread_lead: 10, thread_depth: 1.8, thread_starts: 3, thread_clear: 0.35,
   label: 0, label_w: 22, label_h: 76, label_card: 1.2, label_front: 1.2,
@@ -397,7 +398,10 @@ function cotes() {
   const ext = pente > 0
     ? Math.max(Math.min((body_r - e.flute_d - lid_out_r) / pente, e.shoulder_h), 0)
     : 0;
-  const lid_h = e.neck_h + e.lid_extra + e.lid_top + ext;
+  // dessus du bouchon : plein, ou deux peaux avec des poches d'air
+  const lid_ceil = (e.iso && e.iso_lid) ? e.lid_top + e.iso_gap + e.iso_wall
+                                        : e.lid_top;
+  const lid_h = e.neck_h + e.lid_extra + lid_ceil + ext;
   const cap = Math.PI * use_r * use_r * (z_col - e.floor_t) / 1000;
   // épaisseur axiale d'un filet, à mi-hauteur de son profil
   const fil_ep = 0.45 * e.thread_lead / e.thread_starts;
@@ -407,7 +411,7 @@ function cotes() {
   const cloison = pas - e.iso_gap;
   return { body_r, neck_r, in_r, use_r, rMid, pas, cloison,
            neck_in, z_ep, z_col, h_tot, tours,
-           lid_in_r, lid_out_r, lid_h, cap, fil_ep, pente, ext };
+           lid_in_r, lid_out_r, lid_h, lid_ceil, cap, fil_ep, pente, ext };
 }
 
 // ---------------------------------------------------------------
@@ -417,6 +421,8 @@ function alertes(c) {
   const e = etat, out = [];
   if (e.iso && c.use_r <= 3)
     out.push(['dur', `Il ne reste rien au contenu : Ø ${e.body_d} moins la paroi, la lame de ${e.iso_gap} et la paroi intérieure de ${e.iso_wall}.`]);
+  if (e.iso && !e.iso_lid)
+    out.push(['mou', `Bouchon non isolé : fermé, la chaleur repartira par le dessus et la double paroi ne servira qu’à moitié.`]);
   if (e.iso && e.iso_base < 2)
     out.push(['mou', `Assise de ${e.iso_base} sous la lame : trop mince, le fond ne portera pas la paroi intérieure.`]);
   if (e.iso && e.iso_gap < 2)
@@ -639,9 +645,21 @@ function figCoupe(c) {
   const zc = bas + c.ext;                        // fin du cône
   const lid = [[rIn, bas], [rOut, bas], [c.lid_out_r, zc], [c.lid_out_r, haut],
                [-c.lid_out_r, haut], [-c.lid_out_r, zc], [-rOut, bas], [-rIn, bas],
-               [-c.lid_in_r, zc], [-c.lid_in_r, haut - e.lid_top],
-               [c.lid_in_r, haut - e.lid_top], [c.lid_in_r, zc]];
+               [-c.lid_in_r, zc], [-c.lid_in_r, haut - c.lid_ceil],
+               [c.lid_in_r, haut - c.lid_ceil], [c.lid_in_r, zc]];
   g += `<polygon points="${P(lid)}" fill="rgba(240,179,80,.13)" stroke="#f0b350" stroke-width="1.2" stroke-dasharray="5 3"/>`;
+  // poches d'air du dessus du bouchon
+  if (e.iso && e.iso_lid) {
+    const zP = haut - e.lid_top - e.iso_gap, pasP = e.iso_gap + 1.6;
+    const kmax = Math.ceil(c.lid_in_r / pasP);
+    for (let k = -kmax; k <= kmax; k++) {
+      const x = k * pasP;
+      if (Math.abs(x) > c.lid_in_r - e.iso_gap / 2 - 1.2) continue;
+      g += `<polygon points="${P([[x - e.iso_gap / 2, zP], [x + e.iso_gap / 2, zP],
+                                  [x + e.iso_gap / 2, zP + e.iso_gap], [x - e.iso_gap / 2, zP + e.iso_gap]])}" ` +
+           `fill="var(--panel2)" stroke="#f0b350" stroke-width=".8" stroke-dasharray="3 2"/>`;
+    }
+  }
   g += `</svg>`;
   return g;
 }
