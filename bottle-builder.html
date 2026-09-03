@@ -378,12 +378,18 @@ function cotes() {
   const tours = e.neck_h / e.thread_lead;
   const lid_in_r = neck_r + e.thread_clear;
   const lid_out_r = lid_in_r + e.thread_depth + e.lid_wall;
-  const lid_h = e.neck_h + e.lid_extra + e.lid_top;
+  // Le bouchon suit l'épaule : sa jupe descend le long du congé jusqu'à
+  // ce que celui-ci ait rattrapé son diamètre. Fermé, plus de ressaut.
+  const pente = (body_r - e.flute_d - neck_r) / Math.max(e.shoulder_h, 0.01);
+  const ext = pente > 0
+    ? Math.max(Math.min((body_r - e.flute_d - lid_out_r) / pente, e.shoulder_h), 0)
+    : 0;
+  const lid_h = e.neck_h + e.lid_extra + e.lid_top + ext;
   const cap = Math.PI * in_r * in_r * (z_col - e.floor_t) / 1000;
   // épaisseur axiale d'un filet, à mi-hauteur de son profil
   const fil_ep = 0.45 * e.thread_lead / e.thread_starts;
   return { body_r, neck_r, in_r, neck_in, z_ep, z_col, h_tot, tours,
-           lid_in_r, lid_out_r, lid_h, cap, fil_ep };
+           lid_in_r, lid_out_r, lid_h, cap, fil_ep, pente, ext };
 }
 
 // ---------------------------------------------------------------
@@ -573,10 +579,15 @@ function figCoupe(c) {
     }
   }
   // couvercle vissé
-  const bas = c.h_tot - e.neck_h, haut = bas + c.lid_h;
-  const lid = [[c.lid_in_r, bas], [c.lid_out_r, bas], [c.lid_out_r, haut],
-               [-c.lid_out_r, haut], [-c.lid_out_r, bas], [-c.lid_in_r, bas],
-               [-c.lid_in_r, haut - e.lid_top], [c.lid_in_r, haut - e.lid_top]];
+  // la jupe descend de `ext` sous la base du col, en épousant l'épaule
+  const bas = c.h_tot - e.neck_h - c.ext, haut = bas + c.lid_h;
+  const rIn = c.lid_in_r + c.ext * c.pente;      // alésage en bas de jupe
+  const rOut = c.lid_out_r + c.ext * c.pente;    // extérieur, au ras du fût
+  const zc = bas + c.ext;                        // fin du cône
+  const lid = [[rIn, bas], [rOut, bas], [c.lid_out_r, zc], [c.lid_out_r, haut],
+               [-c.lid_out_r, haut], [-c.lid_out_r, zc], [-rOut, bas], [-rIn, bas],
+               [-c.lid_in_r, zc], [-c.lid_in_r, haut - e.lid_top],
+               [c.lid_in_r, haut - e.lid_top], [c.lid_in_r, zc]];
   g += `<polygon points="${P(lid)}" fill="rgba(240,179,80,.13)" stroke="#f0b350" stroke-width="1.2" stroke-dasharray="5 3"/>`;
   g += `</svg>`;
   return g;

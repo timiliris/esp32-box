@@ -118,7 +118,16 @@ tours   = neck_h / thread_lead;      // nombre de tours de filet
 // couvercle
 lid_in_r = neck_r + thread_clear;                  // alésage
 lid_out_r = lid_in_r + thread_depth + lid_wall;    // rayon extérieur
-lid_h    = neck_h + lid_extra + lid_top;
+// Le bouchon SUIT L'ÉPAULE : sa jupe se prolonge en CÔNE parallèle au
+// congé — épaisseur constante — jusqu'à venir affleurer le fût. Fermé,
+// la ligne monte du fût au dessus sans ressaut.
+// Une jupe cylindrique s'arrêtait net sur l'épaule ; en la faisant
+// simplement descendre, elle finissait en lame de couteau.
+pente    = (body_r - flute_d - neck_r) / max(shoulder_h, 0.01);
+ext      = pente > 0
+           ? max(min((body_r - flute_d - lid_out_r) / pente, shoulder_h), 0)
+           : 0;
+lid_h    = neck_h + lid_extra + lid_top + ext;
 
 // porte-étiquette
 lab_x   = body_r - label_flat;          // plan du méplat
@@ -226,7 +235,12 @@ module corps_brut() {
 module couvercle() {
     difference() {
         union() {
-            cylinder(r = lid_out_r, h = lid_h);
+            cylinder(r = lid_out_r, h = lid_h - ext);
+            // jupe conique, parallèle à l'épaule
+            if (ext > 0)
+                translate([0, 0, lid_h - ext])
+                    cylinder(r1 = lid_out_r, r2 = lid_out_r + ext * pente,
+                             h = ext);
             // stries de préhension
             if (knurl > 0)
                 for (i = [0 : knurl - 1])
@@ -245,6 +259,12 @@ module couvercle() {
         // le col ne doit pas toucher le plafond
         translate([0, 0, lid_top])
             cylinder(r = lid_in_r, h = lid_h);
+        // dégagement de l'épaule sous le filetage : la jupe l'enjambe
+        // sans la toucher, en gardant le même jeu que le filet
+        if (ext > 0)
+            translate([0, 0, lid_top + neck_h + lid_extra])
+                cylinder(r1 = lid_in_r, r2 = lid_in_r + ext * pente,
+                         h = ext + 0.1);
     }
 }
 
