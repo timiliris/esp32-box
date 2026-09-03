@@ -39,8 +39,13 @@ thread. A coarse pitch beats a fine one here.
 
 ## Double wall
 
-*Double wall* seals an air gap between two shells, thermos style. The
-gap runs on the **sides only**. Under the floor it would ask the
+*Double wall* seals air between two shells, thermos style. By default
+it is a ring of **vertical tubes** rather than one continuous gap: the
+webs between them tie the two shells together, so the pot stays stiff,
+and there is not a single bridge to cross — they are only holes. Set
+*Number of tubes* to 0 for a plain continuous gap.
+
+The insulation runs on the **sides only**. Under the floor it would ask the
 printer to bridge the whole width of the pot in mid-air, which nothing
 can do — and the sides are where most of the heat leaves anyway. At
 the top the shoulder closes the gap: that ceiling is a bridge only as
@@ -50,16 +55,21 @@ the inner shell so it has something to stand on.
 
 | | |
 |---|---|
-| Air gap | 3 mm default; under 2 the two shells tend to fuse |
+| Number of tubes | 28 by default; 0 gives a continuous gap |
+| Tube diameter | 3 mm default; under 2 they close up when printed |
 | Inner wall | the one the contents touch |
 | Solid base | plinth kept under the gap |
 
 It costs volume: a Ø 70 jar drops from 321 ml to 239. The panel
 recomputes as you type, and the section draws both shells.
 
-**A double-walled body reports three volumes, and that is correct** —
-the solid, the outside, and the sealed air gap counted as its own
-enclosed void. Only a single-wall pot should come out at two.
+The panel prints the **web** left between neighbouring tubes and
+refuses a count that would make them run into each other.
+
+**A double-walled body reports more than two volumes, and that is
+correct**: the solid, the outside, and every sealed air pocket counted
+as its own enclosed void — 30 for 28 tubes, 3 for a continuous gap.
+Only a single-wall pot should come out at two.
 
 ## Label holder
 

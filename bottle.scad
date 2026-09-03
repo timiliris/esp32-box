@@ -29,9 +29,14 @@ flute_top = 10;   // ... et en haut, sous l'épaule
 // En haut, l'épaule referme la lame — un pont de la largeur du vide,
 // quelques millimètres, que la buse franchit sans peine.
 iso      = false; // true = double paroi
-iso_gap  = 3;     // épaisseur de la lame d'air
+iso_n    = 28;    // nombre de tuyaux d'air ; 0 = une lame continue
+iso_gap  = 3;     // Ø d'un tuyau, ou épaisseur de la lame
 iso_wall = 1.2;   // paroi intérieure, celle qui touche le contenu
-iso_base = 4;     // hauteur pleine conservée en bas, avant la lame
+iso_base = 4;     // hauteur pleine conservée en bas
+// Des tuyaux plutôt qu'une lame continue : les cloisons qui les
+// séparent lient les deux coques, le pot devient bien plus rigide, et
+// il n'y a plus un seul pont à franchir — ce ne sont que des trous
+// verticaux. L'air reste piégé, colonne par colonne.
 
 // --- Épaule et col -----------------------------------------
 shoulder_h = 10;  // hauteur du congé entre le fût et le col
@@ -241,16 +246,24 @@ module corps_brut() {
             translate([0, 0, z_col - floor_t])
                 cylinder(r = neck_in, h = neck_h + 1);
         }
-        // lame d'air : un anneau entre les deux parois, refermé en haut
-        // par l'épaule et posé sur une assise pleine en bas
-        if (iso)
-            translate([0, 0, floor_t + iso_base])
-                difference() {
-                    cylinder(r = in_r, h = z_ep - floor_t - iso_base);
-                    translate([0, 0, -1])
-                        cylinder(r = use_r + iso_wall,
-                                 h = z_ep - floor_t - iso_base + 2);
-                }
+        // isolation : une couronne de tuyaux verticaux, ou à défaut une
+        // lame continue. Refermée en haut par l'épaule, posée en bas
+        // sur une assise pleine.
+        if (iso) {
+            hi = z_ep - floor_t - iso_base;
+            if (iso_n > 0)
+                for (i = [0 : iso_n - 1])
+                    rotate([0, 0, i * 360 / iso_n])
+                        translate([in_r - iso_gap / 2, 0, floor_t + iso_base])
+                            cylinder(d = iso_gap, h = hi, $fn = 20);
+            else
+                translate([0, 0, floor_t + iso_base])
+                    difference() {
+                        cylinder(r = in_r, h = hi);
+                        translate([0, 0, -1])
+                            cylinder(r = use_r + iso_wall, h = hi + 2);
+                    }
+        }
     }
 }
 
