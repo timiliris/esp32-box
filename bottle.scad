@@ -21,6 +21,18 @@ twist    = 220;   // vrille sur la HAUTEUR CANNELÉE, en degrés
 flute_bot = 12;   // bande lisse conservée en bas
 flute_top = 10;   // ... et en haut, sous l'épaule
 
+// --- Double paroi ------------------------------------------
+// Une lame d'air scellée entre deux parois, façon isotherme. Elle court
+// sur les FLANCS seulement : sous le fond, elle imposerait un pont
+// large comme tout le pot, que rien ne peut imprimer. C'est de toute
+// façon par les flancs que part l'essentiel de la chaleur.
+// En haut, l'épaule referme la lame — un pont de la largeur du vide,
+// quelques millimètres, que la buse franchit sans peine.
+iso      = false; // true = double paroi
+iso_gap  = 3;     // épaisseur de la lame d'air
+iso_wall = 1.2;   // paroi intérieure, celle qui touche le contenu
+iso_base = 4;     // hauteur pleine conservée en bas, avant la lame
+
 // --- Épaule et col -----------------------------------------
 shoulder_h = 10;  // hauteur du congé entre le fût et le col
 neck_d     = 46;  // diamètre extérieur du col, sous filet
@@ -109,7 +121,10 @@ body_r  = body_d / 2;
 neck_r  = neck_d / 2;
 // rayon intérieur : mesure depuis le FOND de cannelure, sinon la paroi
 // annoncee serait celle des nervures et le pot percerait dans les gorges
-in_r    = body_r - flute_d - wall;
+in_r    = body_r - flute_d - wall;      // face interne de la paroi externe
+// rayon utile : ce qui reste au contenu une fois la lame et la paroi
+// intérieure déduites
+use_r   = iso ? in_r - iso_gap - iso_wall : in_r;
 neck_in = neck_r - wall;
 z_ep    = body_h;                    // depart de l'epaule
 z_col   = body_h + shoulder_h;       // depart du col
@@ -135,7 +150,7 @@ lab_ext = label_card + 0.5 + label_front;
 lab_hz  = label_h + label_rail;         // hauteur du cadre
 
 // contenance approchée, en millilitres
-capacite = PI * pow(in_r, 2) * (z_col - floor_t) / 1000;
+capacite = PI * pow(use_r, 2) * (z_col - floor_t) / 1000;
 
 // ------------------------------------------------------------
 // Porte-étiquette
@@ -220,12 +235,22 @@ module corps_brut() {
                               flute_bot, body_h - flute_top, twist);
         // creux : fût puis col, d'un seul tenant
         translate([0, 0, floor_t]) {
-            cylinder(r = in_r, h = z_ep - floor_t + 0.01);
+            cylinder(r = use_r, h = z_ep - floor_t + 0.01);
             translate([0, 0, z_ep - floor_t])
-                cylinder(r1 = in_r, r2 = neck_in, h = shoulder_h);
+                cylinder(r1 = use_r, r2 = neck_in, h = shoulder_h);
             translate([0, 0, z_col - floor_t])
                 cylinder(r = neck_in, h = neck_h + 1);
         }
+        // lame d'air : un anneau entre les deux parois, refermé en haut
+        // par l'épaule et posé sur une assise pleine en bas
+        if (iso)
+            translate([0, 0, floor_t + iso_base])
+                difference() {
+                    cylinder(r = in_r, h = z_ep - floor_t - iso_base);
+                    translate([0, 0, -1])
+                        cylinder(r = use_r + iso_wall,
+                                 h = z_ep - floor_t - iso_base + 2);
+                }
     }
 }
 
@@ -279,4 +304,5 @@ if (part == "both") {
     translate([body_d + 12, 0, 0]) couvercle();
 }
 echo(str("Contenance ~ ", round(capacite), " ml ; hauteur totale ",
-         h_tot, " mm"));
+         h_tot, " mm", iso ? str(" ; double paroi, utile Ø",
+         round(2 * use_r * 10) / 10) : ""));

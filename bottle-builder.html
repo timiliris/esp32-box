@@ -239,6 +239,7 @@
   <div class="bb-side">
     <div class="group"><h2>Corps</h2><div class="insp" id="gCorps"></div></div>
     <div class="group"><h2>Cannelures</h2><div class="insp" id="gCan"></div></div>
+    <div class="group"><h2>Double paroi</h2><div class="insp" id="gIso"></div></div>
     <div class="group"><h2>Col et filetage</h2><div class="insp" id="gCol"></div></div>
     <div class="group"><h2>Porte-étiquette</h2><div class="insp" id="gLab"></div></div>
     <div class="group"><h2>Couvercle</h2><div class="insp" id="gLid"></div></div>
@@ -305,6 +306,12 @@ const CHAMPS = [
     ['flute_top', 'Bande lisse en haut', 0, 120, 1],
     ['twist',   'Vrille (°)',    -720, 720, 5],
   ]],
+  ['gIso', [
+    ['iso',      'Double paroi (0/1)', 0,  1, 1],
+    ['iso_gap',  'Lame d’air',         1, 20, 0.5],
+    ['iso_wall', 'Paroi intérieure', 0.6,  5, 0.2],
+    ['iso_base', 'Assise pleine',      1, 40, 0.5],
+  ]],
   ['gCol', [
     ['shoulder_h',    'Épaule',        0, 60, 1],
     ['neck_d',        'Ø du col',     15, 190, 1],
@@ -336,6 +343,7 @@ const CHAMPS = [
 const DEFAUT = () => ({
   body_d: 70, body_h: 100, wall: 2, floor_t: 2.4, base_ch: 1,
   flutes: 12, flute_d: 2.2, flute_w: 5, flute_bot: 12, flute_top: 10, twist: 220,
+  iso: 0, iso_gap: 3, iso_wall: 1.2, iso_base: 4,
   shoulder_h: 10, neck_d: 46, neck_h: 18,
   thread_lead: 10, thread_depth: 1.8, thread_starts: 3, thread_clear: 0.35,
   label: 0, label_w: 22, label_h: 76, label_card: 1.2, label_front: 1.2,
@@ -345,6 +353,8 @@ const DEFAUT = () => ({
 
 const MODELES = {
   'Bocal cannelé': { },
+  'Isotherme double paroi': { iso: 1, iso_gap: 3.5, iso_wall: 1.2, body_d: 80,
+                              body_h: 120, neck_d: 46, flutes: 0, twist: 0 },
   'Bouteille élancée': { body_d: 58, body_h: 150, flutes: 18, flute_d: 1.6,
                          flute_w: 4, flute_bot: 18, flute_top: 16, twist: 320,
                          neck_d: 34, shoulder_h: 26,
@@ -372,6 +382,8 @@ function cotes() {
   const e = etat;
   const body_r = e.body_d / 2, neck_r = e.neck_d / 2;
   const in_r = body_r - e.flute_d - e.wall;
+  // rayon utile : la lame d'air et la paroi intérieure prennent leur part
+  const use_r = e.iso ? in_r - e.iso_gap - e.iso_wall : in_r;
   const neck_in = neck_r - e.wall;
   const z_ep = e.body_h, z_col = e.body_h + e.shoulder_h;
   const h_tot = z_col + e.neck_h;
@@ -385,10 +397,10 @@ function cotes() {
     ? Math.max(Math.min((body_r - e.flute_d - lid_out_r) / pente, e.shoulder_h), 0)
     : 0;
   const lid_h = e.neck_h + e.lid_extra + e.lid_top + ext;
-  const cap = Math.PI * in_r * in_r * (z_col - e.floor_t) / 1000;
+  const cap = Math.PI * use_r * use_r * (z_col - e.floor_t) / 1000;
   // épaisseur axiale d'un filet, à mi-hauteur de son profil
   const fil_ep = 0.45 * e.thread_lead / e.thread_starts;
-  return { body_r, neck_r, in_r, neck_in, z_ep, z_col, h_tot, tours,
+  return { body_r, neck_r, in_r, use_r, neck_in, z_ep, z_col, h_tot, tours,
            lid_in_r, lid_out_r, lid_h, cap, fil_ep, pente, ext };
 }
 
@@ -397,6 +409,14 @@ function cotes() {
 // ---------------------------------------------------------------
 function alertes(c) {
   const e = etat, out = [];
+  if (e.iso && c.use_r <= 3)
+    out.push(['dur', `Il ne reste rien au contenu : Ø ${e.body_d} moins la paroi, la lame de ${e.iso_gap} et la paroi intérieure de ${e.iso_wall}.`]);
+  if (e.iso && e.iso_base < 2)
+    out.push(['mou', `Assise de ${e.iso_base} sous la lame : trop mince, le fond ne portera pas la paroi intérieure.`]);
+  if (e.iso && e.iso_gap < 2)
+    out.push(['mou', `Lame de ${e.iso_gap} mm : sous 2 mm l’air ne fait plus grand-chose, et les deux parois risquent de se souder à l’impression.`]);
+  if (e.iso && c.neck_in > c.use_r)
+    out.push(['mou', `Le col (Ø intérieur ${r1(2 * c.neck_in)}) est plus large que le corps utile (Ø ${r1(2 * c.use_r)}) : l’épaule s’inverse.`]);
   if (c.in_r <= 1)
     out.push(['dur', `Il ne reste pas de volume : Ø ${e.body_d} moins ${e.flute_d} de cannelure et ${e.wall} de paroi ne laissent rien.`]);
   if (e.flutes > 0 && e.flute_bot + e.flute_top >= e.body_h)
@@ -561,12 +581,20 @@ function figCoupe(c) {
   const demi = [[0, 0], [c.body_r - e.base_ch, 0], [c.body_r, e.base_ch],
                 [c.body_r, c.z_ep], [c.neck_r, c.z_col], [c.neck_r, c.h_tot], [0, c.h_tot]];
   const plein = demi.concat(demi.slice().reverse().map(p => [-p[0], p[1]]));
-  const creux0 = [[0, e.floor_t], [c.in_r, e.floor_t], [c.in_r, c.z_ep],
+  const creux0 = [[0, e.floor_t], [c.use_r, e.floor_t], [c.use_r, c.z_ep],
                   [c.neck_in, c.z_col], [c.neck_in, c.h_tot], [0, c.h_tot]];
   const creux = creux0.concat(creux0.slice().reverse().map(p => [-p[0], p[1]]));
   let g = `<svg viewBox="0 0 ${r1(w)} ${r1(h)}" width="${r1(w)}" height="${r1(h)}">`;
   g += `<polygon points="${P(plein)}" fill="rgba(127,199,255,.20)" stroke="#7fc7ff" stroke-width="1.4"/>`;
   g += `<polygon points="${P(creux)}" fill="var(--panel2)" stroke="#7fc7ff" stroke-width="1"/>`;
+  // lame d'air, des deux côtés
+  if (e.iso) {
+    const zA = e.floor_t + e.iso_base, zB = c.z_ep;
+    for (const s2 of [1, -1])
+      g += `<polygon points="${P([[s2 * (c.use_r + e.iso_wall), zA], [s2 * c.in_r, zA],
+                                  [s2 * c.in_r, zB], [s2 * (c.use_r + e.iso_wall), zB]])}" ` +
+           `fill="var(--panel2)" stroke="#7fc7ff" stroke-width=".9" stroke-dasharray="3 2"/>`;
+  }
   // dents de filet, des deux côtés du col
   const n = Math.max(Math.floor(c.tours * e.thread_starts), 0);
   for (let i = 0; i < n; i++) {
@@ -606,6 +634,8 @@ function figDessus(c) {
       g += `<circle cx="${r1(cx + d * S * Math.cos(a))}" cy="${r1(cx + d * S * Math.sin(a))}" r="${r1(e.flute_w * S)}" fill="var(--panel2)" stroke="#7fc7ff" stroke-width=".8"/>`;
     }
   g += `<circle cx="${r1(cx)}" cy="${r1(cx)}" r="${r1(c.in_r * S)}" fill="var(--panel2)" stroke="#7fc7ff" stroke-width="1" stroke-dasharray="4 3"/>`;
+  if (e.iso)
+    g += `<circle cx="${r1(cx)}" cy="${r1(cx)}" r="${r1(c.use_r * S)}" fill="none" stroke="#7fc7ff" stroke-width="1" stroke-dasharray="4 3"/>`;
   g += `<circle cx="${r1(cx)}" cy="${r1(cx)}" r="${r1(c.neck_r * S)}" fill="none" stroke="#f0b350" stroke-width="1" stroke-dasharray="3 3"/>`;
   g += `</svg>`;
   return g;

@@ -37,6 +37,30 @@ starts on a 6 mm lead gives 0.9 mm, which is why the defaults moved to
 a **10 mm lead**: same three starts, same 120° to open, but 1.5 mm of
 thread. A coarse pitch beats a fine one here.
 
+## Double wall
+
+*Double wall* seals an air gap between two shells, thermos style. The
+gap runs on the **sides only**. Under the floor it would ask the
+printer to bridge the whole width of the pot in mid-air, which nothing
+can do — and the sides are where most of the heat leaves anyway. At
+the top the shoulder closes the gap: that ceiling is a bridge only as
+wide as the gap itself, a few millimetres, which the nozzle crosses
+without a thought. At the bottom, *Solid base* keeps a plinth under
+the inner shell so it has something to stand on.
+
+| | |
+|---|---|
+| Air gap | 3 mm default; under 2 the two shells tend to fuse |
+| Inner wall | the one the contents touch |
+| Solid base | plinth kept under the gap |
+
+It costs volume: a Ø 70 jar drops from 321 ml to 239. The panel
+recomputes as you type, and the section draws both shells.
+
+**A double-walled body reports three volumes, and that is correct** —
+the solid, the outside, and the sealed air gap counted as its own
+enclosed void. Only a single-wall pot should come out at two.
+
 ## Label holder
 
 A flat is planed into the barrel and a frame sits on it. The tongue
