@@ -312,7 +312,8 @@ const CHAMPS = [
     ['iso_gap',  'Ø d’un tuyau',       1,  20, 0.5],
     ['iso_wall', 'Paroi intérieure', 0.6,  5, 0.2],
     ['iso_base', 'Assise pleine',      1, 40, 0.5],
-    ['iso_lid',  'Isoler le bouchon (0/1)', 0, 1, 1],
+    ['iso_lid',  'Isoler le dessus (0/1)',  0, 1, 1],
+    ['iso_skirt','Isoler la jupe (0/1)',    0, 1, 1],
   ]],
   ['gCol', [
     ['shoulder_h',    'Épaule',        0, 60, 1],
@@ -345,7 +346,7 @@ const CHAMPS = [
 const DEFAUT = () => ({
   body_d: 70, body_h: 100, wall: 2, floor_t: 2.4, base_ch: 1,
   flutes: 12, flute_d: 2.2, flute_w: 5, flute_bot: 12, flute_top: 10, twist: 220,
-  iso: 0, iso_n: 28, iso_gap: 3, iso_wall: 1.2, iso_base: 4, iso_lid: 1,
+  iso: 0, iso_n: 28, iso_gap: 3, iso_wall: 1.2, iso_base: 4, iso_lid: 1, iso_skirt: 1,
   shoulder_h: 10, neck_d: 46, neck_h: 18,
   thread_lead: 10, thread_depth: 1.8, thread_starts: 3, thread_clear: 0.35,
   label: 0, label_w: 22, label_h: 76, label_card: 1.2, label_front: 1.2,
@@ -391,7 +392,11 @@ function cotes() {
   const h_tot = z_col + e.neck_h;
   const tours = e.neck_h / e.thread_lead;
   const lid_in_r = neck_r + e.thread_clear;
-  const lid_out_r = lid_in_r + e.thread_depth + e.lid_wall;
+  // la jupe isolée s'épaissit de la lame et de sa peau
+  const lid_skin = (e.iso && e.iso_skirt) ? e.iso_gap + e.iso_wall : 0;
+  const lid_out_r = lid_in_r + e.thread_depth + e.lid_wall + lid_skin;
+  const lidTubeR = lid_in_r + e.thread_depth + e.lid_wall + e.iso_gap / 2;
+  const lidTubeN = Math.max(Math.floor(2 * Math.PI * lidTubeR / (e.iso_gap + 1.6)), 4);
   // Le bouchon suit l'épaule : sa jupe descend le long du congé jusqu'à
   // ce que celui-ci ait rattrapé son diamètre. Fermé, plus de ressaut.
   const pente = (body_r - e.flute_d - neck_r) / Math.max(e.shoulder_h, 0.01);
@@ -411,7 +416,8 @@ function cotes() {
   const cloison = pas - e.iso_gap;
   return { body_r, neck_r, in_r, use_r, rMid, pas, cloison,
            neck_in, z_ep, z_col, h_tot, tours,
-           lid_in_r, lid_out_r, lid_h, lid_ceil, cap, fil_ep, pente, ext };
+           lid_in_r, lid_out_r, lid_h, lid_ceil, lid_skin, lidTubeR, lidTubeN,
+           cap, fil_ep, pente, ext };
 }
 
 // ---------------------------------------------------------------
@@ -421,6 +427,8 @@ function alertes(c) {
   const e = etat, out = [];
   if (e.iso && c.use_r <= 3)
     out.push(['dur', `Il ne reste rien au contenu : Ø ${e.body_d} moins la paroi, la lame de ${e.iso_gap} et la paroi intérieure de ${e.iso_wall}.`]);
+  if (e.iso && e.iso_skirt && c.lid_out_r > c.body_r - e.flute_d + 0.5)
+    out.push(['mou', `Jupe isolée : le bouchon atteint Ø ${r1(2 * c.lid_out_r)} et déborde du fût (Ø ${r1(2 * (c.body_r - e.flute_d))}). Réduis la lame ou élargis le pot.`]);
   if (e.iso && !e.iso_lid)
     out.push(['mou', `Bouchon non isolé : fermé, la chaleur repartira par le dessus et la double paroi ne servira qu’à moitié.`]);
   if (e.iso && e.iso_base < 2)
@@ -648,6 +656,14 @@ function figCoupe(c) {
                [-c.lid_in_r, zc], [-c.lid_in_r, haut - c.lid_ceil],
                [c.lid_in_r, haut - c.lid_ceil], [c.lid_in_r, zc]];
   g += `<polygon points="${P(lid)}" fill="rgba(240,179,80,.13)" stroke="#f0b350" stroke-width="1.2" stroke-dasharray="5 3"/>`;
+  // tuyaux de la jupe, des deux côtés
+  if (e.iso && e.iso_skirt) {
+    const zA = bas + c.ext + 1.5, zB = haut - c.lid_ceil - 1;
+    for (const s2 of [1, -1])
+      g += `<polygon points="${P([[s2 * (c.lidTubeR - e.iso_gap / 2), zA], [s2 * (c.lidTubeR + e.iso_gap / 2), zA],
+                                  [s2 * (c.lidTubeR + e.iso_gap / 2), zB], [s2 * (c.lidTubeR - e.iso_gap / 2), zB]])}" ` +
+           `fill="var(--panel2)" stroke="#f0b350" stroke-width=".8" stroke-dasharray="3 2"/>`;
+  }
   // poches d'air du dessus du bouchon
   if (e.iso && e.iso_lid) {
     const zP = haut - e.lid_top - e.iso_gap, pasP = e.iso_gap + 1.6;
@@ -756,7 +772,9 @@ function rendre(refaire = true) {
     `<div class="bb-stat"><b>${r1(360 / etat.thread_starts)}°</b><span>pour ouvrir</span></div>` +
     `<div class="bb-stat"><b>${r1(c.fil_ep)} mm</b><span>épaisseur du filet</span></div>` +
     (etat.iso && etat.iso_n > 0
-      ? `<div class="bb-stat"><b>${r1(c.cloison)} mm</b><span>cloison entre tuyaux</span></div>` : '');
+      ? `<div class="bb-stat"><b>${r1(c.cloison)} mm</b><span>cloison entre tuyaux</span></div>` : '') +
+    (etat.iso && etat.iso_skirt
+      ? `<div class="bb-stat"><b>${c.lidTubeN}</b><span>tuyaux dans la jupe</span></div>` : '');
   const al = alertes(c);
   $('bbNotes').innerHTML = al.map(([k, m]) =>
     `<div class="warnline" style="cursor:default;color:${k === 'dur' ? 'var(--danger)' : '#f0b350'}">${esc(m)}</div>`).join('');

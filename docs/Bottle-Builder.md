@@ -71,8 +71,15 @@ they are drawn in transparency rather than left out.
 top plate throws away most of what the walls just saved. Its ceiling
 becomes two skins with a honeycomb of air pockets between them —
 little wells, each capped by a bridge no wider than itself, so the lid
-still prints face-down with nothing to support. Turn it off and the
-panel says what it costs.
+still prints face-down with nothing to support.
+
+**And so is its skirt** — the part that wraps the whole threaded neck,
+and the obvious leak once the top is dealt with. It gets the same
+vertical tubes as the barrel, in a band added outside the thread: the
+lid grows by the gap plus a skin, 63.5 mm across instead of 55 on a
+Ø 70 pot, which still tucks under the body. The panel warns if it
+starts to overhang. Both are switchable, and it says what turning one
+off costs.
 
 The panel prints the **web** left between neighbouring tubes and
 refuses a count that would make them run into each other.
@@ -80,7 +87,7 @@ refuses a count that would make them run into each other.
 **A double-walled body reports more than two volumes, and that is
 correct**: the solid, the outside, and every sealed air pocket counted
 as its own enclosed void — 30 for 28 tubes, 3 for a continuous gap,
-and 75 for an insulated lid with its honeycomb. Only a single-wall pot
+75 for a lid insulated on top alone, 114 with its skirt as well. Only a single-wall pot
 should come out at two.
 
 ## Label holder

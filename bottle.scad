@@ -35,6 +35,8 @@ iso_wall = 1.2;   // paroi intérieure, celle qui touche le contenu
 iso_base = 4;     // hauteur pleine conservée en bas
 iso_lid  = true;  // isole AUSSI le dessus du bouchon : sans lui, tout
                   // repart par le couvercle dès qu'on ferme le pot
+iso_skirt = true; // ... et sa jupe, qui enveloppe le col sur toute la
+                  // hauteur filetée. La jupe s'épaissit d'autant.
 // Des tuyaux plutôt qu'une lame continue : les cloisons qui les
 // séparent lient les deux coques, le pot devient bien plus rigide, et
 // il n'y a plus un seul pont à franchir — ce ne sont que des trous
@@ -139,7 +141,12 @@ h_tot   = z_col + neck_h;            // hauteur totale du corps
 tours   = neck_h / thread_lead;      // nombre de tours de filet
 // couvercle
 lid_in_r = neck_r + thread_clear;                  // alésage
-lid_out_r = lid_in_r + thread_depth + lid_wall;    // rayon extérieur
+// rayon extérieur ; la jupe isolée s'épaissit de la lame et de sa peau
+lid_skin = (iso && iso_skirt) ? iso_gap + iso_wall : 0;
+lid_out_r = lid_in_r + thread_depth + lid_wall + lid_skin;
+// couronne des tuyaux de jupe, et leur nombre à cloison constante
+lid_tube_r = lid_in_r + thread_depth + lid_wall + iso_gap / 2;
+lid_tube_n = max(floor(2 * PI * lid_tube_r / (iso_gap + 1.6)), 4);
 // Le bouchon SUIT L'ÉPAULE : sa jupe se prolonge en CÔNE parallèle au
 // congé — épaisseur constante — jusqu'à venir affleurer le fût. Fermé,
 // la ligne monte du fût au dessus sans ressaut.
@@ -307,6 +314,15 @@ module couvercle() {
             translate([0, 0, lid_ceil + neck_h + lid_extra])
                 cylinder(r1 = lid_in_r, r2 = lid_in_r + ext * pente,
                          h = ext + 0.1);
+        // tuyaux de la jupe : mêmes puits verticaux que dans le fût,
+        // logés dans l'épaisseur ajoutée. Fermés en haut par le
+        // plafond, en bas par un bourrelet plein.
+        if (iso && iso_skirt)
+            for (i = [0 : lid_tube_n - 1])
+                rotate([0, 0, i * 360 / lid_tube_n])
+                    translate([lid_tube_r, 0, lid_ceil + 1])
+                        cylinder(d = iso_gap,
+                                 h = lid_h - ext - lid_ceil - 2.5, $fn = 16);
         // poches d'air du dessus, en nid d'abeilles entre les deux
         // peaux. Le bouchon s'imprime dessus en bas : chaque poche est
         // un petit puits, refermé par un pont de sa seule largeur.
