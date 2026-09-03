@@ -153,9 +153,15 @@ lid_tube_n = max(floor(2 * PI * lid_tube_r / (iso_gap + 1.6)), 4);
 // Une jupe cylindrique s'arrêtait net sur l'épaule ; en la faisant
 // simplement descendre, elle finissait en lame de couteau.
 pente    = (body_r - flute_d - neck_r) / max(shoulder_h, 0.01);
-ext      = pente > 0
+// La jupe descend sur TOUTE l'épaule : sinon il reste une bande nue
+// entre le haut des tuyaux du fût et le bas du bouchon, et c'est par
+// là que tout repart. Elle s'évase d'abord le long du congé, puis
+// descend droit au diamètre du fût.
+ext1     = pente > 0
            ? max(min((body_r - flute_d - lid_out_r) / pente, shoulder_h), 0)
            : 0;
+ext      = shoulder_h;
+ext2     = ext - ext1;
 // dessus du bouchon : plein, ou deux peaux avec des poches d'air
 lid_ceil = (iso && iso_lid) ? lid_top + iso_gap + iso_wall : lid_top;
 lid_h    = neck_h + lid_extra + lid_ceil + ext;
@@ -285,11 +291,14 @@ module couvercle() {
     difference() {
         union() {
             cylinder(r = lid_out_r, h = lid_h - ext);
-            // jupe conique, parallèle à l'épaule
-            if (ext > 0)
+            // évasement le long du congé, puis descente droite au ras
+            // du fût jusqu'à la base de l'épaule
+            if (ext1 > 0)
                 translate([0, 0, lid_h - ext])
-                    cylinder(r1 = lid_out_r, r2 = lid_out_r + ext * pente,
-                             h = ext);
+                    cylinder(r1 = lid_out_r, r2 = body_r - flute_d, h = ext1);
+            if (ext2 > 0)
+                translate([0, 0, lid_h - ext2])
+                    cylinder(r = body_r - flute_d, h = ext2);
             // stries de préhension
             if (knurl > 0)
                 for (i = [0 : knurl - 1])
@@ -322,7 +331,7 @@ module couvercle() {
                 rotate([0, 0, i * 360 / lid_tube_n])
                     translate([lid_tube_r, 0, lid_ceil + 1])
                         cylinder(d = iso_gap,
-                                 h = lid_h - ext - lid_ceil - 2.5, $fn = 16);
+                                 h = lid_h - ext - lid_ceil - 2, $fn = 16);
         // poches d'air du dessus, en nid d'abeilles entre les deux
         // peaux. Le bouchon s'imprime dessus en bas : chaque poche est
         // un petit puits, refermé par un pont de sa seule largeur.

@@ -81,6 +81,15 @@ lid grows by the gap plus a skin, 63.5 mm across instead of 55 on a
 starts to overhang. Both are switchable, and it says what turning one
 off costs.
 
+**The skirt comes all the way down the shoulder.** Stopping it where
+it met the body left a bare band between the top of the barrel's tubes
+and the bottom of the lid — a ring of single wall right where the two
+insulated parts were supposed to meet, and the shortest path out. It
+now flares along the fillet and then drops straight at the body's
+diameter to the shoulder's base, exactly where the tubes end: no gap
+left. The lid ends 1 mm inside the body, which reads as a shadow line
+rather than a step.
+
 The panel prints the **web** left between neighbouring tubes and
 refuses a count that would make them run into each other.
 
