@@ -40,7 +40,14 @@ iso_skirt = true; // ... et sa jupe, qui enveloppe le col sur toute la
 // Des tuyaux plutôt qu'une lame continue : les cloisons qui les
 // séparent lient les deux coques, le pot devient bien plus rigide, et
 // il n'y a plus un seul pont à franchir — ce ne sont que des trous
-// verticaux. L'air reste piégé, colonne par colonne.
+// verticaux.
+// Deux usages opposés, un seul dessin :
+//   iso_vent = false -> tuyaux fermés, l'air est piégé : ça ISOLE.
+//   iso_vent = true  -> ouverts en haut et en bas : l'air chaud monte
+//                       et tire du frais par le bas, ça REFROIDIT.
+// L'un n'est pas une variante de l'autre, c'est le contraire.
+iso_vent   = true;  // cheminées ouvertes plutôt qu'air piégé
+iso_vent_h = 5;     // hauteur des ouvertures, en haut et en bas
 
 // --- Épaule et col -----------------------------------------
 shoulder_h = 10;  // hauteur du congé entre le fût et le col
@@ -280,6 +287,17 @@ module corps_brut() {
                         translate([0, 0, -1])
                             cylinder(r = use_r + iso_wall, h = hi + 2);
                     }
+            // Ouvertures de tirage : une fenêtre au pied et une sous
+            // l'épaule, percées vers l'extérieur. Leur linteau est un
+            // pont de leur seule largeur, l'impression n'y bute pas.
+            if (iso_vent && iso_n > 0)
+                for (i = [0 : iso_n - 1])
+                    rotate([0, 0, i * 360 / iso_n])
+                        for (z0 = [floor_t + iso_base,
+                                   z_ep - iso_vent_h - 0.5])
+                            translate([in_r - iso_gap, -iso_gap / 2, z0])
+                                cube([body_r - in_r + iso_gap + 2,
+                                      iso_gap, iso_vent_h]);
         }
     }
 }

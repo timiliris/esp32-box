@@ -37,69 +37,63 @@ starts on a 6 mm lead gives 0.9 mm, which is why the defaults moved to
 a **10 mm lead**: same three starts, same 120° to open, but 1.5 mm of
 thread. A coarse pitch beats a fine one here.
 
-## Double wall
+## Double wall — two opposite uses
 
-*Double wall* seals air between two shells, thermos style. By default
-it is a ring of **vertical tubes** rather than one continuous gap: the
-webs between them tie the two shells together, so the pot stays stiff,
-and there is not a single bridge to cross — they are only holes. Set
-*Number of tubes* to 0 for a plain continuous gap.
+The same ring of vertical tubes serves two purposes that are the
+reverse of each other, and one switch picks which:
 
-The insulation runs on the **sides only**. Under the floor it would ask the
-printer to bridge the whole width of the pot in mid-air, which nothing
-can do — and the sides are where most of the heat leaves anyway. At
-the top the shoulder closes the gap: that ceiling is a bridge only as
-wide as the gap itself, a few millimetres, which the nozzle crosses
-without a thought. At the bottom, *Solid base* keeps a plinth under
-the inner shell so it has something to stand on.
+- **Sealed** (*Open chimneys* off) — the air is trapped, column by
+  column. That **insulates**.
+- **Chimneys** (*Open chimneys* on) — a window at the foot of each
+  tube and another under the shoulder. Warm air rises and leaves at
+  the top, drawing cool air in at the bottom. That **cools**.
+
+Do not expect one to do the other's job: moving air carries heat away,
+which is exactly what an insulating flask must prevent. The panel says
+so if chimneys are combined with an insulated lid.
+
+Tubes rather than one continuous gap, in both cases: the webs between
+them tie the two shells together, so the pot stays stiff, and there is
+not a single bridge to cross — they are only holes. Set *Number of
+tubes* to 0 for a plain continuous gap (sealed only).
+
+The wall work runs on the **sides only**. Under the floor it would ask
+the printer to bridge the whole width of the pot in mid-air, which
+nothing can do. At the top the shoulder closes it; at the bottom,
+*Solid base* keeps a plinth under the inner shell.
 
 | | |
 |---|---|
+| Open chimneys | draught rather than trapped air |
+| Opening height | the windows top and bottom, 5 mm |
 | Number of tubes | 28 by default; 0 gives a continuous gap |
 | Tube diameter | 3 mm default; under 2 they close up when printed |
 | Inner wall | the one the contents touch |
-| Solid base | plinth kept under the gap |
+| Solid base | plinth kept under the tubes |
 
-It costs volume: a Ø 70 jar drops from 321 ml to 239. The panel
-recomputes as you type, and the section draws both shells.
+It costs volume either way: a Ø 70 jar drops from 321 ml to 239.
 
-All three views show them: the section in dashed outline, the top view
-tube by tube, and the 3D **through the wall** — they are internal, so
-they are drawn in transparency rather than left out.
-
-**The lid is insulated too**, and it has to be: closed, a plain 2.4 mm
-top plate throws away most of what the walls just saved. Its ceiling
-becomes two skins with a honeycomb of air pockets between them —
-little wells, each capped by a bridge no wider than itself, so the lid
-still prints face-down with nothing to support.
-
-**And so is its skirt** — the part that wraps the whole threaded neck,
-and the obvious leak once the top is dealt with. It gets the same
-vertical tubes as the barrel, in a band added outside the thread: the
-lid grows by the gap plus a skin, 63.5 mm across instead of 55 on a
-Ø 70 pot, which still tucks under the body. The panel warns if it
-starts to overhang. Both are switchable, and it says what turning one
-off costs.
+**The lid can be insulated too** — its ceiling becomes two skins with a
+honeycomb of air pockets, and its skirt gets the same vertical tubes
+as the barrel, in a band added outside the thread. On a Ø 70 pot the
+lid grows from Ø 55 to Ø 63.5, which still tucks under the body. Both
+are switchable. They belong with the sealed mode, not with chimneys.
 
 **The skirt comes all the way down the shoulder.** Stopping it where
 it met the body left a bare band between the top of the barrel's tubes
 and the bottom of the lid — a ring of single wall right where the two
-insulated parts were supposed to meet, and the shortest path out. It
-now flares along the fillet and then drops straight at the body's
-diameter to the shoulder's base, exactly where the tubes end: no gap
-left. The lid ends 1 mm inside the body, which reads as a shadow line
-rather than a step.
+insulated parts were supposed to meet. It now flares along the fillet
+and then drops straight at the body's diameter to the shoulder's base,
+exactly where the tubes end. The lid ends 1 mm inside the body, which
+reads as a shadow line rather than a step.
 
-The panel prints the **web** left between neighbouring tubes and
-refuses a count that would make them run into each other.
+**Count the volumes to know which mode you got.** Sealed pockets each
+count as an enclosed void: 30 for 28 sealed tubes, 3 for a continuous
+gap, 114 for a fully insulated lid. **Open chimneys bring it back to
+2** — everything is one connected solid again. It is the quickest
+check that the openings really broke through.
 
-**A double-walled body reports more than two volumes, and that is
-correct**: the solid, the outside, and every sealed air pocket counted
-as its own enclosed void — 30 for 28 tubes, 3 for a continuous gap,
-75 for a lid insulated on top alone, 114 with its skirt as well. Only a single-wall pot
-should come out at two.
-
-## Label holder
+## Label holder## Label holder
 
 A flat is planed into the barrel and a frame sits on it. The tongue
 **slides in from the top** — the slot is open up there, so nothing

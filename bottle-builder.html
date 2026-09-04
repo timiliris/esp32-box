@@ -312,6 +312,8 @@ const CHAMPS = [
     ['iso_gap',  'Ø d’un tuyau',       1,  20, 0.5],
     ['iso_wall', 'Paroi intérieure', 0.6,  5, 0.2],
     ['iso_base', 'Assise pleine',      1, 40, 0.5],
+    ['iso_vent', 'Cheminées ouvertes (0/1)', 0, 1, 1],
+    ['iso_vent_h','Haut. des ouvertures',  2, 30, 0.5],
     ['iso_lid',  'Isoler le dessus (0/1)',  0, 1, 1],
     ['iso_skirt','Isoler la jupe (0/1)',    0, 1, 1],
   ]],
@@ -346,7 +348,7 @@ const CHAMPS = [
 const DEFAUT = () => ({
   body_d: 70, body_h: 100, wall: 2, floor_t: 2.4, base_ch: 1,
   flutes: 12, flute_d: 2.2, flute_w: 5, flute_bot: 12, flute_top: 10, twist: 220,
-  iso: 0, iso_n: 28, iso_gap: 3, iso_wall: 1.2, iso_base: 4, iso_lid: 1, iso_skirt: 1,
+  iso: 0, iso_n: 28, iso_gap: 3, iso_wall: 1.2, iso_base: 4, iso_vent: 1, iso_vent_h: 5, iso_lid: 1, iso_skirt: 1,
   shoulder_h: 10, neck_d: 46, neck_h: 18,
   thread_lead: 10, thread_depth: 1.8, thread_starts: 3, thread_clear: 0.35,
   label: 0, label_w: 22, label_h: 76, label_card: 1.2, label_front: 1.2,
@@ -356,8 +358,12 @@ const DEFAUT = () => ({
 
 const MODELES = {
   'Bocal cannelé': { },
-  'Isotherme double paroi': { iso: 1, iso_n: 32, iso_gap: 3.5, iso_wall: 1.2, body_d: 80,
-                              body_h: 120, neck_d: 46, flutes: 0, twist: 0 },
+  'Isotherme, air piégé': { iso: 1, iso_vent: 0, iso_n: 32, iso_gap: 3.5,
+                            iso_wall: 1.2, body_d: 80, body_h: 120,
+                            neck_d: 46, flutes: 0, twist: 0 },
+  'Ventilé, cheminées': { iso: 1, iso_vent: 1, iso_lid: 0, iso_skirt: 0,
+                          iso_n: 32, iso_gap: 3.5, iso_wall: 1.2, body_d: 80,
+                          body_h: 120, neck_d: 46, flutes: 0, twist: 0 },
   'Bouteille élancée': { body_d: 58, body_h: 150, flutes: 18, flute_d: 1.6,
                          flute_w: 4, flute_bot: 18, flute_top: 16, twist: 320,
                          neck_d: 34, shoulder_h: 26,
@@ -433,7 +439,12 @@ function alertes(c) {
     out.push(['dur', `Il ne reste rien au contenu : Ø ${e.body_d} moins la paroi, la lame de ${e.iso_gap} et la paroi intérieure de ${e.iso_wall}.`]);
   if (e.iso && e.iso_skirt && c.lid_out_r > c.body_r - e.flute_d + 0.5)
     out.push(['mou', `Jupe isolée : le bouchon atteint Ø ${r1(2 * c.lid_out_r)} et déborde du fût (Ø ${r1(2 * (c.body_r - e.flute_d))}). Réduis la lame ou élargis le pot.`]);
-  if (e.iso && !e.iso_lid)
+  // le point qu'il faut dire une fois : ouvert, ça ne conserve rien
+  if (e.iso && e.iso_vent && (e.iso_lid || e.iso_skirt))
+    out.push(['mou', `Cheminées ouvertes ET bouchon isolé : l’un évacue la chaleur, l’autre la retient. Choisis — soit tu refroidis, soit tu conserves.`]);
+  if (e.iso && e.iso_vent && e.iso_n <= 0)
+    out.push(['dur', `Les cheminées ont besoin de tuyaux : une lame continue ne se perce pas en haut et en bas.`]);
+  if (e.iso && !e.iso_vent && !e.iso_lid)
     out.push(['mou', `Bouchon non isolé : fermé, la chaleur repartira par le dessus et la double paroi ne servira qu’à moitié.`]);
   if (e.iso && e.iso_base < 2)
     out.push(['mou', `Assise de ${e.iso_base} sous la lame : trop mince, le fond ne portera pas la paroi intérieure.`]);
@@ -630,9 +641,16 @@ function figCoupe(c) {
   let g = `<svg viewBox="0 0 ${r1(w)} ${r1(h)}" width="${r1(w)}" height="${r1(h)}">`;
   g += `<polygon points="${P(plein)}" fill="rgba(127,199,255,.20)" stroke="#7fc7ff" stroke-width="1.4"/>`;
   g += `<polygon points="${P(creux)}" fill="var(--panel2)" stroke="#7fc7ff" stroke-width="1"/>`;
-  // lame d'air, des deux côtés
+  // lame d'air ou cheminées, des deux côtés
   if (e.iso) {
     const zA = e.floor_t + e.iso_base, zB = c.z_ep;
+    // les ouvertures de tirage, en haut et en bas
+    if (e.iso_vent && e.iso_n > 0)
+      for (const s3 of [1, -1])
+        for (const z0 of [zA, zB - e.iso_vent_h - 0.5])
+          g += `<polygon points="${P([[s3 * (c.in_r - e.iso_gap), z0], [s3 * (c.body_r + 0.5), z0],
+                                      [s3 * (c.body_r + 0.5), z0 + e.iso_vent_h], [s3 * (c.in_r - e.iso_gap), z0 + e.iso_vent_h]])}" ` +
+               `fill="var(--panel2)" stroke="#69d2a0" stroke-width="1"/>`;
     for (const s2 of [1, -1])
       g += `<polygon points="${P([[s2 * (c.rMid - e.iso_gap / 2), zA], [s2 * (c.rMid + e.iso_gap / 2), zA],
                                   [s2 * (c.rMid + e.iso_gap / 2), zB], [s2 * (c.rMid - e.iso_gap / 2), zB]])}" ` +
@@ -777,6 +795,8 @@ function rendre(refaire = true) {
     `<div class="bb-stat"><b>${r1(c.tours)}</b><span>tours de filet</span></div>` +
     `<div class="bb-stat"><b>${r1(360 / etat.thread_starts)}°</b><span>pour ouvrir</span></div>` +
     `<div class="bb-stat"><b>${r1(c.fil_ep)} mm</b><span>épaisseur du filet</span></div>` +
+    (etat.iso
+      ? `<div class="bb-stat"><b>${etat.iso_vent ? 'tirage' : 'isolant'}</b><span>${etat.iso_vent ? 'l’air circule' : 'l’air est piégé'}</span></div>` : '') +
     (etat.iso && etat.iso_n > 0
       ? `<div class="bb-stat"><b>${r1(c.cloison)} mm</b><span>cloison entre tuyaux</span></div>` : '') +
     (etat.iso && etat.iso_skirt
